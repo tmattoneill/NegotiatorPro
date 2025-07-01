@@ -1,0 +1,7 @@
+{
+  "admin_password_hash": "88d79307e873d7903d84bcc762589a46b5e9c0795d4c3e252c1f5c38ec96b82b",
+  "system_prompt": "",
+  "default_user_prompt": "",
+  "session_duration_hours": 24,
+  "max_upload_size_mb": 50
+}
