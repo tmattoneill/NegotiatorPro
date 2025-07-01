@@ -81,3 +81,7 @@ docs/_build/
 # Temporary files
 *.tmp
 *.temp
+
+# SRC Files
+.sources/*.pdf
+./sources/

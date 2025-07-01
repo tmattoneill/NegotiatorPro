@@ -1,0 +1,7 @@
+{
+  "current_model": "text-embedding-3-large",
+  "vectorstore_model": "text-embedding-3-large",
+  "vectorstore_created": null,
+  "auto_detect": true,
+  "fallback_model": "text-embedding-ada-002"
+}

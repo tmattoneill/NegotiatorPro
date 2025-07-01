@@ -19,6 +19,7 @@ from datetime import datetime
 # Import our admin components
 from admin_config import AdminConfig
 from document_manager import DocumentManager
+from embedding_config import EmbeddingConfig
 
 # Set up detailed logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -73,6 +74,7 @@ class EnhancedNegotiationRAG:
         self.premium_qa_chain = None
         self.admin_config = AdminConfig()
         self.document_manager = DocumentManager()
+        self.embedding_config = EmbeddingConfig()
         
     def load_documents(self):
         """Load and process PDF documents"""
@@ -151,7 +153,9 @@ class EnhancedNegotiationRAG:
         
         try:
             logger.info("Initializing OpenAI embeddings...")
-            embeddings = OpenAIEmbeddings()
+            embedding_kwargs = self.embedding_config.get_embedding_kwargs()
+            embeddings = OpenAIEmbeddings(**embedding_kwargs)
+            logger.info(f"Using embedding model: {embedding_kwargs.get('model')}")
             
             logger.info(f"Creating FAISS vectorstore from {len(chunks)} chunks...")
             vectorstore = FAISS.from_documents(chunks, embeddings)
@@ -178,7 +182,9 @@ class EnhancedNegotiationRAG:
         """Load vectorstore from disk"""
         try:
             logger.info("Attempting to load existing vectorstore...")
-            embeddings = OpenAIEmbeddings()
+            embedding_kwargs = self.embedding_config.get_embedding_kwargs()
+            embeddings = OpenAIEmbeddings(**embedding_kwargs)
+            logger.info(f"Loading vectorstore with embedding model: {embedding_kwargs.get('model')}")
             self.vectorstore = FAISS.load_local("vectorstore", embeddings, allow_dangerous_deserialization=True)
             logger.info("Vector store loaded successfully from disk")
             return True
@@ -290,6 +296,17 @@ Provide comprehensive negotiation guidance:"""
         logger.info("Starting RAG system setup...")
         setup_start = time.time()
         
+        # Check embedding configuration compatibility
+        compatibility = self.embedding_config.validate_compatibility()
+        if not compatibility["compatible"]:
+            logger.error("Embedding configuration incompatible!")
+            for error in compatibility["errors"]:
+                logger.error(f"  • {error}")
+            logger.warning("Recommend rebuilding vectorstore with correct model")
+        
+        # Log current configuration
+        logger.info(f"Embedding config: {self.embedding_config.get_current_model()}")
+        
         # Try to load existing vectorstore first
         if not self.load_vectorstore():
             logger.info("Creating new vectorstore...")
@@ -327,11 +344,43 @@ Provide comprehensive negotiation guidance:"""
             # Log usage (simplified - in production you'd get actual token counts)
             self.admin_config.log_usage(model_name, 1000)  # Placeholder token count
             
-            response = qa_chain.invoke({"query": question})
-            return response["result"] if isinstance(response, dict) else str(response)
+            # Debug: Check what input format the chain expects
+            logger.info(f"Attempting to invoke QA chain with question: {question[:100]}...")
+            
+            # Try different input formats based on LangChain version
+            try:
+                # Method 1: Direct string (newer LangChain)
+                response = qa_chain.invoke({"query": question})
+                logger.info("Successfully used invoke with dict format")
+            except Exception as e1:
+                logger.warning(f"Dict format failed: {e1}")
+                try:
+                    # Method 2: Direct string
+                    response = qa_chain.invoke(question)
+                    logger.info("Successfully used invoke with string format")
+                except Exception as e2:
+                    logger.warning(f"String format failed: {e2}")
+                    try:
+                        # Method 3: Legacy run method
+                        response = qa_chain.run(question)
+                        logger.info("Successfully used legacy run method")
+                    except Exception as e3:
+                        logger.error(f"All methods failed. Dict error: {e1}, String error: {e2}, Run error: {e3}")
+                        raise e3
+            
+            # Handle response
+            if isinstance(response, dict):
+                return response.get("result", str(response))
+            else:
+                return str(response)
+                
         except Exception as e:
-            logger.error(f"Error getting advice: {e}")
-            return f"Error getting advice: {str(e)}"
+            import traceback
+            logger.error(f"Error getting advice: {repr(e)}")
+            logger.error(f"Error type: {type(e)}")
+            logger.error(f"Error args: {e.args}")
+            logger.error(f"Full traceback: {traceback.format_exc()}")
+            return f"Error getting advice: {repr(e)}"
 
 # Initialize the enhanced RAG system
 rag_system = EnhancedNegotiationRAG()
@@ -452,6 +501,13 @@ Model Breakdown:"""
         
         return summary
     
+    def get_embedding_status(session_id):
+        """Get embedding configuration status"""
+        if not check_admin_session(session_id):
+            return "Session expired. Please log in again."
+        
+        return rag_system.embedding_config.get_status_report()
+    
     def change_admin_password(current_password, new_password, confirm_password, session_id):
         """Change admin password"""
         if not check_admin_session(session_id):
@@ -541,6 +597,14 @@ Model Breakdown:"""
                     lines=15,
                     interactive=False
                 )
+                
+                gr.Markdown("### Embedding Configuration")
+                refresh_embedding_btn = gr.Button("Check Embedding Status")
+                embedding_status = gr.Textbox(
+                    label="Embedding Status",
+                    lines=10,
+                    interactive=False
+                )
             
             # Admin Settings
             with gr.Tab("Admin Settings"):
@@ -591,6 +655,7 @@ Model Breakdown:"""
     
     # Usage stats
     refresh_stats_btn.click(get_usage_stats, inputs=[session_state], outputs=[usage_display])
+    refresh_embedding_btn.click(get_embedding_status, inputs=[session_state], outputs=[embedding_status])
     
     # Password change
     change_pwd_btn.click(

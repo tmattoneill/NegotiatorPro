@@ -8,7 +8,7 @@ This is a RAG (Retrieval-Augmented Generation) system that provides expert negot
 
 ## Core Architecture
 
-**Main Application**: `negotiation_advisor.py` contains the complete RAG pipeline:
+**Main Application**: `main.py` contains the complete RAG pipeline with admin interface:
 
 - **ModelConfig**: Middleware class that handles model-specific parameters (e.g., o3-mini doesn't support temperature)
 - **NegotiationRAG**: Core RAG system that processes PDFs, creates embeddings, and manages QA chains
@@ -43,7 +43,10 @@ OPENAI_API_KEY=your_api_key_here
 **Run Application**:
 ```bash
 source .venv/bin/activate
-python negotiation_advisor.py
+python main.py
+
+# Or use the startup script:
+./run.sh
 ```
 
 **Test PDF Loading**:
@@ -68,7 +71,7 @@ python test_rag.py
 
 ## File Structure
 
-- `negotiation_advisor.py` - Main application with RAG system and Gradio UI
+- `main.py` - Main application with RAG system, Gradio UI, and admin panel
 - `sources/` - PDF documents for RAG knowledge base
 - `vectorstore/` - Persisted FAISS embeddings (auto-generated)
 - `requirements.txt` - Python dependencies
