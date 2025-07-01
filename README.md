@@ -1,16 +1,26 @@
-# 🤝 Negotiation Advisor - AI-Powered RAG System
+# 🤝 NegotiatorPro
 
-An intelligent negotiation guidance system that provides expert advice by analyzing a curated library of negotiation books and resources. Built with advanced RAG (Retrieval-Augmented Generation) technology, featuring both user and admin interfaces.
+An AI-powered negotiation advisor that leverages expert knowledge from leading negotiation books to provide personalized guidance. Built with advanced RAG (Retrieval-Augmented Generation) technology and intelligent text preprocessing for optimal performance.
 
-## ✨ Key Features
+## ✨ Features
 
-- **🧠 Expert AI Guidance**: Leverages content from leading negotiation books including "Getting to Yes", "Never Split the Difference", and more
-- **🔄 Dual Model Support**: Choose between gpt-4o-mini (fast, cost-effective) and o3-mini (advanced reasoning)
-- **📚 Multi-Format Support**: Process PDF, DOCX, TXT, and DOC files
-- **🔧 Admin Dashboard**: Complete administrative control with secure authentication
-- **📊 Usage Analytics**: Track API usage, costs, and performance metrics
-- **⚡ Smart Vectorstore**: Intelligent embedding model compatibility and auto-detection
-- **🌐 Web Interface**: User-friendly Gradio interface with example questions
+### 🎯 **Core Functionality**
+- **Expert Negotiation Guidance**: Draws from "Getting to Yes", "Never Split the Difference", and other proven negotiation frameworks
+- **Dual AI Models**: Choose between gpt-4o-mini (fast, cost-effective) and o3-mini (advanced reasoning)
+- **Smart Text Optimization**: Reduces token usage by up to 68% while preserving negotiation context
+- **Comprehensive Analysis**: Provides detailed breakdowns, draft responses, calibrated questions, and scenario planning
+
+### 🛠️ **Advanced Features**
+- **Intelligent Preprocessing**: Removes email signatures, footers, legal disclaimers, and fluff
+- **Context-Aware**: Preserves critical negotiation elements (emotions, numbers, commitments, deadlines)
+- **Real-time Statistics**: Track token usage, cost savings, and optimization results
+- **Admin Dashboard**: Full system management and prompt customization
+
+### 📊 **Text Optimization Engine**
+- **Email Content Cleaning**: Removes signatures, footers, forwarding headers
+- **Legal Boilerplate Removal**: Strips confidentiality notices and disclaimers
+- **Smart Stop Word Removal**: Context-aware filtering that preserves meaning
+- **Negotiation-Critical Preservation**: Never removes prices, emotions, deadlines, or commitments
 
 ## 🚀 Quick Start
 
