@@ -1,16 +1,16 @@
 {
   "2025-07-01": {
-    "total_tokens": 6000,
+    "total_tokens": 11000,
     "total_cost": 0.0,
     "models": {
       "o3-mini": {
-        "tokens": 2000,
-        "requests": 2,
+        "tokens": 4000,
+        "requests": 4,
         "cost": 0.0
       },
       "gpt-4o-mini": {
-        "tokens": 4000,
-        "requests": 4,
+        "tokens": 7000,
+        "requests": 7,
         "cost": 0.0
       }
     }

@@ -20,6 +20,8 @@ from datetime import datetime
 from admin_config import AdminConfig
 from document_manager import DocumentManager
 from embedding_config import EmbeddingConfig
+from text_preprocessor import TextPreprocessor
+from prompt_manager import PromptManager
 
 # Set up detailed logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -75,6 +77,8 @@ class EnhancedNegotiationRAG:
         self.admin_config = AdminConfig()
         self.document_manager = DocumentManager()
         self.embedding_config = EmbeddingConfig()
+        self.text_preprocessor = TextPreprocessor()
+        self.prompt_manager = PromptManager()
         
     def load_documents(self):
         """Load and process PDF documents"""
@@ -215,8 +219,8 @@ class EnhancedNegotiationRAG:
             self.vectorstore = self.create_vectorstore(chunks)
             self.save_vectorstore()
             
-            # Recreate QA chains
-            self.setup_qa_chains()
+            # Recreate LLM instances
+            self.setup_llms()
             
             return {
                 "success": True,
@@ -230,66 +234,36 @@ class EnhancedNegotiationRAG:
                 "message": f"Error regenerating vectorstore: {str(e)}"
             }
     
-    def get_system_prompt(self):
-        """Get the current system prompt"""
-        custom_prompt = self.admin_config.get_system_prompt()
-        if custom_prompt:
-            return custom_prompt
-        
-        # Default system prompt
-        return """You are a skilled sales negotiator and expert advisor, leveraging principles from mainstream negotiation books like 'Getting Past No', 'The Upward Spiral', 'Getting to Yes', 'Never Split the Difference', and 'How to Win Friends and Influence People.' You carefully analyze client communications to craft empathetic yet assertive responses.
-
-Your goal is to find win-win solutions while ensuring the best outcomes for the user. You prioritize understanding the client's needs and concerns, and help apply negotiation strategies like building rapport, uncovering underlying interests, and leveraging tactical empathy. You must avoid being overly aggressive or dismissive of client positions, always focusing on maintaining positive relationships while negotiating favorable terms.
-
-Context from negotiation materials:
-{context}
-
-Negotiation Question: {question}
-
-Each response MUST include:
-• A detailed breakdown of the negotiation so far and piece-by-piece analysis of the client's communication
-• A fully composed draft response to the client when appropriate
-• A bullet list of calibrated questions to use in the negotiation
-• Potential client responses and suggested actions for each scenario
-• PLEASE Framework self-assessment (Polite, Logical, Empathetic, Assertive, Strategic, Engaging - score each /5)
-
-Your responses must be POLITE, LOGICAL, EMPATHETIC, ASSERTIVE, STRATEGIC, and ENGAGING. The tone should remain professional but non-formal to foster ease and approachability.
-
-Provide comprehensive negotiation guidance:"""
+    def get_relevant_context(self, question: str, k: int = 5) -> str:
+        """Retrieve relevant context from vectorstore for the given question"""
+        try:
+            if not self.vectorstore:
+                return "No knowledge base available."
+            
+            retriever = self.vectorstore.as_retriever(search_kwargs={"k": k})
+            relevant_docs = retriever.invoke(question)
+            
+            # Combine retrieved documents into context
+            context_parts = []
+            for i, doc in enumerate(relevant_docs):
+                context_parts.append(f"Source {i+1}: {doc.page_content}")
+            
+            return "\n\n".join(context_parts) if context_parts else "No relevant context found."
+            
+        except Exception as e:
+            logger.error(f"Error retrieving context: {e}")
+            return "Error retrieving context from knowledge base."
     
-    def setup_qa_chains(self):
-        """Setup QA chains with current prompt"""
-        logger.info("Setting up QA chains...")
+    def setup_llms(self):
+        """Setup LLM instances for both models"""
+        logger.info("Setting up LLM instances...")
         
-        prompt_template = self.get_system_prompt()
-        PROMPT = PromptTemplate(
-            template=prompt_template,
-            input_variables=["context", "question"]
-        )
-        
-        # Create QA chains for both models with model-specific parameters
+        # Create LLM instances for both models with model-specific parameters
         default_config = ModelConfig.get_model_kwargs("gpt-4o-mini")
         premium_config = ModelConfig.get_model_kwargs("o3-mini")
         
         self.default_llm = ChatOpenAI(**default_config)
         self.premium_llm = ChatOpenAI(**premium_config)
-        
-        retriever = self.vectorstore.as_retriever(search_kwargs={"k": 5})
-        chain_kwargs = {"prompt": PROMPT}
-        
-        self.default_qa_chain = RetrievalQA.from_chain_type(
-            llm=self.default_llm,
-            chain_type="stuff",
-            retriever=retriever,
-            chain_type_kwargs=chain_kwargs
-        )
-        
-        self.premium_qa_chain = RetrievalQA.from_chain_type(
-            llm=self.premium_llm,
-            chain_type="stuff",
-            retriever=retriever,
-            chain_type_kwargs=chain_kwargs
-        )
     
     def setup_system(self):
         """Initialize the RAG system"""
@@ -320,57 +294,61 @@ Provide comprehensive negotiation guidance:"""
                 logger.warning("No documents found, vectorstore not created")
                 return
         
-        self.setup_qa_chains()
+        self.setup_llms()
         
         setup_end = time.time()
         logger.info(f"RAG system setup complete in {setup_end-setup_start:.2f}s!")
     
-    def get_advice(self, question, use_premium_model=False):
-        """Get negotiation advice based on the question"""
-        if not hasattr(self, 'default_qa_chain') or not hasattr(self, 'premium_qa_chain'):
+    def get_advice(self, question, use_premium_model=False, use_preprocessing=True):
+        """Get negotiation advice based on the question using proper chat completion"""
+        if not hasattr(self, 'default_llm') or not hasattr(self, 'premium_llm'):
             return "System not initialized properly. Please check if documents are loaded."
         
+        # Preprocess the question if enabled
+        preprocessing_info = None
+        if use_preprocessing and len(question.strip()) > 100:  # Only preprocess longer texts
+            preprocessing_result = self.text_preprocessor.preprocess(question)
+            question = preprocessing_result['processed_text']
+            preprocessing_info = preprocessing_result
+            logger.info(f"Preprocessing saved {preprocessing_result['tokens_saved']} tokens ({preprocessing_result['reduction_percentage']:.1f}% reduction)")
+        
         try:
-            # Select appropriate QA chain based on model choice
+            # Select appropriate LLM based on model choice
             if use_premium_model:
-                qa_chain = self.premium_qa_chain
+                llm = self.premium_llm
                 model_name = "o3-mini"
                 logger.info("Using o3-mini model for this query")
             else:
-                qa_chain = self.default_qa_chain
+                llm = self.default_llm
                 model_name = "gpt-4o-mini"
                 logger.info("Using gpt-4o-mini model for this query")
+            
+            # Get relevant context from vectorstore
+            context = self.get_relevant_context(question)
+            
+            # Get system and user prompts from prompt manager
+            system_prompt, user_prompt = self.prompt_manager.get_prompts_for_chat(
+                question=question, 
+                context=context
+            )
+            
+            # Create messages for chat completion
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ]
+            
+            logger.info(f"Sending chat completion request with {len(system_prompt)} char system prompt and {len(user_prompt)} char user prompt")
+            
+            # Call the LLM with proper chat format
+            response = llm.invoke(messages)
             
             # Log usage (simplified - in production you'd get actual token counts)
             self.admin_config.log_usage(model_name, 1000)  # Placeholder token count
             
-            # Debug: Check what input format the chain expects
-            logger.info(f"Attempting to invoke QA chain with question: {question[:100]}...")
-            
-            # Try different input formats based on LangChain version
-            try:
-                # Method 1: Direct string (newer LangChain)
-                response = qa_chain.invoke({"query": question})
-                logger.info("Successfully used invoke with dict format")
-            except Exception as e1:
-                logger.warning(f"Dict format failed: {e1}")
-                try:
-                    # Method 2: Direct string
-                    response = qa_chain.invoke(question)
-                    logger.info("Successfully used invoke with string format")
-                except Exception as e2:
-                    logger.warning(f"String format failed: {e2}")
-                    try:
-                        # Method 3: Legacy run method
-                        response = qa_chain.run(question)
-                        logger.info("Successfully used legacy run method")
-                    except Exception as e3:
-                        logger.error(f"All methods failed. Dict error: {e1}, String error: {e2}, Run error: {e3}")
-                        raise e3
-            
-            # Handle response
-            if isinstance(response, dict):
-                return response.get("result", str(response))
+            # Extract content from response
+            if hasattr(response, 'content'):
+                return response.content
             else:
                 return str(response)
                 
@@ -407,31 +385,30 @@ def create_admin_interface_content():
         if not check_admin_session(session_id):
             return "Session expired. Please log in again."
         
-        rag_system.admin_config.set_system_prompt(prompt)
-        # Recreate QA chains with new prompt
-        if rag_system.vectorstore:
-            rag_system.setup_qa_chains()
+        rag_system.prompt_manager.update_system_prompt(prompt)
         return "System prompt saved successfully"
     
     def get_system_prompt(session_id):
         """Get current system prompt"""
         if not check_admin_session(session_id):
             return "Session expired. Please log in again."
-        return rag_system.get_system_prompt()
+        prompts = rag_system.prompt_manager.get_raw_prompts()
+        return prompts.get("system", "")
     
     def save_user_prompt(prompt, session_id):
-        """Save default user prompt"""
+        """Save user prompt template"""
         if not check_admin_session(session_id):
             return "Session expired. Please log in again."
         
-        rag_system.admin_config.set_default_user_prompt(prompt)
-        return "Default user prompt saved successfully"
+        rag_system.prompt_manager.update_user_prompt(prompt)
+        return "User prompt template saved successfully"
     
     def get_user_prompt(session_id):
-        """Get default user prompt"""
+        """Get current user prompt template"""
         if not check_admin_session(session_id):
             return "Session expired. Please log in again."
-        return rag_system.admin_config.get_default_user_prompt()
+        prompts = rag_system.prompt_manager.get_raw_prompts()
+        return prompts.get("user", "")
     
     def upload_document(files, session_id):
         """Handle document upload"""
@@ -544,21 +521,23 @@ Model Breakdown:"""
             # System Configuration
             with gr.Tab("System Config"):
                 gr.Markdown("### System Prompt Configuration")
+                gr.Markdown("*System prompt defines the AI's role, expertise, and instructions. Use {context} placeholder for knowledge base content.*")
                 system_prompt_text = gr.Textbox(
-                    label="System Prompt",
+                    label="System Prompt Template",
                     lines=15,
-                    placeholder="Enter the system prompt for the AI..."
+                    placeholder="Enter the system prompt template (use {context} for knowledge base content)..."
                 )
                 with gr.Row():
                     load_system_btn = gr.Button("Load Current")
                     save_system_btn = gr.Button("Save", variant="primary")
                 system_status = gr.Textbox(label="Status", interactive=False)
                 
-                gr.Markdown("### Default User Prompt")
+                gr.Markdown("### User Prompt Template")
+                gr.Markdown("*User prompt template formats the user's question. Use {question} placeholder for the user's input.*")
                 user_prompt_text = gr.Textbox(
-                    label="Default User Prompt",
+                    label="User Prompt Template",
                     lines=5,
-                    placeholder="Enter default user prompt..."
+                    placeholder="Enter user prompt template (use {question} for the user's input)..."
                 )
                 with gr.Row():
                     load_user_btn = gr.Button("Load Current")
@@ -667,7 +646,7 @@ Model Breakdown:"""
 def create_main_interface_content():
     """Create main user interface content"""
     
-    def negotiate_advisor(question, partner_context="", use_premium=False):
+    def negotiate_advisor(question, partner_context="", use_premium=False, use_preprocessing=True):
         """Main function for the Gradio interface"""
         # Apply default user prompt if configured
         default_prompt = rag_system.admin_config.get_default_user_prompt()
@@ -680,18 +659,33 @@ def create_main_interface_content():
             enhanced_question = question
         
         if not enhanced_question.strip():
-            return "Please enter a negotiation question.", "Ready: Please enter a question"
+            return "Please enter a negotiation question.", "Ready: Please enter a question", ""
         
         # Update model status
         model_name = "o3-mini" if use_premium else "gpt-4o-mini"
         status = f"Processing with {model_name}..."
         
-        advice = rag_system.get_advice(enhanced_question, use_premium_model=use_premium)
+        # Get advice with preprocessing option
+        advice = rag_system.get_advice(enhanced_question, use_premium_model=use_premium, use_preprocessing=use_preprocessing)
+        
+        # Generate preprocessing stats if preprocessing was used
+        preprocessing_stats = ""
+        if use_preprocessing and len(enhanced_question.strip()) > 100:
+            try:
+                preprocessing_result = rag_system.text_preprocessor.preprocess(enhanced_question)
+                preprocessing_stats = f"""📊 **Text Optimization Results:**
+- Original tokens: {preprocessing_result['original_tokens']:,}
+- Optimized tokens: {preprocessing_result['processed_tokens']:,}
+- Tokens saved: {preprocessing_result['tokens_saved']:,} ({preprocessing_result['reduction_percentage']:.1f}% reduction)
+- Estimated cost savings: ${preprocessing_result['estimated_cost_savings']:.4f}
+- Characters removed: {preprocessing_result['character_reduction']:,}"""
+            except Exception as e:
+                preprocessing_stats = f"Preprocessing stats unavailable: {str(e)}"
         
         # Update final status
         final_status = f"Completed with {model_name}"
         
-        return advice, final_status
+        return advice, final_status, preprocessing_stats
     
     # Main interface content (no wrapping Blocks)
     gr.Markdown("Get expert negotiation guidance based on proven strategies from leading negotiation books including 'Getting to Yes', 'Never Split the Difference', and more.")
@@ -715,6 +709,13 @@ def create_main_interface_content():
                     value=False,
                     info="Default: gpt-4o-mini (faster, cost-effective) | Premium: o3-mini (more advanced reasoning, no temperature control)"
                 )
+                
+            with gr.Row():
+                use_preprocessing = gr.Checkbox(
+                    label="⚡ Smart Text Optimization",
+                    value=True,
+                    info="Remove email signatures, footers, and fluff to reduce token usage and costs"
+                )
             
             model_status = gr.Textbox(
                 label="Model Status",
@@ -728,14 +729,19 @@ def create_main_interface_content():
         with gr.Column(scale=2):
             advice_output = gr.Textbox(
                 label="Negotiation Advice",
-                lines=20,
+                lines=15,
                 interactive=False
+            )
+            preprocessing_stats = gr.Markdown(
+                label="Optimization Statistics",
+                value="",
+                visible=True
             )
     
     submit_btn.click(
         fn=negotiate_advisor,
-        inputs=[question, partner_info, use_premium_model],
-        outputs=[advice_output, model_status]
+        inputs=[question, partner_info, use_premium_model, use_preprocessing],
+        outputs=[advice_output, model_status, preprocessing_stats]
     )
     
     # Example questions section
@@ -760,22 +766,22 @@ def create_main_interface_content():
                 if i < len(example_questions):
                     def create_example_handler(example_text):
                         def handler():
-                            return example_text, "", False, "Ready: gpt-4o-mini (default)"
+                            return example_text, "", False, True, "Ready: gpt-4o-mini (default)"
                         return handler
                     
                     gr.Button(example_questions[i], size="sm").click(
                         create_example_handler(example_questions[i]),
-                        outputs=[question, partner_info, use_premium_model, model_status]
+                        outputs=[question, partner_info, use_premium_model, use_preprocessing, model_status]
                     )
                 if i+1 < len(example_questions):
                     def create_example_handler2(example_text):
                         def handler():
-                            return example_text, "", False, "Ready: gpt-4o-mini (default)"
+                            return example_text, "", False, True, "Ready: gpt-4o-mini (default)"
                         return handler
                     
                     gr.Button(example_questions[i+1], size="sm").click(
                         create_example_handler2(example_questions[i+1]),
-                        outputs=[question, partner_info, use_premium_model, model_status]
+                        outputs=[question, partner_info, use_premium_model, use_preprocessing, model_status]
                     )
     
     gr.Markdown("---")
@@ -790,8 +796,24 @@ if __name__ == "__main__":
         
         logger.info("Creating combined interface...")
         
+        # Custom CSS to handle font fallbacks and reduce console errors
+        custom_css = """
+        * {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+        }
+        
+        /* Hide manifest and font loading errors */
+        .gradio-container {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        """
+        
         # Create single interface with both main and admin functionality
-        with gr.Blocks(title="Negotiation Advisor with Admin Panel", theme=gr.themes.Soft()) as combined_demo:
+        with gr.Blocks(
+            title="Negotiation Advisor with Admin Panel", 
+            theme=gr.themes.Soft(),
+            css=custom_css
+        ) as combined_demo:
             gr.Markdown("# 🤝 Negotiation Advisor with Admin Panel")
             
             with gr.Tabs():
@@ -804,7 +826,13 @@ if __name__ == "__main__":
                     create_admin_interface_content()
         
         logger.info("Launching application...")
-        combined_demo.launch(share=True, server_name="0.0.0.0", server_port=7860)
+        combined_demo.launch(
+            share=True, 
+            server_name="0.0.0.0", 
+            server_port=7860, 
+            show_api=False,
+            favicon_path="static/favicon.ico"
+        )
         
     except Exception as e:
         logger.error(f"Fatal error: {e}")
