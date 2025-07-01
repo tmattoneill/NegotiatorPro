@@ -35,10 +35,10 @@ env/
 .env.production
 .env.staging
 
-# Vector Store (Generated Data)
-vectorstore/
-*.faiss
-*.pkl
+# Vector Store (Keep in repo - contains processed embeddings for users)
+# vectorstore/ - REMOVED: We want this in the repo
+# *.faiss - REMOVED: We want this in the repo  
+# *.pkl - REMOVED: We want this in the repo
 
 # Logs
 *.log
