@@ -65,6 +65,49 @@ python test_rag.py
 - Change password in Admin Settings after first login
 - Session-based authentication with configurable timeout
 
+## Docker Deployment
+
+**Docker Support**: The application includes full Docker and Docker Compose support for easy deployment on Ubuntu and other Linux systems.
+
+**Quick Start with Docker**:
+```bash
+# Copy environment file and add API key
+cp .env.example .env
+# Edit .env and add your OPENAI_API_KEY
+
+# Build and run with Docker Compose
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Access at http://localhost:7860
+```
+
+**Docker Files**:
+- `Dockerfile` - Multi-stage build for optimized image size with non-root user
+- `docker-compose.yml` - Complete orchestration with persistent volumes, health checks, and resource limits
+- `.dockerignore` - Excludes unnecessary files from Docker build context
+- `DEPLOYMENT.md` - Comprehensive deployment guide for production systems
+
+**Docker Features**:
+- Multi-stage build for minimal image size
+- Non-root user execution for security
+- Persistent volumes for vectorstore, uploads, sources, and config files
+- Health checks for container monitoring
+- Resource limits (2GB memory, 2 CPU cores by default)
+- Automatic restart on failure
+- JSON logging with rotation
+
+**Production Deployment**: See `DEPLOYMENT.md` for complete guide including:
+- Ubuntu system setup
+- Security best practices
+- Reverse proxy configuration (Nginx)
+- HTTPS/SSL setup with Let's Encrypt
+- Firewall configuration
+- Backup and restore procedures
+- Monitoring and maintenance tasks
+
 ## Key Implementation Details
 
 **PLEASE Framework**: The system prompt implements a structured response format requiring:
@@ -92,18 +135,33 @@ python test_rag.py
 
 ## File Structure
 
+**Application Code**:
 - `main.py` - Main application with enhanced RAG system, dual Gradio UI, and integrated admin panel
 - `admin_config.py` - Admin authentication, sessions, prompts, and usage tracking
 - `document_manager.py` - File upload handling, validation, and document management
 - `embedding_config.py` - Embedding model configuration and vectorstore compatibility
+- `text_preprocessor.py` - Intelligent text preprocessing for token optimization
+- `prompt_manager.py` - System and user prompt template management
+- `test_rag.py` - Testing utilities for document loading and embeddings
+
+**Data Directories**:
 - `sources/` - Source documents for RAG knowledge base (PDF, TXT, DOCX, DOC)
 - `uploads/` - Temporary storage for uploaded files
 - `vectorstore/` - Persisted FAISS embeddings with metadata (auto-generated)
 - `utils/` - Utility scripts for vectorstore rebuilding
+
+**Configuration Files**:
 - `requirements.txt` - Python dependencies
-- `.env` - OpenAI API key (create manually)
-- `test_rag.py` - Testing utilities for document loading and embeddings
+- `.env` - OpenAI API key (create manually from .env.example)
+- `.env.example` - Template for environment variables
 - `admin_config.json` - Admin configuration and settings (auto-generated)
 - `admin_sessions.json` - Active admin sessions (auto-generated)
 - `usage_stats.json` - API usage statistics (auto-generated)
 - `embedding_config.json` - Embedding model configuration (auto-generated)
+- `prompt_config.json` - Stored prompt templates (auto-generated)
+
+**Docker Deployment**:
+- `Dockerfile` - Multi-stage Docker build configuration
+- `docker-compose.yml` - Docker Compose orchestration file
+- `.dockerignore` - Files excluded from Docker build context
+- `DEPLOYMENT.md` - Comprehensive deployment guide for production
