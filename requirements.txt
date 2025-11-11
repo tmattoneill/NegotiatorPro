@@ -1,6 +1,7 @@
 langchain
 langchain-community
 langchain-openai
+langchain-text-splitters
 gradio==5.35.0
 PyPDF2
 faiss-cpu
