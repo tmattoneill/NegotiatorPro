@@ -1,0 +1,97 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Gradio
+gradio_cached_examples/
+flagged/
+
+# Documentation
+*.md
+docs/
+README.md
+LICENSE
+CONTRIBUTING.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# Docker files (don't need in the image)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Temporary files
+*.tmp
+*.temp
+
+# Runtime generated files (will be created by volumes)
+admin_config.json
+admin_sessions.json
+usage_stats.json
+embedding_config.json
+prompt_config.json
+
+# Uploads directory (managed by volume)
+uploads/*
+
+# Keep sources structure but ignore large files
+!sources/
+sources/*.pdf
+sources/*.docx
+sources/*.doc
+sources/*.txt
