@@ -26,15 +26,39 @@ An AI-powered negotiation advisor that leverages expert knowledge from leading n
 
 ### Prerequisites
 
-- Python 3.8+
-- OpenAI API key
+- **Docker Deployment** (Recommended): Docker and Docker Compose
+- **Local Development**: Python 3.8+ and OpenAI API key
 
-### Installation
+### Option 1: Docker Deployment (Recommended) 🐳
+
+Perfect for production deployments on Ubuntu/Linux systems.
+
+1. **Clone and configure**
+   ```bash
+   git clone <repository-url>
+   cd NegotiatorPro
+   cp .env.example .env
+   # Edit .env and add your OPENAI_API_KEY
+   ```
+
+2. **Start with Docker**
+   ```bash
+   docker compose up -d
+   ```
+
+3. **Access the application**
+   - Open your browser to `http://localhost:7860`
+   - Admin Panel (default password: `admin123`)
+
+📖 **See [DOCKER-DEPLOY.md](DOCKER-DEPLOY.md) for the quick start guide**
+📖 **See [DEPLOYMENT.md](DEPLOYMENT.md) for production deployment**
+
+### Option 2: Local Development
 
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd ai-sources
+   cd NegotiatorPro
    ```
 
 2. **Create virtual environment**
@@ -117,20 +141,45 @@ Access the Admin Panel to:
 ├── admin_config.py           # Admin authentication and configuration
 ├── document_manager.py       # File upload and document management
 ├── embedding_config.py       # Embedding model configuration
+├── text_preprocessor.py      # Text optimization engine
+├── prompt_manager.py         # Prompt template management
 ├── test_rag.py              # Testing utilities
 ├── requirements.txt         # Python dependencies
+├── requirements-test.txt    # Test dependencies
 ├── run.sh                   # Startup script
 ├── .env                     # Environment variables (create manually)
-├── sources/                 # Source documents directory
+├── .env.example             # Environment template
+├── Dockerfile               # Docker image definition
+├── docker-compose.yml       # Docker orchestration
+├── .dockerignore           # Docker build exclusions
+├── pytest.ini              # Test configuration
+├── .coveragerc             # Coverage configuration
+├── README.md               # This file
+├── TESTING.md              # Testing guide
+├── DEPLOYMENT.md           # Production deployment guide
+├── DOCKER-DEPLOY.md        # Docker quick start
+├── sources/                # Source documents directory
 │   └── *.pdf, *.docx, etc. # Negotiation books and resources
-├── uploads/                 # Temporary upload storage
-├── vectorstore/             # Generated FAISS embeddings
-├── utils/                   # Utility scripts
+├── uploads/                # Temporary upload storage
+├── vectorstore/            # Generated FAISS embeddings
+├── tests/                  # Test suite (100+ tests)
+│   ├── test_docker.py      # Docker infrastructure tests
+│   ├── test_admin_config.py # Admin system tests
+│   ├── test_document_manager.py # Document tests
+│   ├── test_model_config.py # Model configuration tests
+│   ├── test_modules.py     # Supporting module tests
+│   ├── test_integration.py # Integration tests
+│   └── conftest.py         # Test fixtures
+├── .github/
+│   └── workflows/
+│       └── test.yml        # CI/CD pipeline
+├── utils/                  # Utility scripts
 └── Auto-generated files:
     ├── admin_config.json    # Admin settings
     ├── admin_sessions.json  # Active sessions
     ├── usage_stats.json     # Usage statistics
-    └── embedding_config.json # Embedding configuration
+    ├── embedding_config.json # Embedding configuration
+    └── prompt_config.json   # Prompt templates
 ```
 
 ## ⚙️ Configuration Options
@@ -212,12 +261,98 @@ If you need to rebuild the vectorstore:
 2. Click "Regenerate Vector Database"
 3. Wait for processing to complete
 
-### Testing
+## 🧪 Testing
 
-Run the test script to verify document loading:
+NegotiatorPro includes a comprehensive test suite with 100+ tests covering all components.
+
+### Running Tests
+
+```bash
+# Install test dependencies
+pip install -r requirements-test.txt
+
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=. --cov-report=html
+
+# Run specific test categories
+pytest -m unit          # Unit tests only
+pytest -m integration   # Integration tests only
+pytest -m docker        # Docker tests only
+```
+
+### Test Coverage
+
+- **Docker Infrastructure**: Dockerfile, docker-compose, deployment validation
+- **Unit Tests**: Admin, documents, models, text preprocessing, prompts
+- **Integration Tests**: End-to-end RAG pipeline, model switching
+- **Security**: Automated security scanning with Bandit and Safety
+- **CI/CD**: Automated testing on GitHub Actions
+
+📖 **See [TESTING.md](TESTING.md) for complete testing guide**
+
+### Legacy Testing
+
+Run the legacy test script to verify document loading:
 ```bash
 python test_rag.py
 ```
+
+## 🐳 Docker Deployment
+
+### Features
+
+- **Multi-stage build**: Optimized image size
+- **Non-root user**: Security best practices
+- **Health checks**: Container monitoring
+- **Persistent volumes**: Data survives restarts
+- **Resource limits**: Configurable CPU/memory
+- **Auto-restart**: Production reliability
+
+### Quick Commands
+
+```bash
+# Start
+docker compose up -d
+
+# Stop
+docker compose stop
+
+# Rebuild
+docker compose build --no-cache
+
+# View logs
+docker compose logs -f
+
+# Check status
+docker compose ps
+```
+
+📖 **See [DOCKER-DEPLOY.md](DOCKER-DEPLOY.md) for quick start**
+📖 **See [DEPLOYMENT.md](DEPLOYMENT.md) for production deployment**
+
+## 🔄 CI/CD Pipeline
+
+Automated testing runs on every push and pull request:
+
+- **Multi-version testing**: Python 3.9, 3.10, 3.11
+- **Linting**: flake8 code quality checks
+- **Formatting**: black code style validation
+- **Unit tests**: Full test suite with coverage reporting
+- **Docker tests**: Build validation and smoke tests
+- **Security scans**: Bandit and Safety vulnerability checks
+
+View the workflow: [.github/workflows/test.yml](.github/workflows/test.yml)
+
+## 📝 Documentation
+
+- **[README.md](README.md)** - This file (overview and quick start)
+- **[TESTING.md](TESTING.md)** - Comprehensive testing guide
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Production deployment guide (600+ lines)
+- **[DOCKER-DEPLOY.md](DOCKER-DEPLOY.md)** - Docker quick start (5-minute setup)
+- **[CLAUDE.md](CLAUDE.md)** - Developer guide for Claude Code
 
 ## 📝 Support
 
@@ -225,6 +360,7 @@ python test_rag.py
 - Verify your `.env` file contains a valid OpenAI API key
 - Ensure all dependencies are installed correctly
 - For document processing issues, check Admin Panel → Documents
+- For Docker issues, see [DEPLOYMENT.md](DEPLOYMENT.md) troubleshooting section
 
 ## 🤝 Contributing
 
@@ -235,7 +371,12 @@ This system is designed to be extensible. Key areas for enhancement:
 - Enhanced analytics
 - Custom prompt templates
 - Integration with other AI providers
+- Additional deployment options
+
+## 📜 License
+
+See [LICENSE](LICENSE) file for details.
 
 ---
 
-Built with ❤️ using LangChain, OpenAI, Gradio, and FAISS.
+Built with ❤️ using LangChain, OpenAI, Gradio, FAISS, and Docker.
