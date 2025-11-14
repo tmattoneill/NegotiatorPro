@@ -427,32 +427,58 @@ class LLMBackendManager:
         # Create appropriate LLM instance based on provider
         if backend.provider == "openai":
             from langchain_openai import ChatOpenAI
+            logger.info(f"Creating ChatOpenAI with kwargs: {kwargs}")
             return ChatOpenAI(**kwargs)
 
         elif backend.provider == "anthropic":
             try:
                 from langchain_anthropic import ChatAnthropic
-                # Anthropic uses 'model_name' instead of 'model'
-                if 'model' in kwargs:
-                    kwargs['model_name'] = kwargs.pop('model')
-                return ChatAnthropic(**kwargs)
+                # Modern langchain-anthropic uses 'model' parameter (not 'model_name')
+                # But we need to handle other parameters differently
+                anthropic_kwargs = {
+                    "model": kwargs.get("model"),  # Use 'model' not 'model_name'
+                    "temperature": kwargs.get("temperature", 0.3),
+                }
+
+                # Add API key if present
+                if "api_key" in kwargs:
+                    anthropic_kwargs["anthropic_api_key"] = kwargs["api_key"]
+
+                # Add base URL if present
+                if "base_url" in kwargs:
+                    anthropic_kwargs["base_url"] = kwargs["base_url"]
+
+                # Remove streaming for Anthropic to avoid issues
+                # Filter out None values
+                anthropic_kwargs = {k: v for k, v in anthropic_kwargs.items() if v is not None}
+
+                logger.info(f"Creating ChatAnthropic with kwargs: {anthropic_kwargs}")
+                return ChatAnthropic(**anthropic_kwargs)
             except ImportError:
                 raise ImportError("langchain-anthropic not installed. Install with: pip install langchain-anthropic")
 
         elif backend.provider == "ollama":
             try:
-                from langchain_community.llms import Ollama
-                # Ollama uses different parameter names
+                # IMPORTANT: Use ChatOllama for chat completion format, not base Ollama class
+                from langchain_community.chat_models import ChatOllama
+
+                # ChatOllama parameter mapping
                 ollama_kwargs = {
                     "model": kwargs.get("model"),
                     "base_url": kwargs.get("base_url", "http://localhost:11434"),
                 }
+
+                # Add temperature if present
                 if "temperature" in kwargs:
                     ollama_kwargs["temperature"] = kwargs["temperature"]
 
-                return Ollama(**ollama_kwargs)
+                # Filter out None values
+                ollama_kwargs = {k: v for k, v in ollama_kwargs.items() if v is not None}
+
+                logger.info(f"Creating ChatOllama with kwargs: {ollama_kwargs}")
+                return ChatOllama(**ollama_kwargs)
             except ImportError:
-                raise ImportError("Ollama support requires langchain-community")
+                raise ImportError("Ollama support requires langchain-community. Install with: pip install langchain-community")
 
         else:
             raise ValueError(f"Unknown provider: {backend.provider}")
