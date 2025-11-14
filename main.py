@@ -504,26 +504,26 @@ Model Breakdown:"""
     # Session state
     session_state = gr.State("")
 
-    # Authentication modal - modern card style
+    # Authentication modal - clean minimal style
     with gr.Group() as auth_group:
-        gr.Markdown("### 🔐 Authentication Required")
-        gr.Markdown("*Please enter your admin credentials to access the dashboard*")
+        gr.Markdown("### Authentication")
+        gr.Markdown("*Please enter your admin credentials*")
         admin_password = gr.Textbox(
             label="Password",
             type="password",
             placeholder="Enter admin password"
         )
-        auth_btn = gr.Button("🔓 Login", variant="primary", size="lg")
+        auth_btn = gr.Button("Login", variant="primary", size="lg")
         auth_status = gr.Textbox(label="Status", interactive=False, show_label=False)
 
     # Admin content (hidden until authenticated)
     with gr.Group(visible=False) as admin_content:
-        gr.Markdown("### 📊 Admin Dashboard")
-        gr.Markdown("*Manage your NegotiatorPro system configuration and monitor usage*")
+        gr.Markdown("### Admin Dashboard")
+        gr.Markdown("*Manage system configuration and monitor usage*")
         
         with gr.Tabs():
             # System Configuration
-            with gr.Tab("🎛️ Configuration"):
+            with gr.Tab("Configuration"):
                 gr.Markdown("### System Prompt")
                 gr.Markdown("*Define the AI's role and behavior. Use `{context}` for knowledge base content.*")
                 system_prompt_text = gr.Textbox(
@@ -533,8 +533,8 @@ Model Breakdown:"""
                     show_label=False
                 )
                 with gr.Row():
-                    load_system_btn = gr.Button("📥 Load Current", size="sm")
-                    save_system_btn = gr.Button("💾 Save Changes", variant="primary")
+                    load_system_btn = gr.Button("Load Current", size="sm")
+                    save_system_btn = gr.Button("Save Changes", variant="primary")
                 system_status = gr.Textbox(label="Status", interactive=False, show_label=False)
 
                 gr.Markdown("---")
@@ -547,24 +547,24 @@ Model Breakdown:"""
                     show_label=False
                 )
                 with gr.Row():
-                    load_user_btn = gr.Button("📥 Load Current", size="sm")
-                    save_user_btn = gr.Button("💾 Save Changes", variant="primary")
+                    load_user_btn = gr.Button("Load Current", size="sm")
+                    save_user_btn = gr.Button("Save Changes", variant="primary")
                 user_status = gr.Textbox(label="Status", interactive=False, show_label=False)
 
             # Document Management
-            with gr.Tab("📚 Documents"):
+            with gr.Tab("Documents"):
                 gr.Markdown("### Upload Knowledge Base")
                 file_upload = gr.File(
                     label="Supported: PDF, TXT, DOC, DOCX",
                     file_count="multiple",
                     file_types=[".pdf", ".txt", ".doc", ".docx"]
                 )
-                upload_btn = gr.Button("⬆️ Upload Files", variant="primary")
+                upload_btn = gr.Button("Upload Files", variant="primary")
                 upload_status = gr.Textbox(label="Status", interactive=False, show_label=False)
 
                 gr.Markdown("---")
                 gr.Markdown("### Current Library")
-                refresh_docs_btn = gr.Button("🔄 Refresh", size="sm")
+                refresh_docs_btn = gr.Button("Refresh", size="sm")
                 document_list = gr.Textbox(
                     label="Documents",
                     lines=10,
@@ -575,13 +575,13 @@ Model Breakdown:"""
                 gr.Markdown("---")
                 gr.Markdown("### Vector Database")
                 gr.Markdown("*Rebuild the knowledge base index when documents change*")
-                regenerate_btn = gr.Button("⚡ Rebuild Index", variant="secondary")
+                regenerate_btn = gr.Button("Rebuild Index", variant="secondary")
                 vectorstore_status = gr.Textbox(label="Status", interactive=False, show_label=False)
 
             # Usage Statistics
-            with gr.Tab("📈 Analytics"):
+            with gr.Tab("Analytics"):
                 gr.Markdown("### Usage Statistics")
-                refresh_stats_btn = gr.Button("🔄 Refresh Stats", size="sm")
+                refresh_stats_btn = gr.Button("Refresh Stats", size="sm")
                 usage_display = gr.Textbox(
                     label="Stats",
                     lines=15,
@@ -591,7 +591,7 @@ Model Breakdown:"""
 
                 gr.Markdown("---")
                 gr.Markdown("### Embedding Configuration")
-                refresh_embedding_btn = gr.Button("🔍 Check Status", size="sm")
+                refresh_embedding_btn = gr.Button("Check Status", size="sm")
                 embedding_status = gr.Textbox(
                     label="Embedding Status",
                     lines=10,
@@ -600,7 +600,7 @@ Model Breakdown:"""
                 )
 
             # Admin Settings
-            with gr.Tab("🔒 Security"):
+            with gr.Tab("Security"):
                 gr.Markdown("### Change Admin Password")
                 current_pwd = gr.Textbox(
                     label="Current Password",
@@ -617,7 +617,7 @@ Model Breakdown:"""
                     type="password",
                     placeholder="Confirm new password"
                 )
-                change_pwd_btn = gr.Button("🔐 Update Password", variant="primary")
+                change_pwd_btn = gr.Button("Update Password", variant="primary")
                 pwd_status = gr.Textbox(label="Status", interactive=False, show_label=False)
     
     # Authentication handler
@@ -720,49 +720,52 @@ def create_main_interface_content():
     with gr.Row():
         # Sidebar-style column for inputs
         with gr.Column(scale=2):
-            gr.Markdown("### 💭 Your Situation")
+            gr.Markdown("### Your Question")
 
             question = gr.Textbox(
-                label="What's your negotiation challenge?",
-                placeholder="e.g., How should I respond to a lowball offer? What's the best way to make the first move in salary negotiation?",
+                label="Negotiation challenge",
+                placeholder="How should I respond to a lowball offer?",
                 lines=5,
-                max_lines=8
+                max_lines=8,
+                show_label=False
             )
 
             partner_info = gr.Textbox(
-                label="Context about the other party (Optional)",
-                placeholder="e.g., Experienced buyer, budget-conscious, deadline pressure, known for tough tactics...",
+                label="Context (optional)",
+                placeholder="Additional context about the other party...",
                 lines=3,
-                max_lines=5
+                max_lines=5,
+                show_label=False
             )
 
-            gr.Markdown("### ⚙️ Settings")
+            gr.Markdown("### Settings")
 
             with gr.Group():
                 use_premium_model = gr.Checkbox(
-                    label="🚀 Premium Model (o3-mini)",
+                    label="Premium Model (o3-mini)",
                     value=False,
-                    info="Advanced reasoning capabilities"
+                    info="Advanced reasoning"
                 )
 
                 use_preprocessing = gr.Checkbox(
-                    label="⚡ Optimize Text",
+                    label="Optimize Text",
                     value=True,
                     info="Reduce tokens and costs"
                 )
 
-            submit_btn = gr.Button("✨ Get Expert Advice", variant="primary", size="lg")
+            submit_btn = gr.Button("Get Advice", variant="primary", size="lg")
 
             model_status = gr.Textbox(
                 label="Status",
-                value="Ready • Using gpt-4o-mini",
+                value="Ready",
                 interactive=False,
-                max_lines=1
+                max_lines=1,
+                show_label=False
             )
 
         # Main chat-style column for output
         with gr.Column(scale=3):
-            gr.Markdown("### 🎯 Expert Guidance")
+            gr.Markdown("### Response")
 
             advice_output = gr.Textbox(
                 label="Response",
@@ -783,9 +786,9 @@ def create_main_interface_content():
         outputs=[advice_output, model_status, preprocessing_stats]
     )
     
-    # Example questions section - compact and modern
+    # Example questions section - minimal and clean
     gr.Markdown("---")
-    gr.Markdown("### 💡 Try These Examples")
+    gr.Markdown("### Examples")
 
     example_questions = [
         "How do I respond to 'That's my final offer'?",
@@ -831,7 +834,7 @@ def create_main_interface_content():
                     )
 
     gr.Markdown("---")
-    gr.Markdown("*📚 Powered by expert negotiation literature including 'Getting to Yes', 'Never Split the Difference', and more. Always adapt advice to your specific situation.*")
+    gr.Markdown("*Powered by expert negotiation literature including 'Getting to Yes', 'Never Split the Difference', and more.*")
 
 if __name__ == "__main__":
     logger.info("=== Starting Enhanced Negotiation RAG System ===")
@@ -858,28 +861,27 @@ if __name__ == "__main__":
             """
 
         # Create single interface with both main and admin functionality
-        # Using Base theme as foundation for custom styling
+        # Using neutral Monochrome theme for clean aesthetic
         with gr.Blocks(
-            title="NegotiatorPro - AI Negotiation Advisor",
-            theme=gr.themes.Base(
-                primary_hue="purple",
-                secondary_hue="blue",
+            title="NegotiatorPro",
+            theme=gr.themes.Monochrome(
+                primary_hue="slate",
+                secondary_hue="slate",
                 neutral_hue="slate",
-                font=["Inter", "sans-serif"]
+                font=["Inter", "SF Pro Display", "Segoe UI", "sans-serif"]
             ),
             css=custom_css
         ) as combined_demo:
-            # Modern header with gradient
-            gr.Markdown("# 🤝 NegotiatorPro")
-            gr.Markdown("*AI-Powered Negotiation Guidance Based on Expert Strategies*")
-            gr.Markdown("---")
+            # Clean minimal header
+            gr.Markdown("# NegotiatorPro")
+            gr.Markdown("*AI negotiation guidance from expert strategies*")
 
             with gr.Tabs():
-                with gr.Tab("💬 Chat"):
+                with gr.Tab("Chat"):
                     # Embed main interface content directly
                     create_main_interface_content()
 
-                with gr.Tab("⚙️ Admin"):
+                with gr.Tab("Admin"):
                     # Embed admin interface content directly
                     create_admin_interface_content()
         
