@@ -326,3 +326,47 @@ Each model has different pricing. View approximate costs in the backend configur
 - **Ollama (Local)**: Free (self-hosted)
 
 Use the cheaper default model for most queries and premium model only when needed.
+
+## API Format and Compatibility
+
+### Message Format
+
+All LLM backends use a unified chat message format:
+
+```python
+messages = [
+    {"role": "system", "content": "You are a negotiation expert..."},
+    {"role": "user", "content": "How do I negotiate salary?"}
+]
+response = llm.invoke(messages)
+```
+
+### Backend-Specific API Details
+
+**OpenAI (ChatOpenAI)**:
+- API: OpenAI Chat Completion API (`/v1/chat/completions`)
+- Native support for chat messages with roles
+- Request format: `{model, messages: [{role, content}], temperature, ...}`
+
+**Anthropic (ChatAnthropic)**:
+- API: Anthropic Messages API (`/v1/messages`)
+- Native support for chat messages
+- Request format: `{model, messages: [{role, content}], system, ...}`
+- Note: System message handled separately by Anthropic API
+- Parameter mapping: `api_key` → `anthropic_api_key`
+
+**Ollama (ChatOllama)**:
+- API: Ollama Chat API (`/api/chat`)
+- OpenAI-compatible chat format
+- Request format: `{model, messages: [{role, content}], ...}`
+- **Important**: Uses `ChatOllama` class (not base `Ollama` class)
+
+### LangChain Abstraction
+
+The system uses LangChain's chat model abstractions which automatically handle:
+- Provider-specific parameter mapping
+- API endpoint routing
+- Request/response formatting
+- Error handling and retries
+
+This allows the application to use the same code regardless of which backend is active.
