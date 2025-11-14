@@ -8,6 +8,7 @@ import os
 import sys
 import time
 import shutil
+import logging
 from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Any
@@ -17,10 +18,13 @@ sys.path.insert(0, os.getcwd())
 
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from embedding_config import EmbeddingConfig
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
