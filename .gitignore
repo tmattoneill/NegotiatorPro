@@ -34,6 +34,7 @@ env/
 .env.local
 .env.production
 .env.staging
+.env.dev
 
 # Vector Store (Keep in repo - contains processed embeddings for users)
 # vectorstore/ - REMOVED: We want this in the repo
