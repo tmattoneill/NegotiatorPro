@@ -4,9 +4,9 @@ Combined tests for text_preprocessor, prompt_manager, and embedding_config modul
 import pytest
 import json
 from pathlib import Path
-from text_preprocessor import TextPreprocessor
-from prompt_manager import PromptManager
-from embedding_config import EmbeddingConfig
+from backend.text_preprocessor import TextPreprocessor
+from backend.prompt_manager import PromptManager
+from backend.embedding_config import EmbeddingConfig
 
 
 class TestTextPreprocessor:

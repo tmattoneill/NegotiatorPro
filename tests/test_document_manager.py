@@ -3,7 +3,7 @@ Tests for DocumentManager class
 """
 import pytest
 from pathlib import Path
-from document_manager import DocumentManager
+from backend.document_manager import DocumentManager
 
 
 class TestDocumentManager:

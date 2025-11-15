@@ -5,7 +5,7 @@ import pytest
 import json
 import os
 from pathlib import Path
-from admin_config import AdminConfig
+from backend.admin_config import AdminConfig
 
 
 class TestAdminConfig:

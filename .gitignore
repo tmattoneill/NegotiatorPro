@@ -93,6 +93,14 @@ sources/
 
 # Uploaded Documents
 uploads/
+
+# Runtime Data Directory
+data/db/
+data/backups/
+*.db
+*.sqlite
+*.sqlite3
+
 # Workflow files cannot be pushed by Claude Code GitHub App
 # See .github/README.md for details
 .github/workflows/

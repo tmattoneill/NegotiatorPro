@@ -13,12 +13,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 class TestRAGPipeline:
     """Test end-to-end RAG pipeline"""
 
-    @patch('main.OpenAIEmbeddings')
-    @patch('main.ChatOpenAI')
-    @patch('main.FAISS')
+    @patch('backend.rag_engine.OpenAIEmbeddings')
+    @patch('backend.rag_engine.ChatOpenAI')
+    @patch('backend.rag_engine.FAISS')
     def test_rag_system_initialization(self, mock_faiss, mock_chat, mock_embeddings, mock_env_vars):
         """Test that RAG system initializes correctly"""
-        from main import EnhancedNegotiationRAG
+        from backend.rag_engine import EnhancedNegotiationRAG
 
         # Mock the vectorstore loading
         mock_vectorstore = Mock()
@@ -31,11 +31,11 @@ class TestRAGPipeline:
         assert hasattr(rag, 'admin_config')
         assert hasattr(rag, 'document_manager')
 
-    @patch('main.OpenAIEmbeddings')
-    @patch('main.ChatOpenAI')
+    @patch('backend.rag_engine.OpenAIEmbeddings')
+    @patch('backend.rag_engine.ChatOpenAI')
     def test_get_advice_with_default_model(self, mock_chat, mock_embeddings, mock_env_vars):
         """Test getting advice with default model"""
-        from main import EnhancedNegotiationRAG
+        from backend.rag_engine import EnhancedNegotiationRAG
 
         # Mock LLM response
         mock_response = Mock()
@@ -55,11 +55,11 @@ class TestRAGPipeline:
                 assert isinstance(advice, str)
                 assert len(advice) > 0
 
-    @patch('main.OpenAIEmbeddings')
-    @patch('main.ChatOpenAI')
+    @patch('backend.rag_engine.OpenAIEmbeddings')
+    @patch('backend.rag_engine.ChatOpenAI')
     def test_get_advice_with_premium_model(self, mock_chat, mock_embeddings, mock_env_vars):
         """Test getting advice with premium model"""
-        from main import EnhancedNegotiationRAG
+        from backend.rag_engine import EnhancedNegotiationRAG
 
         # Mock LLM response
         mock_response = Mock()
@@ -79,11 +79,11 @@ class TestRAGPipeline:
                 assert isinstance(advice, str)
                 assert len(advice) > 0
 
-    @patch('main.PyPDFLoader')
-    @patch('main.TextLoader')
+    @patch('backend.rag_engine.PyPDFLoader')
+    @patch('backend.rag_engine.TextLoader')
     def test_load_documents_mixed_formats(self, mock_text_loader, mock_pdf_loader, temp_dir, monkeypatch):
         """Test loading documents of mixed formats"""
-        from main import EnhancedNegotiationRAG
+        from backend.rag_engine import EnhancedNegotiationRAG
 
         monkeypatch.chdir(temp_dir)
         sources_dir = Path("sources")
@@ -109,10 +109,10 @@ class TestRAGPipeline:
 
         assert len(documents) > 0
 
-    @patch('main.OpenAIEmbeddings')
+    @patch('backend.rag_engine.OpenAIEmbeddings')
     def test_create_vectorstore(self, mock_embeddings, mock_env_vars):
         """Test vectorstore creation"""
-        from main import EnhancedNegotiationRAG
+        from backend.rag_engine import EnhancedNegotiationRAG
 
         # Mock embeddings
         mock_embeddings_instance = Mock()
@@ -138,10 +138,10 @@ class TestRAGPipeline:
 class TestDocumentUploadWorkflow:
     """Test document upload and processing workflow"""
 
-    @patch('main.OpenAIEmbeddings')
+    @patch('backend.rag_engine.OpenAIEmbeddings')
     def test_document_upload_and_regenerate(self, mock_embeddings, temp_dir, sample_pdf_path, monkeypatch):
         """Test uploading document and regenerating vectorstore"""
-        from main import EnhancedNegotiationRAG
+        from backend.rag_engine import EnhancedNegotiationRAG
 
         monkeypatch.chdir(temp_dir)
         sources_dir = Path("sources")
@@ -161,11 +161,11 @@ class TestDocumentUploadWorkflow:
 class TestModelSwitching:
     """Test switching between models"""
 
-    @patch('main.OpenAIEmbeddings')
-    @patch('main.ChatOpenAI')
+    @patch('backend.rag_engine.OpenAIEmbeddings')
+    @patch('backend.rag_engine.ChatOpenAI')
     def test_model_switching(self, mock_chat, mock_embeddings, mock_env_vars):
         """Test switching between default and premium models"""
-        from main import EnhancedNegotiationRAG
+        from backend.rag_engine import EnhancedNegotiationRAG
 
         # Mock LLM instances
         mock_response = Mock()
@@ -236,11 +236,11 @@ class TestAdminWorkflow:
 class TestTextPreprocessingWorkflow:
     """Test text preprocessing integration"""
 
-    @patch('main.ChatOpenAI')
-    @patch('main.OpenAIEmbeddings')
+    @patch('backend.rag_engine.ChatOpenAI')
+    @patch('backend.rag_engine.OpenAIEmbeddings')
     def test_preprocessing_before_query(self, mock_embeddings, mock_chat, mock_env_vars):
         """Test that preprocessing is applied before query"""
-        from main import EnhancedNegotiationRAG
+        from backend.rag_engine import EnhancedNegotiationRAG
 
         # Mock LLM response
         mock_response = Mock()
@@ -266,11 +266,11 @@ class TestTextPreprocessingWorkflow:
 class TestErrorHandling:
     """Test error handling across the system"""
 
-    @patch('main.ChatOpenAI')
-    @patch('main.OpenAIEmbeddings')
+    @patch('backend.rag_engine.ChatOpenAI')
+    @patch('backend.rag_engine.OpenAIEmbeddings')
     def test_missing_api_key_handling(self, mock_embeddings, mock_chat):
         """Test handling of missing API key"""
-        from main import EnhancedNegotiationRAG
+        from backend.rag_engine import EnhancedNegotiationRAG
 
         # Simulate missing API key
         with patch.dict('os.environ', {}, clear=True):
@@ -278,10 +278,10 @@ class TestErrorHandling:
             rag = EnhancedNegotiationRAG()
             assert rag is not None
 
-    @patch('main.OpenAIEmbeddings')
+    @patch('backend.rag_engine.OpenAIEmbeddings')
     def test_empty_sources_directory(self, mock_embeddings, temp_dir, monkeypatch):
         """Test handling of empty sources directory"""
-        from main import EnhancedNegotiationRAG
+        from backend.rag_engine import EnhancedNegotiationRAG
 
         monkeypatch.chdir(temp_dir)
         sources_dir = Path("sources")
@@ -293,11 +293,11 @@ class TestErrorHandling:
         # Should return empty list, not crash
         assert isinstance(documents, list)
 
-    @patch('main.ChatOpenAI')
-    @patch('main.OpenAIEmbeddings')
+    @patch('backend.rag_engine.ChatOpenAI')
+    @patch('backend.rag_engine.OpenAIEmbeddings')
     def test_llm_error_handling(self, mock_embeddings, mock_chat, mock_env_vars):
         """Test handling of LLM errors"""
-        from main import EnhancedNegotiationRAG
+        from backend.rag_engine import EnhancedNegotiationRAG
 
         # Mock LLM to raise an error
         mock_llm = Mock()
