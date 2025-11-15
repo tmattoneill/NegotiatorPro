@@ -12,7 +12,7 @@ CONFIG_FILE = "llm_backend_config.json"
 with open(CONFIG_FILE, 'r') as f:
     config = json.load(f)
 
-# Fix the model IDs (change from display names to actual model IDs)
+# Use simple "ollama" backend (local Ollama handles cloud models automatically)
 config["active_models"]["default"] = {
     "backend": "ollama",
     "model": "gpt-oss:120b-cloud"
@@ -33,6 +33,7 @@ with open(CONFIG_FILE, 'w') as f:
 
 print("✅ Fixed configuration:")
 print(f"   Default model: ollama/gpt-oss:120b-cloud")
-print(f"   Backend: ollama (local)")
+print(f"   Backend: ollama (local - handles cloud models automatically)")
+print(f"   URL: http://localhost:11434")
 print(f"\n   Config file: {CONFIG_FILE}")
-print("\n⚠️  You'll need to restart the app for changes to take effect")
+print("\n⚠️  Restart the app for changes to take effect")
