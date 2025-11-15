@@ -57,8 +57,9 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 # Ollama Local (Optional - default: http://localhost:11434)
 # OLLAMA_BASE_URL=http://localhost:11434
 
-# Ollama Cloud (Optional - for hosted Ollama)
-# OLLAMA_CLOUD_URL=https://your-ollama-instance.com
+# Ollama Cloud (Optional - for cloud models like gpt-oss:120b-cloud)
+# Get your API key from: https://ollama.com/settings/keys
+# OLLAMA_CLOUD_URL=https://ollama.com
 # OLLAMA_API_KEY=your_ollama_api_key_here
 ```
 
@@ -313,6 +314,11 @@ This file is auto-generated and managed through the admin interface.
 
 **Issue**: Ollama connection failed
 - **Solution**: Verify Ollama is running: `ollama serve` or check `OLLAMA_BASE_URL`
+
+**Issue**: Ollama 404 error for cloud models (e.g., gpt-oss:120b-cloud)
+- **Solution**: Use the "ollama-cloud" backend instead of "ollama" backend in Admin Panel → LLM Backends
+- Set `OLLAMA_API_KEY` in `.env` (get from https://ollama.com/settings/keys)
+- Set `OLLAMA_CLOUD_URL=https://ollama.com` in `.env` (or leave unset to use default)
 
 **Issue**: Model initialization failed
 - **Solution**: Check logs for specific error. System will fallback to OpenAI models
