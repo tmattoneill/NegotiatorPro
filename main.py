@@ -944,12 +944,9 @@ def create_main_interface_content():
         with gr.Column(scale=3):
             gr.Markdown("### Response")
 
-            advice_output = gr.Textbox(
-                label="Response",
-                lines=20,
-                max_lines=30,
-                interactive=False,
-                show_label=False
+            advice_output = gr.Markdown(
+                value="",
+                label="Response"
             )
 
             preprocessing_stats = gr.Markdown(
