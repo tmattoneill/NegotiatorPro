@@ -471,8 +471,8 @@ class LLMBackendManager:
 
         elif backend.provider == "ollama":
             try:
-                # IMPORTANT: Use ChatOllama for chat completion format, not base Ollama class
-                from langchain_community.chat_models import ChatOllama
+                # Use the newer langchain-ollama package (langchain-community version is deprecated)
+                from langchain_ollama import ChatOllama
 
                 # ChatOllama parameter mapping
                 ollama_kwargs = {
@@ -497,7 +497,7 @@ class LLMBackendManager:
                 logger.info(f"Creating ChatOllama with kwargs: {ollama_kwargs}")
                 return ChatOllama(**ollama_kwargs)
             except ImportError:
-                raise ImportError("Ollama support requires langchain-community. Install with: pip install langchain-community")
+                raise ImportError("Ollama support requires langchain-ollama. Install with: pip install langchain-ollama")
 
         else:
             raise ValueError(f"Unknown provider: {backend.provider}")
