@@ -241,7 +241,7 @@ class LLMBackendManager:
             provider="ollama",
             api_key_env_var="OLLAMA_API_KEY",
             base_url_env_var="OLLAMA_CLOUD_URL",
-            default_base_url=None,  # User must specify
+            default_base_url="https://ollama.com",  # Ollama cloud endpoint
             requires_api_key=True,
             models=[
                 # Same models as local Ollama, but running on cloud instance
@@ -483,6 +483,13 @@ class LLMBackendManager:
                 # Add temperature if present
                 if "temperature" in kwargs:
                     ollama_kwargs["temperature"] = kwargs["temperature"]
+
+                # Add authentication headers for cloud instances
+                if backend_id == "ollama-cloud" and "api_key" in kwargs:
+                    ollama_kwargs["headers"] = {
+                        "Authorization": f"Bearer {kwargs['api_key']}"
+                    }
+                    logger.info("Added Bearer token authentication for Ollama cloud")
 
                 # Filter out None values
                 ollama_kwargs = {k: v for k, v in ollama_kwargs.items() if v is not None}
