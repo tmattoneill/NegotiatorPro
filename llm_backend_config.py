@@ -162,6 +162,12 @@ class LLMBackendManager:
             requires_api_key=False,
             models=[
                 ModelInfo(
+                    id="gpt-oss:120b-cloud",
+                    name="GPT-OSS 120B Cloud",
+                    description="Large GPT-OSS model (cloud-hosted)",
+                    max_context_length=128000,
+                ),
+                ModelInfo(
                     id="llama3.1:70b",
                     name="Llama 3.1 70B",
                     description="Meta's largest Llama 3.1 model",
@@ -239,6 +245,12 @@ class LLMBackendManager:
             requires_api_key=True,
             models=[
                 # Same models as local Ollama, but running on cloud instance
+                ModelInfo(
+                    id="gpt-oss:120b-cloud",
+                    name="GPT-OSS 120B Cloud",
+                    description="Large GPT-OSS model (cloud-hosted)",
+                    max_context_length=128000,
+                ),
                 ModelInfo(
                     id="llama3.1:70b",
                     name="Llama 3.1 70B",
