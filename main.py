@@ -1018,32 +1018,10 @@ if __name__ == "__main__":
         
         logger.info("Creating combined interface...")
 
-        # Load custom Open WebUI-inspired CSS
-        css_file_path = Path(__file__).parent / "static" / "openwebui_theme.css"
-        custom_css = ""
-        if css_file_path.exists():
-            with open(css_file_path, 'r') as f:
-                custom_css = f.read()
-            logger.info("Loaded custom Open WebUI theme CSS")
-        else:
-            logger.warning("Custom CSS file not found, using default styling")
-            custom_css = """
-            * {
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
-            }
-            """
-
         # Create single interface with both main and admin functionality
-        # Using neutral Monochrome theme for clean aesthetic
+        # Using default Gradio theme
         with gr.Blocks(
-            title="NegotiatorPro",
-            theme=gr.themes.Monochrome(
-                primary_hue="slate",
-                secondary_hue="slate",
-                neutral_hue="slate",
-                font=["Inter", "SF Pro Display", "Segoe UI", "sans-serif"]
-            ),
-            css=custom_css
+            title="NegotiatorPro"
         ) as combined_demo:
             # Clean minimal header
             gr.Markdown("# NegotiatorPro")
