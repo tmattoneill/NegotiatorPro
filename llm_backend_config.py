@@ -8,6 +8,7 @@ including OpenAI, Anthropic Claude, and Ollama (local and cloud).
 import os
 import json
 import logging
+import requests
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
@@ -349,6 +350,42 @@ class LLMBackendManager:
                     return model
         return None
 
+    def get_ollama_available_models(self, base_url: str = None) -> List[ModelInfo]:
+        """Query Ollama for available models"""
+        if base_url is None:
+            base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+
+        try:
+            # Query Ollama API for available models
+            response = requests.get(f"{base_url}/api/tags", timeout=2)
+            if response.status_code == 200:
+                data = response.json()
+                models = []
+                for model_data in data.get("models", []):
+                    model_name = model_data.get("name", "")
+                    # Extract size info if available
+                    size_bytes = model_data.get("size", 0)
+                    size_gb = size_bytes / (1024**3) if size_bytes > 0 else 0
+
+                    # Create ModelInfo for each available model
+                    models.append(ModelInfo(
+                        id=model_name,
+                        name=model_name,
+                        description=f"Ollama model ({size_gb:.1f}GB)" if size_gb > 0 else "Ollama model",
+                        max_context_length=128000,  # Default, may vary by model
+                    ))
+                logger.info(f"Found {len(models)} Ollama models at {base_url}")
+                return models
+            else:
+                logger.warning(f"Ollama API returned status {response.status_code}")
+                return []
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Could not connect to Ollama at {base_url}: {e}")
+            return []
+        except Exception as e:
+            logger.error(f"Error querying Ollama models: {e}")
+            return []
+
     def get_active_model_config(self, model_type: str = "default") -> Dict[str, str]:
         """Get active model configuration (backend + model)"""
         active_models = self.user_config.get("active_models", {})
@@ -543,9 +580,25 @@ class LLMBackendManager:
 
         for backend_id, backend in self.BACKENDS.items():
             models = []
-            for model in backend.models:
-                display_name = f"{model.name} - {model.description}"
-                models.append((model.id, display_name))
+
+            # For Ollama backends, get actual available models
+            if backend.provider == "ollama":
+                base_url = None
+                if backend_id == "ollama-cloud":
+                    base_url = os.getenv("OLLAMA_CLOUD_URL", "https://ollama.com")
+                else:
+                    base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+
+                available_models = self.get_ollama_available_models(base_url)
+                for model in available_models:
+                    display_name = f"{model.name} - {model.description}"
+                    models.append((model.id, display_name))
+            else:
+                # For OpenAI and Anthropic, use predefined models
+                for model in backend.models:
+                    display_name = f"{model.name} - {model.description}"
+                    models.append((model.id, display_name))
+
             models_by_backend[backend_id] = {
                 "name": backend.name,
                 "models": models,

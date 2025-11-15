@@ -867,7 +867,19 @@ def create_main_interface_content():
         """Get list of model choices for a given provider"""
         backend = rag_system.backend_manager.get_backend(provider)
         if backend:
-            return [(model.name, model.id) for model in backend.models]
+            # For Ollama backends, get actual available models
+            if backend.provider == "ollama":
+                base_url = None
+                if provider == "ollama-cloud":
+                    base_url = os.getenv("OLLAMA_CLOUD_URL", "https://ollama.com")
+                else:
+                    base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+
+                available_models = rag_system.backend_manager.get_ollama_available_models(base_url)
+                return [(model.name, model.id) for model in available_models]
+            else:
+                # For OpenAI and Anthropic, use predefined models
+                return [(model.name, model.id) for model in backend.models]
         return []
 
     def get_default_provider():
