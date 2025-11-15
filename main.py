@@ -412,10 +412,9 @@ def create_admin_interface_content():
         return False, "", "Invalid password"
     
     def check_admin_session(session_id):
-        """Check if admin session is valid"""
-        if not session_id:
-            return False
-        return rag_system.admin_config.is_valid_session(session_id)
+        """Check if admin session is valid - AUTHENTICATION DISABLED"""
+        # Authentication disabled for easier access
+        return True
     
     def save_system_prompt(prompt, session_id):
         """Save system prompt"""
@@ -596,23 +595,11 @@ Model Breakdown:"""
             return f"❌ Error updating backend: {str(e)}"
     
     # Admin interface content (no wrapping Blocks)
-    # Session state
-    session_state = gr.State("")
+    # Note: Authentication disabled for easier access
+    session_state = gr.State("admin-session")  # Dummy session for compatibility
 
-    # Authentication modal - modern card style
-    with gr.Group() as auth_group:
-        gr.Markdown("### 🔐 Authentication Required")
-        gr.Markdown("*Please enter your admin credentials to access the dashboard*")
-        admin_password = gr.Textbox(
-            label="Password",
-            type="password",
-            placeholder="Enter admin password"
-        )
-        auth_btn = gr.Button("🔓 Login", variant="primary", size="lg")
-        auth_status = gr.Textbox(label="Status", interactive=False, show_label=False)
-
-    # Admin content (hidden until authenticated)
-    with gr.Group(visible=False) as admin_content:
+    # Admin content (authentication removed)
+    with gr.Group(visible=True) as admin_content:
         gr.Markdown("### 📊 Admin Dashboard")
         gr.Markdown("*Manage your NegotiatorPro system configuration and monitor usage*")
         
@@ -790,32 +777,10 @@ Set these in your `.env` file and restart the application.
                 )
                 change_pwd_btn = gr.Button("🔐 Update Password", variant="primary")
                 pwd_status = gr.Textbox(label="Status", interactive=False, show_label=False)
-    
-    # Authentication handler
-    def handle_auth(password):
-        success, session_id, message = authenticate_admin(password)
-        if success:
-            return (
-                gr.update(visible=False),  # Hide auth
-                gr.update(visible=True),   # Show admin content
-                session_id,
-                message
-            )
-        else:
-            return (
-                gr.update(visible=True),   # Keep auth visible
-                gr.update(visible=False),  # Hide admin content
-                "",
-                message
-            )
-    
+
     # Event handlers
-    auth_btn.click(
-        handle_auth,
-        inputs=[admin_password],
-        outputs=[auth_group, admin_content, session_state, auth_status]
-    )
-    
+    # Note: Authentication removed - admin panel is now publicly accessible
+
     # System prompt handlers
     load_system_btn.click(get_system_prompt, inputs=[session_state], outputs=[system_prompt_text])
     save_system_btn.click(save_system_prompt, inputs=[system_prompt_text, session_state], outputs=[system_status])
