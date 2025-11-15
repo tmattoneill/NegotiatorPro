@@ -304,7 +304,7 @@ class EnhancedNegotiationRAG:
         """Initialize the RAG system"""
         logger.info("Starting RAG system setup...")
         setup_start = time.time()
-        
+
         # Check embedding configuration compatibility
         compatibility = self.embedding_config.validate_compatibility()
         if not compatibility["compatible"]:
@@ -312,10 +312,10 @@ class EnhancedNegotiationRAG:
             for error in compatibility["errors"]:
                 logger.error(f"  • {error}")
             logger.warning("Recommend rebuilding vectorstore with correct model")
-        
+
         # Log current configuration
         logger.info(f"Embedding config: {self.embedding_config.get_current_model()}")
-        
+
         # Try to load existing vectorstore first
         if not self.load_vectorstore():
             logger.info("Creating new vectorstore...")
@@ -327,10 +327,11 @@ class EnhancedNegotiationRAG:
                 self.save_vectorstore()
             else:
                 logger.warning("No documents found, vectorstore not created")
-                return
-        
+                # Don't return - still need to setup LLMs even without documents
+
+        # Setup LLMs regardless of whether documents are loaded
         self.setup_llms()
-        
+
         setup_end = time.time()
         logger.info(f"RAG system setup complete in {setup_end-setup_start:.2f}s!")
     
@@ -553,7 +554,8 @@ Model Breakdown:"""
 
         models = []
         for model in backend.models:
-            models.append((model.id, f"{model.name} - {model.description}"))
+            # Gradio dropdown format: (label, value)
+            models.append((f"{model.name} - {model.description}", model.id))
         return models
 
     def set_default_model(backend_id, model_id, session_id):
@@ -809,12 +811,14 @@ Set these in your `.env` file and restart the application.
     def update_default_models(backend_id):
         """Update model dropdown when backend changes"""
         models = get_backend_models(backend_id)
-        return gr.Dropdown(choices=models, value=models[0][0] if models else None)
+        # models is list of (label, value) tuples, get first value
+        return gr.Dropdown(choices=models, value=models[0][1] if models else None)
 
     def update_premium_models(backend_id):
         """Update model dropdown when backend changes"""
         models = get_backend_models(backend_id)
-        return gr.Dropdown(choices=models, value=models[0][0] if models else None)
+        # models is list of (label, value) tuples, get first value
+        return gr.Dropdown(choices=models, value=models[0][1] if models else None)
 
     refresh_backend_btn.click(get_backend_status, inputs=[session_state], outputs=[backend_status_display])
 
