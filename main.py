@@ -335,11 +335,11 @@ class EnhancedNegotiationRAG:
         setup_end = time.time()
         logger.info(f"RAG system setup complete in {setup_end-setup_start:.2f}s!")
     
-    def get_advice(self, question, use_premium_model=False, use_preprocessing=True):
+    def get_advice(self, question, use_premium_model=False, use_preprocessing=True, override_backend=None, override_model=None):
         """Get negotiation advice based on the question using proper chat completion"""
         if not hasattr(self, 'default_llm') or not hasattr(self, 'premium_llm'):
             return "System not initialized properly. Please check if documents are loaded."
-        
+
         # Preprocess the question if enabled
         preprocessing_info = None
         if use_preprocessing and len(question.strip()) > 100:  # Only preprocess longer texts
@@ -347,10 +347,15 @@ class EnhancedNegotiationRAG:
             question = preprocessing_result['processed_text']
             preprocessing_info = preprocessing_result
             logger.info(f"Preprocessing saved {preprocessing_result['tokens_saved']} tokens ({preprocessing_result['reduction_percentage']:.1f}% reduction)")
-        
+
         try:
             # Select appropriate LLM based on model choice
-            if use_premium_model:
+            if override_backend and override_model:
+                # User selected custom provider/model from dropdown
+                llm = self.model_config.create_llm(override_backend, override_model)
+                model_name = f"{override_backend}/{override_model}"
+                logger.info(f"Using user-selected model: {model_name}")
+            elif use_premium_model:
                 llm = self.premium_llm
                 model_config = self.backend_manager.get_active_model_config("premium")
                 model_name = f"{model_config.get('backend', 'openai')}/{model_config.get('model', 'o3-mini')}"
@@ -848,28 +853,81 @@ Set these in your `.env` file and restart the application.
 
 def create_main_interface_content():
     """Create main user interface content"""
-    
-    def negotiate_advisor(question, partner_context="", use_premium=False, use_preprocessing=True):
+
+    def get_provider_choices():
+        """Get list of available provider choices"""
+        return [
+            ("OpenAI", "openai"),
+            ("Anthropic Claude", "anthropic"),
+            ("Ollama (Local)", "ollama"),
+            ("Ollama (Cloud)", "ollama-cloud")
+        ]
+
+    def get_model_choices(provider):
+        """Get list of model choices for a given provider"""
+        backend = rag_system.backend_manager.get_backend(provider)
+        if backend:
+            return [(model.name, model.id) for model in backend.models]
+        return []
+
+    def get_default_provider():
+        """Get default provider from config"""
+        default_config = rag_system.backend_manager.get_active_model_config("default")
+        return default_config.get("backend", "openai")
+
+    def get_default_model(provider):
+        """Get default model for a provider"""
+        default_config = rag_system.backend_manager.get_active_model_config("default")
+        if default_config.get("backend") == provider:
+            return default_config.get("model")
+        # Return first model for this provider
+        models = get_model_choices(provider)
+        return models[0][1] if models else None
+
+    def update_model_choices(provider):
+        """Update model dropdown based on selected provider"""
+        choices = get_model_choices(provider)
+        if choices:
+            return gr.Dropdown(choices=choices, value=choices[0][1])
+        return gr.Dropdown(choices=[], value=None)
+
+    def negotiate_advisor(question, partner_context="", use_premium=False, use_preprocessing=True, provider=None, model=None):
         """Main function for the Gradio interface"""
         # Apply default user prompt if configured
         default_prompt = rag_system.admin_config.get_default_user_prompt()
         if default_prompt and not question.strip():
             question = default_prompt
-        
+
         if partner_context.strip():
             enhanced_question = f"Context about my negotiation partner: {partner_context}\n\nMy question: {question}"
         else:
             enhanced_question = question
-        
+
         if not enhanced_question.strip():
             return "Please enter a negotiation question.", "Ready • Please enter a question", ""
 
-        # Update model status
-        model_name = "o3-mini" if use_premium else "gpt-4o-mini"
-        status = f"⏳ Thinking with {model_name}..."
+        # Use provided provider/model or fall back to configured defaults
+        if provider is None or model is None:
+            if use_premium:
+                config = rag_system.backend_manager.get_active_model_config("premium")
+            else:
+                config = rag_system.backend_manager.get_active_model_config("default")
+            provider = config.get("backend", "openai")
+            model = config.get("model", "gpt-4o-mini")
 
-        # Get advice with preprocessing option
-        advice = rag_system.get_advice(enhanced_question, use_premium_model=use_premium, use_preprocessing=use_preprocessing)
+        # Get model name for display
+        model_info = rag_system.backend_manager.get_model_info(provider, model)
+        display_model_name = model_info.name if model_info else model
+        status = f"⏳ Thinking with {display_model_name}..."
+
+        # Get advice with preprocessing option and custom model selection
+        advice = rag_system.get_advice(
+            enhanced_question,
+            use_premium_model=use_premium,
+            use_preprocessing=use_preprocessing,
+            override_backend=provider,
+            override_model=model
+        )
 
         # Generate preprocessing stats if preprocessing was used
         preprocessing_stats = ""
@@ -889,7 +947,7 @@ def create_main_interface_content():
                 preprocessing_stats = f"Optimization stats unavailable: {str(e)}"
 
         # Update final status
-        final_status = f"✓ Complete • Used {model_name}"
+        final_status = f"✓ Complete • Used {display_model_name}"
 
         return advice, final_status, preprocessing_stats
     
@@ -918,10 +976,29 @@ def create_main_interface_content():
             gr.Markdown("### Settings")
 
             with gr.Group():
+                # Provider and model selection
+                default_provider = get_default_provider()
+                default_models = get_model_choices(default_provider)
+                default_model_value = get_default_model(default_provider)
+
+                provider_dropdown = gr.Dropdown(
+                    choices=get_provider_choices(),
+                    value=default_provider,
+                    label="Provider",
+                    info="Select LLM provider"
+                )
+
+                model_dropdown = gr.Dropdown(
+                    choices=default_models,
+                    value=default_model_value,
+                    label="Model",
+                    info="Select model to use"
+                )
+
                 use_premium_model = gr.Checkbox(
-                    label="Premium Model (o3-mini)",
+                    label="Use Premium Model",
                     value=False,
-                    info="Advanced reasoning"
+                    info="Override with premium model from admin config"
                 )
 
                 use_preprocessing = gr.Checkbox(
@@ -954,9 +1031,16 @@ def create_main_interface_content():
                 visible=True
             )
     
+    # Update model dropdown when provider changes
+    provider_dropdown.change(
+        fn=update_model_choices,
+        inputs=[provider_dropdown],
+        outputs=[model_dropdown]
+    )
+
     submit_btn.click(
         fn=negotiate_advisor,
-        inputs=[question, partner_info, use_premium_model, use_preprocessing],
+        inputs=[question, partner_info, use_premium_model, use_preprocessing, provider_dropdown, model_dropdown],
         outputs=[advice_output, model_status, preprocessing_stats]
     )
     
