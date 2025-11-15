@@ -3,6 +3,7 @@ langchain-community
 langchain-core
 langchain-openai
 langchain-anthropic
+langchain-ollama
 langchain-text-splitters
 gradio==5.35.0
 PyPDF2
