@@ -445,10 +445,10 @@ class LLMBackendManager:
         elif backend.provider == "anthropic":
             try:
                 from langchain_anthropic import ChatAnthropic
-                # Modern langchain-anthropic uses 'model' parameter (not 'model_name')
+                # ChatAnthropic uses 'model_name' parameter (not 'model')
                 # But we need to handle other parameters differently
                 anthropic_kwargs = {
-                    "model": kwargs.get("model"),  # Use 'model' not 'model_name'
+                    "model_name": kwargs.get("model"),  # ChatAnthropic expects model_name
                     "temperature": kwargs.get("temperature", 0.3),
                 }
 
