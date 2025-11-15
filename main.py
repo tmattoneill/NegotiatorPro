@@ -304,7 +304,7 @@ class EnhancedNegotiationRAG:
         """Initialize the RAG system"""
         logger.info("Starting RAG system setup...")
         setup_start = time.time()
-        
+
         # Check embedding configuration compatibility
         compatibility = self.embedding_config.validate_compatibility()
         if not compatibility["compatible"]:
@@ -312,10 +312,10 @@ class EnhancedNegotiationRAG:
             for error in compatibility["errors"]:
                 logger.error(f"  • {error}")
             logger.warning("Recommend rebuilding vectorstore with correct model")
-        
+
         # Log current configuration
         logger.info(f"Embedding config: {self.embedding_config.get_current_model()}")
-        
+
         # Try to load existing vectorstore first
         if not self.load_vectorstore():
             logger.info("Creating new vectorstore...")
@@ -327,10 +327,11 @@ class EnhancedNegotiationRAG:
                 self.save_vectorstore()
             else:
                 logger.warning("No documents found, vectorstore not created")
-                return
-        
+                # Don't return - still need to setup LLMs even without documents
+
+        # Setup LLMs regardless of whether documents are loaded
         self.setup_llms()
-        
+
         setup_end = time.time()
         logger.info(f"RAG system setup complete in {setup_end-setup_start:.2f}s!")
     
