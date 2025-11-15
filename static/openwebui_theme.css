@@ -1,410 +1,533 @@
 /*
- * Open WebUI-Inspired Theme for NegotiatorPro
- * Based on Rosé Pine color palette and modern chat interface design
+ * Open WebUI Inspired Clean Dark Theme
+ * Ultra-minimal aesthetic with charcoal/graphite/soft-gray palette
+ * NO purple, NO colors - just clean blacks and grays
  */
 
+/* ==================== GLOBAL RESET & BASE ==================== */
 :root {
-    /* Rosé Pine Dark Color Palette */
-    --base: #191724;
-    --surface: #1f1d2e;
-    --overlay: #26233a;
-    --muted: #6e6a86;
-    --subtle: #908caa;
-    --text: #e0def4;
-    --love: #eb6f92;
-    --gold: #f6c177;
-    --rose: #ebbcba;
-    --pine: #31748f;
-    --foam: #9ccfd8;
-    --iris: #c4a7e7;
-    --highlight-low: #21202e;
-    --highlight-med: #403d52;
-    --highlight-high: #524f67;
+    /* Core Colors - Near-black/Charcoal/Graphite Palette */
+    --background-primary: #0F0F0F;     /* matte black */
+    --background-secondary: #1A1A1A;   /* input/card backgrounds */
+    --background-tertiary: #0B0B0B;    /* sidebar/darker areas */
+    --background-hover: #232323;       /* hover states */
 
-    /* Semantic Colors */
-    --primary-bg: var(--base);
-    --secondary-bg: var(--surface);
-    --panel-bg: var(--overlay);
-    --primary-text: var(--text);
-    --secondary-text: var(--subtle);
-    --accent-primary: var(--iris);
-    --accent-secondary: var(--foam);
-    --accent-success: var(--pine);
-    --accent-warning: var(--gold);
-    --accent-error: var(--love);
-    --accent-info: var(--rose);
+    /* Text Colors */
+    --text-primary: #E4E4E4;           /* main text - soft white */
+    --text-secondary: #A5A5A5;         /* secondary text - medium gray */
+    --text-tertiary: #797979;          /* placeholder/disabled - dark gray */
+    --text-muted: #5A5A5A;            /* very subtle text */
+
+    /* Borders & Dividers */
+    --border-subtle: #1C1C1C;
+    --border-emphasis: #2A2A2A;
+    --border-strong: #3A3A3A;
+
+    /* Minimal Accents */
+    --accent-subtle: #4A4A4A;
+    --accent-hover: #FFFFFF;
+    --accent-border: #2F2F2F;
 
     /* Spacing */
-    --spacing-xs: 0.25rem;
-    --spacing-sm: 0.5rem;
-    --spacing-md: 1rem;
-    --spacing-lg: 1.5rem;
-    --spacing-xl: 2rem;
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+    --space-2xl: 48px;
+    --space-3xl: 64px;
 
     /* Border Radius */
-    --radius-sm: 0.375rem;
-    --radius-md: 0.5rem;
-    --radius-lg: 0.75rem;
-    --radius-xl: 1rem;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-full: 9999px;
 
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
-    --shadow-glow: 0 0 15px rgba(196, 167, 231, 0.2);
+    /* Typography */
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    --font-size-xs: 12px;
+    --font-size-sm: 13px;
+    --font-size-base: 14px;
+    --font-size-lg: 16px;
+    --font-size-xl: 18px;
+    --font-size-2xl: 20px;
+
+    /* Line Heights */
+    --line-height-tight: 1.3;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.7;
 
     /* Transitions */
-    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: 150ms ease;
+    --transition-base: 250ms ease;
+    --transition-slow: 350ms ease;
 }
 
-/* Global Styles */
+/* ==================== GLOBAL RESETS ==================== */
 * {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    font-family: var(--font-family) !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-body, .gradio-container {
-    background: linear-gradient(135deg, var(--base) 0%, var(--surface) 100%) !important;
-    color: var(--primary-text) !important;
+html,
+body {
+    background: var(--background-primary) !important;
+    color: var(--text-primary) !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
-/* Main Container */
+/* ==================== GRADIO CONTAINER ==================== */
 .gradio-container {
+    background: var(--background-primary) !important;
+    color: var(--text-primary) !important;
     max-width: 100% !important;
-    padding: var(--spacing-lg) !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
-/* Header Styling */
+.gradio-container > div {
+    gap: 0 !important;
+}
+
+.contain {
+    background: var(--background-primary) !important;
+    padding: 0 !important;
+}
+
+.app {
+    background: var(--background-primary) !important;
+}
+
+/* ==================== HEADER ==================== */
+/* Clean minimal header */
 .gradio-container h1 {
-    color: var(--primary-text) !important;
-    font-weight: 700 !important;
-    font-size: 2.5rem !important;
-    margin-bottom: var(--spacing-lg) !important;
-    background: linear-gradient(135deg, var(--iris), var(--foam)) !important;
-    -webkit-background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-    background-clip: text !important;
-    text-shadow: var(--shadow-glow);
+    font-size: var(--font-size-xl) !important;
+    font-weight: 500 !important;
+    color: var(--text-primary) !important;
+    margin: 0 !important;
+    padding: var(--space-lg) var(--space-2xl) var(--space-md) var(--space-2xl) !important;
+    background: var(--background-primary) !important;
+    border: none !important;
+    letter-spacing: -0.02em !important;
 }
 
+/* Hide subtitle/description for ultra-clean look */
+.gradio-container h1 + p,
+.gradio-container p:has(em) {
+    display: none !important;
+}
+
+/* Secondary headings */
 .gradio-container h2 {
-    color: var(--primary-text) !important;
-    font-weight: 600 !important;
-    font-size: 1.5rem !important;
-    margin-bottom: var(--spacing-md) !important;
+    font-size: var(--font-size-lg) !important;
+    font-weight: 500 !important;
+    color: var(--text-primary) !important;
+    margin: 0 0 var(--space-md) 0 !important;
 }
 
 .gradio-container h3 {
-    color: var(--accent-secondary) !important;
+    font-size: var(--font-size-base) !important;
     font-weight: 500 !important;
-    font-size: 1.125rem !important;
-    margin-bottom: var(--spacing-sm) !important;
+    color: var(--text-secondary) !important;
+    margin: 0 0 var(--space-sm) 0 !important;
 }
 
-/* Markdown Styling */
-.markdown, .prose {
-    color: var(--secondary-text) !important;
-    line-height: 1.7 !important;
-}
-
-/* Tab Styling - Sidebar-like appearance */
+/* ==================== TABS NAVIGATION ==================== */
+/* Clean minimal tabs */
 .tabs {
-    background: var(--secondary-bg) !important;
-    border-radius: var(--radius-xl) !important;
-    padding: var(--spacing-sm) !important;
-    box-shadow: var(--shadow-lg) !important;
+    background: var(--background-primary) !important;
+    border-bottom: 1px solid var(--border-subtle) !important;
+    padding: 0 var(--space-2xl) !important;
+    margin: 0 !important;
 }
 
 .tab-nav {
     background: transparent !important;
-    border-bottom: 2px solid var(--overlay) !important;
+    border: none !important;
+    gap: var(--space-xl) !important;
     padding: 0 !important;
-    gap: var(--spacing-sm) !important;
 }
 
-button.tab-nav {
+/* Tab buttons - ultra minimal */
+button.selected,
+.tab-nav button[aria-selected="true"] {
     background: transparent !important;
-    color: var(--secondary-text) !important;
+    color: var(--text-primary) !important;
     border: none !important;
+    border-bottom: 2px solid var(--text-primary) !important;
+    border-radius: 0 !important;
+    font-weight: 500 !important;
+    font-size: var(--font-size-base) !important;
+    padding: var(--space-md) 0 !important;
+    transition: color var(--transition-fast) !important;
+}
+
+.tab-nav button:not(.selected),
+.tab-nav button:not([aria-selected="true"]) {
+    background: transparent !important;
+    color: var(--text-tertiary) !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-weight: 400 !important;
+    font-size: var(--font-size-base) !important;
+    padding: var(--space-md) 0 !important;
+    transition: color var(--transition-fast) !important;
+}
+
+.tab-nav button:not(.selected):hover {
+    color: var(--text-secondary) !important;
+    background: transparent !important;
+}
+
+/* ==================== MAIN CONTENT AREA ==================== */
+.tabitem {
+    background: var(--background-primary) !important;
+    padding: var(--space-2xl) !important;
+    max-width: 1400px !important;
+    margin: 0 auto !important;
+}
+
+/* ==================== TYPOGRAPHY ==================== */
+.markdown {
+    color: var(--text-secondary) !important;
+    font-size: var(--font-size-base) !important;
+    line-height: var(--line-height-normal) !important;
+    margin: 0 !important;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+    color: var(--text-primary) !important;
+    font-weight: 500 !important;
+    margin: 0 0 var(--space-sm) 0 !important;
+}
+
+.markdown p {
+    color: var(--text-tertiary) !important;
+    font-size: var(--font-size-sm) !important;
+    line-height: var(--line-height-normal) !important;
+    margin: 0 !important;
+}
+
+/* Horizontal rules - minimal */
+hr {
+    border: none !important;
+    border-top: 1px solid var(--border-subtle) !important;
+    margin: var(--space-xl) 0 !important;
+    opacity: 0.5 !important;
+}
+
+/* ==================== LAYOUT ==================== */
+.gr-row {
+    gap: var(--space-lg) !important;
+}
+
+.gr-column {
+    gap: var(--space-lg) !important;
+}
+
+/* ==================== CARDS & GROUPS ==================== */
+/* Remove all Gradio default styling */
+.form,
+.block,
+.gradio-block {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Clean minimal groups/cards */
+.gr-group {
+    background: transparent !important;
+    border: 1px solid var(--border-subtle) !important;
     border-radius: var(--radius-md) !important;
-    padding: var(--spacing-md) var(--spacing-lg) !important;
-    font-weight: 500 !important;
-    transition: all var(--transition-base) !important;
-    position: relative !important;
+    padding: var(--space-md) !important;
+    box-shadow: none !important;
+    transition: border-color var(--transition-fast) !important;
 }
 
-button.tab-nav:hover {
-    background: var(--overlay) !important;
-    color: var(--primary-text) !important;
-    transform: translateY(-2px) !important;
+.gr-group:hover {
+    border-color: var(--border-emphasis) !important;
 }
 
-button.tab-nav.selected, button.tab-nav[aria-selected="true"] {
-    background: linear-gradient(135deg, var(--iris), var(--foam)) !important;
-    color: white !important;
-    box-shadow: var(--shadow-glow) !important;
-    font-weight: 600 !important;
+/* ==================== INPUTS ==================== */
+/* Text inputs and textareas */
+textarea,
+input[type="text"],
+input[type="password"] {
+    background: var(--background-secondary) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-primary) !important;
+    font-size: var(--font-size-base) !important;
+    line-height: var(--line-height-normal) !important;
+    padding: var(--space-md) !important;
+    transition: all var(--transition-fast) !important;
+    resize: vertical !important;
 }
 
-/* Input Fields */
-textarea, input[type="text"], input[type="password"] {
-    background: var(--secondary-bg) !important;
-    border: 2px solid var(--overlay) !important;
-    border-radius: var(--radius-lg) !important;
-    color: var(--primary-text) !important;
-    padding: var(--spacing-md) !important;
-    transition: all var(--transition-base) !important;
-    font-size: 0.95rem !important;
-}
-
-textarea:focus, input[type="text"]:focus, input[type="password"]:focus {
-    border-color: var(--accent-primary) !important;
-    box-shadow: 0 0 0 3px rgba(196, 167, 231, 0.1), var(--shadow-md) !important;
+textarea:focus,
+input[type="text"]:focus,
+input[type="password"]:focus {
+    border-color: var(--border-emphasis) !important;
     outline: none !important;
-    background: var(--overlay) !important;
+    box-shadow: none !important;
+    background: var(--background-secondary) !important;
 }
 
-textarea::placeholder, input::placeholder {
-    color: var(--muted) !important;
+textarea::placeholder,
+input::placeholder {
+    color: var(--text-tertiary) !important;
+    opacity: 1 !important;
 }
 
-/* Textbox Components */
-.input-container, .textbox-container {
-    margin-bottom: var(--spacing-md) !important;
-}
-
+/* Labels */
 label {
-    color: var(--accent-secondary) !important;
+    color: var(--text-secondary) !important;
+    font-size: var(--font-size-sm) !important;
     font-weight: 500 !important;
-    font-size: 0.875rem !important;
-    margin-bottom: var(--spacing-xs) !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.05em !important;
+    margin-bottom: var(--space-sm) !important;
+    display: block !important;
 }
 
-/* Buttons */
-button, .btn {
-    border-radius: var(--radius-lg) !important;
+/* Info text under inputs */
+.info,
+.gr-info {
+    color: var(--text-tertiary) !important;
+    font-size: var(--font-size-xs) !important;
+    margin-top: var(--space-xs) !important;
+}
+
+/* ==================== BUTTONS ==================== */
+/* Reset all button styles */
+button,
+.btn,
+.gr-button {
+    font-family: var(--font-family) !important;
+    font-size: var(--font-size-base) !important;
     font-weight: 500 !important;
-    padding: var(--spacing-md) var(--spacing-xl) !important;
-    transition: all var(--transition-base) !important;
-    border: none !important;
+    border-radius: var(--radius-md) !important;
+    transition: all var(--transition-fast) !important;
     cursor: pointer !important;
-    font-size: 0.95rem !important;
+    box-shadow: none !important;
+    border: 1px solid var(--border-subtle) !important;
 }
 
-/* Primary Button */
-button.primary, .btn-primary, button[variant="primary"] {
-    background: linear-gradient(135deg, var(--iris), var(--foam)) !important;
-    color: white !important;
-    box-shadow: var(--shadow-md) !important;
+/* Primary buttons - minimal style */
+button[variant="primary"],
+.primary,
+button.primary {
+    background: var(--background-secondary) !important;
+    border: 1px solid var(--border-emphasis) !important;
+    color: var(--text-primary) !important;
+    padding: var(--space-md) var(--space-xl) !important;
 }
 
-button.primary:hover, .btn-primary:hover, button[variant="primary"]:hover {
-    box-shadow: var(--shadow-lg), var(--shadow-glow) !important;
-    transform: translateY(-2px) !important;
+button[variant="primary"]:hover,
+.primary:hover,
+button.primary:hover {
+    background: var(--background-hover) !important;
+    border-color: var(--border-strong) !important;
+    transform: none !important;
 }
 
-button.primary:active, .btn-primary:active, button[variant="primary"]:active {
-    transform: translateY(0) !important;
+/* Secondary buttons */
+button[variant="secondary"],
+.secondary,
+button.secondary {
+    background: var(--background-secondary) !important;
+    border: 1px solid var(--border-subtle) !important;
+    color: var(--text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
 }
 
-/* Secondary Button */
-button.secondary, .btn-secondary, button[variant="secondary"] {
-    background: var(--overlay) !important;
-    color: var(--primary-text) !important;
-    border: 2px solid var(--highlight-med) !important;
+button[variant="secondary"]:hover,
+.secondary:hover,
+button.secondary:hover {
+    background: var(--background-hover) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-emphasis) !important;
 }
 
-button.secondary:hover, .btn-secondary:hover, button[variant="secondary"]:hover {
-    background: var(--highlight-med) !important;
-    border-color: var(--accent-primary) !important;
-    transform: translateY(-2px) !important;
+/* Small buttons */
+button[size="sm"],
+.btn-sm {
+    background: transparent !important;
+    border: 1px solid var(--border-subtle) !important;
+    color: var(--text-tertiary) !important;
+    font-size: var(--font-size-sm) !important;
+    padding: var(--space-sm) var(--space-md) !important;
 }
 
-/* Small Buttons */
-button[size="sm"], .btn-sm {
-    padding: var(--spacing-sm) var(--spacing-md) !important;
-    font-size: 0.875rem !important;
-    background: var(--overlay) !important;
-    color: var(--accent-secondary) !important;
-    border: 1px solid var(--highlight-med) !important;
+button[size="sm"]:hover,
+.btn-sm:hover {
+    background: var(--background-secondary) !important;
+    color: var(--text-secondary) !important;
+    border-color: var(--border-emphasis) !important;
 }
 
-button[size="sm"]:hover, .btn-sm:hover {
-    background: var(--highlight-med) !important;
-    color: var(--accent-primary) !important;
-    border-color: var(--accent-primary) !important;
+/* Large buttons */
+button[size="lg"],
+.btn-lg {
+    padding: var(--space-md) var(--space-xl) !important;
+    font-size: var(--font-size-base) !important;
 }
 
-/* Large Buttons */
-button[size="lg"], .btn-lg {
-    padding: var(--spacing-lg) var(--spacing-xl) !important;
-    font-size: 1.125rem !important;
-    font-weight: 600 !important;
+/* Example buttons */
+.examples button {
+    background: var(--background-secondary) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-tertiary) !important;
+    font-size: var(--font-size-sm) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    text-align: left !important;
+    transition: all var(--transition-fast) !important;
+    width: 100% !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 }
 
-/* Checkbox Styling */
+.examples button:hover {
+    background: var(--background-hover) !important;
+    border-color: var(--border-emphasis) !important;
+    color: var(--text-secondary) !important;
+    transform: none !important;
+}
+
+/* ==================== CHECKBOXES ==================== */
 input[type="checkbox"] {
-    appearance: none !important;
-    width: 1.25rem !important;
-    height: 1.25rem !important;
-    border: 2px solid var(--highlight-med) !important;
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
+    background: var(--background-secondary) !important;
+    border: 1px solid var(--border-subtle) !important;
     border-radius: var(--radius-sm) !important;
-    background: var(--secondary-bg) !important;
     cursor: pointer !important;
     transition: all var(--transition-fast) !important;
     position: relative !important;
-}
-
-input[type="checkbox"]:checked {
-    background: linear-gradient(135deg, var(--iris), var(--foam)) !important;
-    border-color: var(--iris) !important;
-}
-
-input[type="checkbox"]:checked::after {
-    content: '✓' !important;
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    color: white !important;
-    font-size: 0.875rem !important;
-    font-weight: bold !important;
+    margin-right: var(--space-sm) !important;
 }
 
 input[type="checkbox"]:hover {
-    border-color: var(--accent-primary) !important;
+    border-color: var(--border-emphasis) !important;
 }
 
-.checkbox-label, label[for*="checkbox"] {
-    color: var(--primary-text) !important;
-    margin-left: var(--spacing-sm) !important;
+input[type="checkbox"]:checked {
+    background: var(--text-primary) !important;
+    border-color: var(--text-primary) !important;
 }
 
-/* Group/Panel Styling */
-.form, .panel, fieldset {
-    background: var(--secondary-bg) !important;
-    border: 2px solid var(--overlay) !important;
-    border-radius: var(--radius-xl) !important;
-    padding: var(--spacing-lg) !important;
-    margin-bottom: var(--spacing-lg) !important;
-    box-shadow: var(--shadow-md) !important;
+input[type="checkbox"]:checked::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 5px;
+    width: 4px;
+    height: 8px;
+    border: solid var(--background-primary);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
 }
 
-/* File Upload */
-.file-upload, .upload-container {
-    background: var(--secondary-bg) !important;
-    border: 2px dashed var(--highlight-med) !important;
-    border-radius: var(--radius-lg) !important;
-    padding: var(--spacing-xl) !important;
-    transition: all var(--transition-base) !important;
+/* Checkbox container */
+.checkbox,
+.gr-checkbox {
+    display: flex !important;
+    align-items: center !important;
+    gap: var(--space-sm) !important;
 }
 
-.file-upload:hover, .upload-container:hover {
-    border-color: var(--accent-primary) !important;
-    background: var(--overlay) !important;
+.checkbox label,
+.gr-checkbox label {
+    color: var(--text-primary) !important;
+    font-size: var(--font-size-base) !important;
+    font-weight: 500 !important;
+    margin: 0 !important;
+    cursor: pointer !important;
 }
 
-/* Output/Response Containers */
-.output-container, .textbox:not(.input) {
-    background: var(--secondary-bg) !important;
-    border: 2px solid var(--overlay) !important;
-    border-radius: var(--radius-lg) !important;
-    padding: var(--spacing-lg) !important;
-    color: var(--primary-text) !important;
-    line-height: 1.7 !important;
-    box-shadow: var(--shadow-sm) !important;
-}
-
-/* Chat-like output styling */
-.output-container pre, .output-container code {
-    background: var(--overlay) !important;
-    color: var(--accent-secondary) !important;
+/* ==================== OUTPUT AREAS ==================== */
+/* Readonly/disabled textboxes */
+textarea[disabled],
+textarea:disabled,
+.output-textarea,
+.gr-textbox.disabled textarea {
+    background: var(--background-secondary) !important;
+    border: 1px solid var(--border-subtle) !important;
     border-radius: var(--radius-md) !important;
-    padding: var(--spacing-sm) !important;
+    color: var(--text-primary) !important;
+    font-size: var(--font-size-base) !important;
+    line-height: var(--line-height-relaxed) !important;
+    padding: var(--space-lg) !important;
+    opacity: 1 !important;
 }
 
-/* Row/Column Layout */
-.row {
-    gap: var(--spacing-lg) !important;
+/* ==================== FILE UPLOAD ==================== */
+.file-upload,
+.upload-container,
+.gr-file {
+    background: var(--background-secondary) !important;
+    border: 1px dashed var(--border-subtle) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-tertiary) !important;
+    padding: var(--space-xl) !important;
+    transition: all var(--transition-fast) !important;
 }
 
-.column {
-    gap: var(--spacing-md) !important;
+.file-upload:hover,
+.upload-container:hover {
+    border-color: var(--border-emphasis) !important;
+    background: var(--background-hover) !important;
 }
 
-/* Scrollbar Styling */
+/* ==================== SCROLLBARS ==================== */
 ::-webkit-scrollbar {
-    width: 0.5rem !important;
-    height: 0.5rem !important;
+    width: 6px;
+    height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--overlay) !important;
-    border-radius: var(--radius-sm) !important;
+    background: var(--background-primary);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--highlight-med) !important;
-    border-radius: var(--radius-sm) !important;
+    background: var(--accent-subtle);
+    border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-primary) !important;
+    background: var(--text-tertiary);
 }
 
-/* Status Messages */
-.info {
-    background: linear-gradient(135deg, rgba(49, 116, 143, 0.1), rgba(156, 207, 216, 0.1)) !important;
-    border-left: 4px solid var(--accent-info) !important;
-    padding: var(--spacing-md) !important;
-    border-radius: var(--radius-md) !important;
-    color: var(--accent-info) !important;
+/* Firefox scrollbar */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-subtle) var(--background-primary);
 }
 
-.success {
-    background: linear-gradient(135deg, rgba(49, 116, 143, 0.1), rgba(156, 207, 216, 0.1)) !important;
-    border-left: 4px solid var(--accent-success) !important;
-    padding: var(--spacing-md) !important;
-    border-radius: var(--radius-md) !important;
-    color: var(--foam) !important;
+/* ==================== FOOTER ==================== */
+/* Hide Gradio footer */
+footer,
+.footer {
+    display: none !important;
 }
 
-.warning {
-    background: linear-gradient(135deg, rgba(246, 193, 119, 0.1), rgba(235, 188, 186, 0.1)) !important;
-    border-left: 4px solid var(--accent-warning) !important;
-    padding: var(--spacing-md) !important;
-    border-radius: var(--radius-md) !important;
-    color: var(--gold) !important;
-}
-
-.error {
-    background: linear-gradient(135deg, rgba(235, 111, 146, 0.1), rgba(235, 111, 146, 0.1)) !important;
-    border-left: 4px solid var(--accent-error) !important;
-    padding: var(--spacing-md) !important;
-    border-radius: var(--radius-md) !important;
-    color: var(--love) !important;
-}
-
-/* Loading/Progress Indicators */
-.progress {
-    background: var(--overlay) !important;
-    border-radius: var(--radius-lg) !important;
-    overflow: hidden !important;
-}
-
-.progress-bar {
-    background: linear-gradient(90deg, var(--iris), var(--foam)) !important;
-    transition: width var(--transition-base) !important;
-}
-
-/* Animations */
+/* ==================== ANIMATIONS ==================== */
 @keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(4px);
     }
     to {
         opacity: 1;
@@ -412,117 +535,47 @@ input[type="checkbox"]:hover {
     }
 }
 
-@keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.5;
-    }
-}
-
-@keyframes shimmer {
-    0% {
-        background-position: -1000px 0;
-    }
-    100% {
-        background-position: 1000px 0;
-    }
-}
-
-/* Apply fade-in animation to main elements */
-.gradio-container > * {
-    animation: fadeIn var(--transition-slow) ease-out !important;
-}
-
-/* Hover effects for interactive elements */
-.interactive:hover {
-    transform: scale(1.02) !important;
-    transition: transform var(--transition-fast) !important;
-}
-
-/* Card-style containers */
-.card {
-    background: var(--secondary-bg) !important;
-    border-radius: var(--radius-xl) !important;
-    padding: var(--spacing-lg) !important;
-    box-shadow: var(--shadow-md) !important;
-    border: 1px solid var(--overlay) !important;
-    transition: all var(--transition-base) !important;
-}
-
-.card:hover {
-    box-shadow: var(--shadow-lg) !important;
-    transform: translateY(-4px) !important;
-    border-color: var(--accent-primary) !important;
-}
-
-/* Glassmorphism effect for special elements */
-.glass {
-    background: rgba(31, 29, 46, 0.7) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(144, 140, 170, 0.2) !important;
-}
-
-/* Mobile Responsive */
+/* ==================== RESPONSIVE ==================== */
 @media (max-width: 768px) {
-    .gradio-container {
-        padding: var(--spacing-md) !important;
+    .tabitem {
+        padding: var(--space-lg) !important;
     }
 
     .gradio-container h1 {
-        font-size: 1.75rem !important;
+        padding: var(--space-md) var(--space-lg) !important;
+        font-size: var(--font-size-lg) !important;
     }
 
-    button, .btn {
-        padding: var(--spacing-sm) var(--spacing-md) !important;
+    .tabs {
+        padding: 0 var(--space-lg) !important;
     }
 
-    .row {
+    .gr-row {
         flex-direction: column !important;
     }
 }
 
-/* Focus visible for accessibility */
-*:focus-visible {
-    outline: 2px solid var(--accent-primary) !important;
-    outline-offset: 2px !important;
+/* ==================== UTILITY CLASSES ==================== */
+.text-primary {
+    color: var(--text-primary) !important;
 }
 
-/* Hide unnecessary Gradio branding */
-footer {
-    display: none !important;
+.text-secondary {
+    color: var(--text-secondary) !important;
 }
 
-/* Custom separator/divider */
-hr {
-    border: none !important;
-    border-top: 2px solid var(--overlay) !important;
-    margin: var(--spacing-lg) 0 !important;
+.text-tertiary {
+    color: var(--text-tertiary) !important;
 }
 
-/* Tooltip styling */
-.tooltip {
-    background: var(--overlay) !important;
-    color: var(--primary-text) !important;
-    border-radius: var(--radius-md) !important;
-    padding: var(--spacing-sm) var(--spacing-md) !important;
-    box-shadow: var(--shadow-lg) !important;
-    font-size: 0.875rem !important;
+/* ==================== SPECIAL FIXES ==================== */
+/* Remove any gradients or colors from Gradio */
+.gradio-container * {
+    background-image: none !important;
 }
 
-/* Example buttons grid styling */
-.examples button {
-    background: var(--overlay) !important;
-    border: 1px solid var(--highlight-med) !important;
-    color: var(--secondary-text) !important;
-    transition: all var(--transition-base) !important;
-}
-
-.examples button:hover {
-    background: var(--highlight-med) !important;
-    color: var(--accent-primary) !important;
-    border-color: var(--accent-primary) !important;
-    transform: translateY(-2px) !important;
+/* Ensure no purple/blue colors leak through */
+.primary-hue,
+.secondary-hue {
+    --color-accent: var(--text-primary) !important;
 }
