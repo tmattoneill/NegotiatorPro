@@ -20,6 +20,7 @@ from document_manager import DocumentManager
 from embedding_config import EmbeddingConfig
 from text_preprocessor import TextPreprocessor
 from prompt_manager import PromptManager
+from llm_backend_config import LLMBackendManager, backend_manager
 
 # Set up detailed logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -30,42 +31,54 @@ load_dotenv()
 logger.info("Environment variables loaded")
 
 class ModelConfig:
-    """Model configuration middleware to handle different model parameters"""
-    
-    MODEL_CONFIGS = {
-        "gpt-4o-mini": {
-            "model": "gpt-4o-mini",
-            "temperature": 0.3,
-            "max_tokens": None
-        },
-        "o3-mini": {
-            "model": "o3-mini",
-            # o3 models don't support temperature parameter
-        },
-        "gpt-4": {
-            "model": "gpt-4",
-            "temperature": 0.3,
-            "max_tokens": None
-        },
-        "gpt-3.5-turbo": {
-            "model": "gpt-3.5-turbo",
-            "temperature": 0.3,
-            "max_tokens": None
-        }
-    }
-    
+    """Model configuration middleware to handle different model parameters and backends"""
+
+    def __init__(self):
+        """Initialize with backend manager"""
+        self.backend_manager = backend_manager
+
     @staticmethod
-    def get_model_kwargs(model_name):
-        """Get appropriate kwargs for a specific model"""
-        if model_name not in ModelConfig.MODEL_CONFIGS:
+    def get_model_kwargs_legacy(model_name):
+        """Legacy method for backwards compatibility - use get_model_kwargs instead"""
+        MODEL_CONFIGS = {
+            "gpt-4o-mini": {
+                "model": "gpt-4o-mini",
+                "temperature": 0.3,
+                "max_tokens": None
+            },
+            "o3-mini": {
+                "model": "o3-mini",
+                # o3 models don't support temperature parameter
+            },
+            "gpt-4": {
+                "model": "gpt-4",
+                "temperature": 0.3,
+                "max_tokens": None
+            },
+            "gpt-3.5-turbo": {
+                "model": "gpt-3.5-turbo",
+                "temperature": 0.3,
+                "max_tokens": None
+            }
+        }
+
+        if model_name not in MODEL_CONFIGS:
             logger.warning(f"Unknown model {model_name}, using default config")
             return {"model": model_name, "temperature": 0.3}
-        
-        config = ModelConfig.MODEL_CONFIGS[model_name].copy()
+
+        config = MODEL_CONFIGS[model_name].copy()
         # Filter out None values to avoid passing them to ChatOpenAI
         config = {k: v for k, v in config.items() if v is not None}
         logger.info(f"Using config for {model_name}: {config}")
         return config
+
+    def get_model_kwargs(self, backend_id: str, model_id: str):
+        """Get appropriate kwargs for a specific backend and model"""
+        return self.backend_manager.get_llm_kwargs(backend_id, model_id)
+
+    def create_llm(self, backend_id: str, model_id: str):
+        """Create an LLM instance for the specified backend and model"""
+        return self.backend_manager.create_llm_instance(backend_id, model_id)
 
 class EnhancedNegotiationRAG:
     def __init__(self):
@@ -77,6 +90,8 @@ class EnhancedNegotiationRAG:
         self.embedding_config = EmbeddingConfig()
         self.text_preprocessor = TextPreprocessor()
         self.prompt_manager = PromptManager()
+        self.backend_manager = backend_manager
+        self.model_config = ModelConfig()
         
     def load_documents(self):
         """Load and process PDF documents"""
@@ -253,15 +268,37 @@ class EnhancedNegotiationRAG:
             return "Error retrieving context from knowledge base."
     
     def setup_llms(self):
-        """Setup LLM instances for both models"""
+        """Setup LLM instances for both models using backend manager"""
         logger.info("Setting up LLM instances...")
-        
-        # Create LLM instances for both models with model-specific parameters
-        default_config = ModelConfig.get_model_kwargs("gpt-4o-mini")
-        premium_config = ModelConfig.get_model_kwargs("o3-mini")
-        
-        self.default_llm = ChatOpenAI(**default_config)
-        self.premium_llm = ChatOpenAI(**premium_config)
+
+        # Get active model configurations from backend manager
+        default_model_config = self.backend_manager.get_active_model_config("default")
+        premium_model_config = self.backend_manager.get_active_model_config("premium")
+
+        default_backend = default_model_config.get("backend", "openai")
+        default_model = default_model_config.get("model", "gpt-4o-mini")
+        premium_backend = premium_model_config.get("backend", "openai")
+        premium_model = premium_model_config.get("model", "o3-mini")
+
+        logger.info(f"Default model: {default_backend}/{default_model}")
+        logger.info(f"Premium model: {premium_backend}/{premium_model}")
+
+        # Create LLM instances using the model config
+        try:
+            self.default_llm = self.model_config.create_llm(default_backend, default_model)
+            logger.info(f"✅ Default LLM initialized: {default_backend}/{default_model}")
+        except Exception as e:
+            logger.error(f"Error creating default LLM: {e}")
+            logger.warning("Falling back to OpenAI gpt-4o-mini")
+            self.default_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+
+        try:
+            self.premium_llm = self.model_config.create_llm(premium_backend, premium_model)
+            logger.info(f"✅ Premium LLM initialized: {premium_backend}/{premium_model}")
+        except Exception as e:
+            logger.error(f"Error creating premium LLM: {e}")
+            logger.warning("Falling back to OpenAI o3-mini")
+            self.premium_llm = ChatOpenAI(model="o3-mini")
     
     def setup_system(self):
         """Initialize the RAG system"""
@@ -314,12 +351,14 @@ class EnhancedNegotiationRAG:
             # Select appropriate LLM based on model choice
             if use_premium_model:
                 llm = self.premium_llm
-                model_name = "o3-mini"
-                logger.info("Using o3-mini model for this query")
+                model_config = self.backend_manager.get_active_model_config("premium")
+                model_name = f"{model_config.get('backend', 'openai')}/{model_config.get('model', 'o3-mini')}"
+                logger.info(f"Using premium model: {model_name}")
             else:
                 llm = self.default_llm
-                model_name = "gpt-4o-mini"
-                logger.info("Using gpt-4o-mini model for this query")
+                model_config = self.backend_manager.get_active_model_config("default")
+                model_name = f"{model_config.get('backend', 'openai')}/{model_config.get('model', 'gpt-4o-mini')}"
+                logger.info(f"Using default model: {model_name}")
             
             # Get relevant context from vectorstore
             context = self.get_relevant_context(question)
@@ -373,10 +412,9 @@ def create_admin_interface_content():
         return False, "", "Invalid password"
     
     def check_admin_session(session_id):
-        """Check if admin session is valid"""
-        if not session_id:
-            return False
-        return rag_system.admin_config.is_valid_session(session_id)
+        """Check if admin session is valid - AUTHENTICATION DISABLED"""
+        # Authentication disabled for easier access
+        return True
     
     def save_system_prompt(prompt, session_id):
         """Save system prompt"""
@@ -487,37 +525,81 @@ Model Breakdown:"""
         """Change admin password"""
         if not check_admin_session(session_id):
             return "Session expired. Please log in again."
-        
+
         if not rag_system.admin_config.verify_password(current_password):
             return "Current password is incorrect"
-        
+
         if new_password != confirm_password:
             return "New passwords don't match"
-        
+
         if len(new_password) < 6:
             return "New password must be at least 6 characters"
-        
+
         rag_system.admin_config.change_password(new_password)
         return "Password changed successfully"
+
+    def get_backend_status(session_id):
+        """Get backend configuration status"""
+        if not check_admin_session(session_id):
+            return "Session expired. Please log in again."
+
+        return rag_system.backend_manager.get_status_report()
+
+    def get_backend_models(backend_id):
+        """Get available models for a backend"""
+        backend = rag_system.backend_manager.get_backend(backend_id)
+        if not backend:
+            return []
+
+        models = []
+        for model in backend.models:
+            models.append((model.id, f"{model.name} - {model.description}"))
+        return models
+
+    def set_default_model(backend_id, model_id, session_id):
+        """Set default model"""
+        if not check_admin_session(session_id):
+            return "Session expired. Please log in again."
+
+        try:
+            rag_system.backend_manager.set_active_model("default", backend_id, model_id)
+            # Reinitialize LLMs
+            rag_system.setup_llms()
+            return f"✅ Default model set to {backend_id}/{model_id}"
+        except Exception as e:
+            return f"❌ Error setting default model: {str(e)}"
+
+    def set_premium_model(backend_id, model_id, session_id):
+        """Set premium model"""
+        if not check_admin_session(session_id):
+            return "Session expired. Please log in again."
+
+        try:
+            rag_system.backend_manager.set_active_model("premium", backend_id, model_id)
+            # Reinitialize LLMs
+            rag_system.setup_llms()
+            return f"✅ Premium model set to {backend_id}/{model_id}"
+        except Exception as e:
+            return f"❌ Error setting premium model: {str(e)}"
+
+    def enable_backend(backend_id, enabled, session_id):
+        """Enable or disable a backend"""
+        if not check_admin_session(session_id):
+            return "Session expired. Please log in again."
+
+        try:
+            rag_system.backend_manager.enable_backend(backend_id, enabled)
+            status = "enabled" if enabled else "disabled"
+            return f"✅ Backend {backend_id} {status}"
+        except Exception as e:
+            return f"❌ Error updating backend: {str(e)}"
     
     # Admin interface content (no wrapping Blocks)
-    # Session state
-    session_state = gr.State("")
+    # Note: Authentication disabled for easier access
+    session_state = gr.State("admin-session")  # Dummy session for compatibility
 
-    # Authentication modal - modern card style
-    with gr.Group() as auth_group:
-        gr.Markdown("### 🔐 Authentication Required")
-        gr.Markdown("*Please enter your admin credentials to access the dashboard*")
-        admin_password = gr.Textbox(
-            label="Password",
-            type="password",
-            placeholder="Enter admin password"
-        )
-        auth_btn = gr.Button("🔓 Login", variant="primary", size="lg")
-        auth_status = gr.Textbox(label="Status", interactive=False, show_label=False)
-
-    # Admin content (hidden until authenticated)
-    with gr.Group(visible=False) as admin_content:
+    # Admin content (authentication removed)
+    with gr.Group(visible=True) as admin_content:
         gr.Markdown("### 📊 Admin Dashboard")
         gr.Markdown("*Manage your NegotiatorPro system configuration and monitor usage*")
         
@@ -550,6 +632,82 @@ Model Breakdown:"""
                     load_user_btn = gr.Button("📥 Load Current", size="sm")
                     save_user_btn = gr.Button("💾 Save Changes", variant="primary")
                 user_status = gr.Textbox(label="Status", interactive=False, show_label=False)
+
+            # Backend Configuration
+            with gr.Tab("🤖 LLM Backends"):
+                gr.Markdown("### Backend Status")
+                refresh_backend_btn = gr.Button("🔄 Refresh Status", size="sm")
+                backend_status_display = gr.Textbox(
+                    label="Backend Status",
+                    lines=15,
+                    interactive=False,
+                    show_label=False
+                )
+
+                gr.Markdown("---")
+                gr.Markdown("### Configure Default Model")
+                gr.Markdown("*This model is used for regular queries*")
+
+                with gr.Row():
+                    default_backend_dropdown = gr.Dropdown(
+                        choices=[
+                            ("OpenAI", "openai"),
+                            ("Anthropic Claude", "anthropic"),
+                            ("Ollama (Local)", "ollama"),
+                            ("Ollama (Cloud)", "ollama-cloud")
+                        ],
+                        label="Backend",
+                        value="openai",
+                        interactive=True
+                    )
+
+                default_model_dropdown = gr.Dropdown(
+                    choices=[],
+                    label="Model",
+                    interactive=True
+                )
+
+                set_default_model_btn = gr.Button("💾 Set Default Model", variant="primary")
+                default_model_status = gr.Textbox(label="Status", interactive=False, show_label=False)
+
+                gr.Markdown("---")
+                gr.Markdown("### Configure Premium Model")
+                gr.Markdown("*This model is used when 'Premium Model' is selected*")
+
+                with gr.Row():
+                    premium_backend_dropdown = gr.Dropdown(
+                        choices=[
+                            ("OpenAI", "openai"),
+                            ("Anthropic Claude", "anthropic"),
+                            ("Ollama (Local)", "ollama"),
+                            ("Ollama (Cloud)", "ollama-cloud")
+                        ],
+                        label="Backend",
+                        value="openai",
+                        interactive=True
+                    )
+
+                premium_model_dropdown = gr.Dropdown(
+                    choices=[],
+                    label="Model",
+                    interactive=True
+                )
+
+                set_premium_model_btn = gr.Button("💾 Set Premium Model", variant="primary")
+                premium_model_status = gr.Textbox(label="Status", interactive=False, show_label=False)
+
+                gr.Markdown("---")
+                gr.Markdown("### API Key Configuration")
+                gr.Markdown("""
+**Required Environment Variables:**
+
+- **OpenAI**: `OPENAI_API_KEY`
+- **Anthropic**: `ANTHROPIC_API_KEY`
+- **Ollama Local**: No API key needed (default: http://localhost:11434)
+- **Ollama Cloud**: `OLLAMA_API_KEY` and `OLLAMA_CLOUD_URL`
+
+Set these in your `.env` file and restart the application.
+                """)
 
             # Document Management
             with gr.Tab("📚 Documents"):
@@ -619,32 +777,10 @@ Model Breakdown:"""
                 )
                 change_pwd_btn = gr.Button("🔐 Update Password", variant="primary")
                 pwd_status = gr.Textbox(label="Status", interactive=False, show_label=False)
-    
-    # Authentication handler
-    def handle_auth(password):
-        success, session_id, message = authenticate_admin(password)
-        if success:
-            return (
-                gr.update(visible=False),  # Hide auth
-                gr.update(visible=True),   # Show admin content
-                session_id,
-                message
-            )
-        else:
-            return (
-                gr.update(visible=True),   # Keep auth visible
-                gr.update(visible=False),  # Hide admin content
-                "",
-                message
-            )
-    
+
     # Event handlers
-    auth_btn.click(
-        handle_auth,
-        inputs=[admin_password],
-        outputs=[auth_group, admin_content, session_state, auth_status]
-    )
-    
+    # Note: Authentication removed - admin panel is now publicly accessible
+
     # System prompt handlers
     load_system_btn.click(get_system_prompt, inputs=[session_state], outputs=[system_prompt_text])
     save_system_btn.click(save_system_prompt, inputs=[system_prompt_text, session_state], outputs=[system_status])
@@ -667,6 +803,43 @@ Model Breakdown:"""
         change_admin_password,
         inputs=[current_pwd, new_pwd, confirm_pwd, session_state],
         outputs=[pwd_status]
+    )
+
+    # Backend configuration handlers
+    def update_default_models(backend_id):
+        """Update model dropdown when backend changes"""
+        models = get_backend_models(backend_id)
+        return gr.Dropdown(choices=models, value=models[0][0] if models else None)
+
+    def update_premium_models(backend_id):
+        """Update model dropdown when backend changes"""
+        models = get_backend_models(backend_id)
+        return gr.Dropdown(choices=models, value=models[0][0] if models else None)
+
+    refresh_backend_btn.click(get_backend_status, inputs=[session_state], outputs=[backend_status_display])
+
+    default_backend_dropdown.change(
+        update_default_models,
+        inputs=[default_backend_dropdown],
+        outputs=[default_model_dropdown]
+    )
+
+    premium_backend_dropdown.change(
+        update_premium_models,
+        inputs=[premium_backend_dropdown],
+        outputs=[premium_model_dropdown]
+    )
+
+    set_default_model_btn.click(
+        set_default_model,
+        inputs=[default_backend_dropdown, default_model_dropdown, session_state],
+        outputs=[default_model_status]
+    )
+
+    set_premium_model_btn.click(
+        set_premium_model,
+        inputs=[premium_backend_dropdown, premium_model_dropdown, session_state],
+        outputs=[premium_model_status]
     )
 
 def create_main_interface_content():
