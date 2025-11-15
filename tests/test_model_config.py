@@ -1,13 +1,13 @@
 """
-Tests for ModelConfig class from main.py
+Tests for ModelConfig class from backend.rag_engine
 """
 import pytest
 import sys
 from pathlib import Path
 
-# Import ModelConfig from main.py
+# Import ModelConfig from backend.rag_engine
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from main import ModelConfig
+from backend.rag_engine import ModelConfig
 
 
 class TestModelConfig:

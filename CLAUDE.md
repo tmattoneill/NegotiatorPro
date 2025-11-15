@@ -36,6 +36,44 @@ This is an enhanced RAG (Retrieval-Augmented Generation) system that provides ex
 - **Parameter Handling**: Automatic filtering of unsupported parameters (e.g., temperature for o3-mini)
 - **EmbeddingConfig**: Ensures compatibility between embedding models and vectorstore
 
+**Component Interaction Patterns**:
+- **Singleton Backend Manager**: `backend_manager` is a global singleton instance of `LLMBackendManager` used throughout the application
+- **Model Creation Flow**: UI selection → ModelConfig.create_llm() → LLMBackendManager.create_llm_instance() → LangChain ChatModel
+- **Configuration Persistence**: All settings auto-save to JSON files in root directory; no database required
+- **Session-Based Auth**: AdminConfig manages sessions with UUID tokens stored in admin_sessions.json
+- **Vectorstore Lazy Loading**: EnhancedNegotiationRAG loads existing vectorstore on startup; regenerates only when explicitly requested
+- **Usage Tracking**: All LLM calls logged to usage_stats.json with token counts and costs
+- **Error Handling**: Backend failures trigger fallback to OpenAI default model with user notification
+
+## Quick Reference
+
+**Common Tasks**:
+```bash
+# Start development server
+python main.py              # or ./run.sh
+
+# Run all tests
+pytest
+
+# Run tests with coverage
+pytest --cov=. --cov-report=html
+
+# Run specific test category
+pytest -m unit             # Unit tests
+pytest -m integration      # Integration tests
+
+# Docker deployment
+docker compose up -d       # Start
+docker compose logs -f     # View logs
+docker compose stop        # Stop
+
+# Rebuild vectorstore
+python utils/rebuild_vectordb.py
+
+# Test LLM backends
+python test_llm_backends.py
+```
+
 ## Development Commands
 
 **Environment Setup**:
@@ -74,8 +112,26 @@ python main.py
 ./run.sh
 ```
 
-**Test PDF Loading**:
+**Testing**:
 ```bash
+# Install test dependencies
+pip install -r requirements-test.txt
+
+# Run all tests
+pytest
+
+# Run with coverage report
+pytest --cov=. --cov-report=html
+
+# Run specific test categories
+pytest -m unit          # Unit tests only
+pytest -m integration   # Integration tests only
+pytest -m docker        # Docker infrastructure tests
+
+# Run specific test file
+pytest tests/test_admin_config.py
+
+# Legacy RAG testing
 python test_rag.py
 ```
 
@@ -84,6 +140,18 @@ python test_rag.py
 - Access via "Admin Panel" tab in web interface
 - Change password in Admin Settings after first login
 - Session-based authentication with configurable timeout
+
+**Utility Scripts**:
+```bash
+# Rebuild vectorstore from command line
+python utils/rebuild_vectordb.py
+
+# Test LLM backend connections
+python test_llm_backends.py
+
+# Debug ChatOllama integration
+python debug_chatollama.py
+```
 
 ## Docker Deployment
 
@@ -157,23 +225,39 @@ docker compose logs -f
 
 **Embedding Intelligence**: The EmbeddingConfig class automatically detects which embedding model was used to build the current vectorstore and ensures compatibility.
 
+**Text Preprocessing**: The TextPreprocessor class provides intelligent token optimization:
+- Removes email signatures, footers, and forwarding headers
+- Strips legal boilerplate and confidentiality notices
+- Context-aware stop word removal that preserves negotiation-critical content
+- Preserves: emotions, numbers, prices, commitments, deadlines, names
+- Can reduce token usage by up to 68% while maintaining context quality
+- Optional preprocessing available via admin interface toggle
+
 ## File Structure
 
 **Application Code**:
-- `main.py` - Main application with enhanced RAG system, dual Gradio UI, and integrated admin panel
-- `llm_backend_config.py` - Multi-backend LLM configuration and management (OpenAI, Anthropic, Ollama)
-- `admin_config.py` - Admin authentication, sessions, prompts, and usage tracking
-- `document_manager.py` - File upload handling, validation, and document management
-- `embedding_config.py` - Embedding model configuration and vectorstore compatibility
-- `text_preprocessor.py` - Intelligent text preprocessing for token optimization
-- `prompt_manager.py` - System and user prompt template management
-- `test_rag.py` - Testing utilities for document loading and embeddings
+- `main.py` - Gradio UI entry point (768 lines, UI only)
+- `backend/` - All backend logic (NEW: organized module)
+  - `rag_engine.py` - Core RAG system with EnhancedNegotiationRAG and ModelConfig classes
+  - `llm_backend_config.py` - Multi-backend LLM configuration (OpenAI, Anthropic, Ollama)
+  - `admin_config.py` - Admin authentication, sessions, and usage tracking
+  - `document_manager.py` - File upload handling and validation
+  - `embedding_config.py` - Embedding model configuration and vectorstore compatibility
+  - `text_preprocessor.py` - Intelligent text preprocessing for token optimization
+  - `prompt_manager.py` - System and user prompt template management
 
 **Data Directories**:
 - `sources/` - Source documents for RAG knowledge base (PDF, TXT, DOCX, DOC)
 - `uploads/` - Temporary storage for uploaded files
 - `vectorstore/` - Persisted FAISS embeddings with metadata (auto-generated)
-- `utils/` - Utility scripts for vectorstore rebuilding
+- `data/` - Runtime data (gitignored)
+  - `db/` - Database files (PostgreSQL/SQLite)
+  - `backups/` - Database backups
+
+**Scripts**:
+- `scripts/` - Utility scripts
+  - `run.sh` - Application startup script
+  - `rebuild_vectordb.py` - Vectorstore regeneration utility
 
 **Configuration Files**:
 - `requirements.txt` - Python dependencies
@@ -190,7 +274,33 @@ docker compose logs -f
 - `Dockerfile` - Multi-stage Docker build configuration
 - `docker-compose.yml` - Docker Compose orchestration file
 - `.dockerignore` - Files excluded from Docker build context
-- `DEPLOYMENT.md` - Comprehensive deployment guide for production
+
+**Documentation**:
+- `README.md` - Project overview and quick start (keep in root)
+- `CLAUDE.md` - AI development guide (keep in root)
+- `docs/` - All documentation
+  - `deployment/` - DEPLOYMENT.md, DOCKER-DEPLOY.md
+  - `features/` - ADMIN_FEATURES.md, OLLAMA_CLOUD_SETUP.md, QUICKSTART.md
+  - `archive/` - GRADIO.md, UI_UPGRADE.md
+  - `TESTING.md` - Testing guide
+
+**Database**:
+- `migrations/` - PostgreSQL schema migrations
+  - `001_initial_schema.sql` - Initial database schema
+  - `README.md` - Migration documentation
+
+**Testing**:
+- `tests/` - Comprehensive test suite (100+ tests)
+  - `test_docker.py` - Docker infrastructure and deployment tests
+  - `test_admin_config.py` - Admin authentication and configuration tests
+  - `test_document_manager.py` - Document upload and validation tests
+  - `test_model_config.py` - LLM backend and model configuration tests
+  - `test_modules.py` - Text preprocessor, prompt manager, embedding tests
+  - `test_integration.py` - End-to-end RAG pipeline tests
+  - `conftest.py` - Shared fixtures and test configuration
+- `pytest.ini` - Pytest configuration with markers and coverage settings
+- `.coveragerc` - Coverage reporting configuration
+- `requirements-test.txt` - Test dependencies (pytest, coverage, etc.)
 
 ## LLM Backend Configuration Guide
 

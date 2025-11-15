@@ -21,7 +21,7 @@ from langchain_community.document_loaders import PyPDFLoader, TextLoader, Docx2t
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
-from embedding_config import EmbeddingConfig
+from backend.embedding_config import EmbeddingConfig
 
 # Set up logging
 logger = logging.getLogger(__name__)
