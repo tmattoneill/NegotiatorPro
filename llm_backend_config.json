@@ -1,24 +1,24 @@
 {
-  "active_backend": "openai",
+  "active_backend": "ollama",
   "active_models": {
     "default": {
-      "backend": "openai",
-      "model": "gpt-4o-mini"
+      "backend": "ollama",
+      "model": "gpt-oss:120b-cloud"
     },
     "premium": {
-      "backend": "openai",
-      "model": "o3-mini"
+      "backend": "ollama",
+      "model": "gpt-oss:120b-cloud"
     }
   },
   "backend_settings": {
     "openai": {
-      "enabled": true
+      "enabled": false
     },
     "anthropic": {
       "enabled": false
     },
     "ollama": {
-      "enabled": false
+      "enabled": true
     },
     "ollama-cloud": {
       "enabled": false
