@@ -9,6 +9,8 @@ class ChatRequest(BaseModel):
     partner_info: Optional[str] = Field(None, max_length=5000, description="Optional context about negotiation partner")
     use_premium_model: bool = Field(False, description="Whether to use premium model")
     use_preprocessing: bool = Field(True, description="Whether to apply text preprocessing")
+    provider: Optional[str] = Field(None, description="LLM provider override (openai, anthropic, ollama, ollama-cloud)")
+    model: Optional[str] = Field(None, description="Model ID override (e.g., gpt-4o, claude-3-5-sonnet-20241022)")
 
     class Config:
         json_schema_extra = {
@@ -16,7 +18,9 @@ class ChatRequest(BaseModel):
                 "question": "How do I negotiate a salary increase?",
                 "partner_info": "My manager is budget-conscious but values my work.",
                 "use_premium_model": False,
-                "use_preprocessing": True
+                "use_preprocessing": True,
+                "provider": "openai",
+                "model": "gpt-4o-mini"
             }
         }
 

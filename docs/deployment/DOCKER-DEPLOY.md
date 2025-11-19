@@ -1,6 +1,8 @@
-# Docker Quick Start Guide (The Idiot's Guide)
+# Docker Quick Start Guide
 
-Get NegotiatorPro running in Docker in under 5 minutes.
+Get NegotiatorPro (React + FastAPI) running in Docker in under 5 minutes.
+
+**Note**: This guide covers the React frontend + FastAPI backend architecture. The system runs two Docker services: backend (port 8000) and frontend (port 5173).
 
 ## Prerequisites
 
@@ -51,12 +53,17 @@ That's it. Wait 30-60 seconds for it to build and start.
 ## Step 4: Check It's Running
 
 ```bash
-# See logs
+# See logs for all services
 docker compose logs -f
 
-# Look for this line:
-# "Running on local URL:  http://0.0.0.0:7860"
+# Or check specific services
+docker compose logs -f backend   # FastAPI backend
+docker compose logs -f frontend  # React frontend
 ```
+
+Look for:
+- Backend: "Uvicorn running on http://0.0.0.0:8000"
+- Frontend: "Local: http://localhost:5173/"
 
 Press `Ctrl+C` to exit logs.
 
@@ -64,7 +71,9 @@ Press `Ctrl+C` to exit logs.
 
 Open your browser to:
 ```
-http://localhost:7860
+Frontend: http://localhost:5173
+Backend API: http://localhost:8000
+API Docs: http://localhost:8000/docs
 ```
 
 Done! 🎉
@@ -93,12 +102,16 @@ docker compose logs -f
 
 ## Troubleshooting
 
-### Port 7860 already in use?
+### Ports already in use?
 ```bash
-# Change port in docker-compose.yml
-# Change this line:
+# Change ports in docker-compose.yml
+# Backend (default 8000):
 ports:
-  - "8080:7860"  # Use 8080 instead
+  - "8001:8000"  # Use 8001 instead
+
+# Frontend (default 5173):
+ports:
+  - "3000:5173"  # Use 3000 instead
 ```
 
 ### Container won't start?
@@ -131,7 +144,7 @@ docker compose up -d
 
 **⚠️ CHANGE THIS IMMEDIATELY!**
 
-Go to Admin Panel → Admin Settings → Change Password
+Access via FastAPI `/auth` endpoints. React admin UI is under development.
 
 ## That's It!
 

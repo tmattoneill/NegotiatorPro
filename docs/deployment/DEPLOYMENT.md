@@ -2,6 +2,12 @@
 
 This guide provides step-by-step instructions for deploying NegotiatorPro using Docker and Docker Compose on Ubuntu systems.
 
+**🚀 Architecture**: This deployment uses React frontend + FastAPI backend architecture.
+- **Frontend**: React app (port 5173 in dev, served via Node or reverse proxy in production)
+- **Backend**: FastAPI API server (port 8000)
+
+**Note**: Some legacy references to port 7860 (Gradio) may remain in this document and will be updated. Use port 8000 for backend and 5173 for frontend.
+
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)

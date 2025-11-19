@@ -2,6 +2,7 @@
  * Sidebar component with session management
  */
 import { useChatStore } from '../store/chatStore';
+import SettingsPanel from './SettingsPanel';
 
 export default function Sidebar() {
   const { sessions, currentSessionId, createNewSession, switchSession } = useChatStore();
@@ -12,6 +13,12 @@ export default function Sidebar() {
         <h1>Negotiator Pro</h1>
         <p>AI negotiation guidance</p>
       </div>
+
+      {/* Settings Panel */}
+      <SettingsPanel />
+
+      {/* Separator */}
+      <div className="sidebar-separator"></div>
 
       <button className="new-session-btn" onClick={createNewSession}>
         + New Negotiation

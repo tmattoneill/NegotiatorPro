@@ -2,7 +2,7 @@
  * API service layer for communicating with FastAPI backend
  */
 import axios from 'axios';
-import type { ChatRequest, ChatResponse, LoginRequest, LoginResponse } from '../types';
+import type { ChatRequest, ChatResponse, LoginRequest, LoginResponse, ModelsResponse } from '../types';
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -58,6 +58,14 @@ export const login = async (request: LoginRequest): Promise<LoginResponse> => {
  */
 export const checkHealth = async (): Promise<{ status: string }> => {
   const response = await api.get('/health');
+  return response.data;
+};
+
+/**
+ * Fetch available LLM models organized by backend
+ */
+export const fetchAvailableModels = async (): Promise<ModelsResponse> => {
+  const response = await api.get<ModelsResponse>('/models');
   return response.data;
 };
 

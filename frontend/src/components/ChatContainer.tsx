@@ -3,6 +3,7 @@
  */
 import { useEffect, useRef } from 'react';
 import { useChatStore } from '../store/chatStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { sendChatMessage } from '../services/api';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
@@ -10,6 +11,7 @@ import type { Message } from '../types';
 
 export default function ChatContainer() {
   const { getCurrentSession, addMessage, isLoading, setLoading } = useChatStore();
+  const { selectedProvider, selectedModel, usePremiumModel, usePreprocessing } = useSettingsStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentSession = getCurrentSession();
 
@@ -30,11 +32,13 @@ export default function ChatContainer() {
     setLoading(true);
 
     try {
-      // Call API - using defaults for now
+      // Call API with settings from store
       const response = await sendChatMessage({
         question: content,
-        use_premium_model: false,
-        use_preprocessing: true,
+        use_premium_model: usePremiumModel,
+        use_preprocessing: usePreprocessing,
+        provider: usePremiumModel ? undefined : selectedProvider || undefined,
+        model: usePremiumModel ? undefined : selectedModel || undefined,
       });
 
       // Add assistant response

@@ -4,26 +4,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an enhanced RAG (Retrieval-Augmented Generation) system that provides expert negotiation guidance by analyzing PDF sources of negotiation books. The system features a comprehensive Gradio web interface with admin capabilities, **multi-backend LLM support (OpenAI, Anthropic Claude, Ollama)**, intelligent model selection between default and premium models, and robust document management.
+This is an enhanced RAG (Retrieval-Augmented Generation) system that provides expert negotiation guidance by analyzing PDF sources of negotiation books. The system features a **modern React frontend** with **FastAPI backend**, **multi-backend LLM support (OpenAI, Anthropic Claude, Ollama)**, intelligent model selection between default and premium models, and robust document management.
 
 ## Core Architecture
 
-**Main Application**: `main.py` contains the complete RAG pipeline with integrated admin interface:
+**Frontend**: React 18 + TypeScript application in `frontend/` directory:
+- **Components**: Sidebar, ChatContainer, ChatMessage, ChatInput
+- **State Management**: Zustand for conversation and UI state
+- **API Client**: Axios for backend communication
+- **Routing**: Multi-session chat with conversation history
+- **Markdown Support**: Rich formatting for AI responses
 
+**API Layer**: FastAPI application in `backend/api/`:
+- **Routes**: `/chat`, `/auth`, `/health` endpoints
+- **Models**: Pydantic request/response validation
+- **Middleware**: JWT authentication and CORS
+- **Async**: Non-blocking request handling
+
+**Backend Core**: Shared RAG system in `backend/`:
 - **LLMBackendManager**: Centralized management of multiple LLM backends (OpenAI, Anthropic, Ollama)
 - **ModelConfig**: Middleware class that handles model-specific parameters and creates LLM instances
 - **EnhancedNegotiationRAG**: Core RAG system with admin integration, processing PDFs/DOCX/TXT, creating embeddings, and managing QA chains
 - **AdminConfig**: Manages admin authentication, sessions, system prompts, and usage statistics
 - **DocumentManager**: Handles file uploads, validation, and source document management
 - **EmbeddingConfig**: Manages embedding model configuration and vectorstore compatibility
-- **Dual Gradio Interface**: Combined user and admin interface with secure authentication
 
 **Document Processing Flow**:
 1. Multiple file formats (PDF, TXT, DOCX, DOC) in `sources/` directory are loaded via appropriate loaders
 2. Documents are chunked using RecursiveCharacterTextSplitter (1000 chars, 200 overlap)
 3. FAISS vectorstore is created with configurable OpenAI embeddings (text-embedding-3-large default)
 4. Vectorstore is persisted to `vectorstore/` with metadata for model compatibility
-5. Admin can upload new documents and regenerate vectorstore via web interface
+5. Admin can upload new documents via FastAPI endpoints (React admin UI coming soon)
 
 **Multi-Backend LLM Architecture**:
 - **Supported Backends**: OpenAI, Anthropic Claude, Ollama (local and cloud)
@@ -37,10 +48,11 @@ This is an enhanced RAG (Retrieval-Augmented Generation) system that provides ex
 - **EmbeddingConfig**: Ensures compatibility between embedding models and vectorstore
 
 **Component Interaction Patterns**:
+- **Frontend ↔ API**: React frontend (port 5173) communicates with FastAPI backend (port 8000) via REST endpoints
 - **Singleton Backend Manager**: `backend_manager` is a global singleton instance of `LLMBackendManager` used throughout the application
-- **Model Creation Flow**: UI selection → ModelConfig.create_llm() → LLMBackendManager.create_llm_instance() → LangChain ChatModel
+- **Model Creation Flow**: React UI → FastAPI `/chat` → ModelConfig.create_llm() → LLMBackendManager.create_llm_instance() → LangChain ChatModel
 - **Configuration Persistence**: All settings auto-save to JSON files in root directory; no database required
-- **Session-Based Auth**: AdminConfig manages sessions with UUID tokens stored in admin_sessions.json
+- **Session-Based Auth**: JWT tokens for React frontend, UUID tokens for admin sessions (AdminConfig)
 - **Vectorstore Lazy Loading**: EnhancedNegotiationRAG loads existing vectorstore on startup; regenerates only when explicitly requested
 - **Usage Tracking**: All LLM calls logged to usage_stats.json with token counts and costs
 - **Error Handling**: Backend failures trigger fallback to OpenAI default model with user notification
@@ -49,8 +61,13 @@ This is an enhanced RAG (Retrieval-Augmented Generation) system that provides ex
 
 **Common Tasks**:
 ```bash
-# Start development server
-python main.py              # or ./run.sh
+# Start development servers
+./run-api.sh               # Start FastAPI backend (port 8000)
+./run-frontend.sh          # Start React frontend (port 5173)
+
+# Or manually:
+# Backend: uvicorn backend.api.main:app --reload --host 0.0.0.0 --port 8000
+# Frontend: cd frontend && npm run dev
 
 # Run all tests
 pytest
@@ -62,13 +79,15 @@ pytest --cov=. --cov-report=html
 pytest -m unit             # Unit tests
 pytest -m integration      # Integration tests
 
-# Docker deployment
-docker compose up -d       # Start
-docker compose logs -f     # View logs
-docker compose stop        # Stop
+# Docker deployment (both services)
+docker compose up -d       # Start backend + frontend
+docker compose logs -f     # View logs (all services)
+docker compose logs -f backend   # Backend logs only
+docker compose logs -f frontend  # Frontend logs only
+docker compose stop        # Stop all services
 
 # Rebuild vectorstore
-python utils/rebuild_vectordb.py
+python scripts/rebuild_vectordb.py
 
 # Test LLM backends
 python test_llm_backends.py
@@ -78,9 +97,15 @@ python test_llm_backends.py
 
 **Environment Setup**:
 ```bash
+# Python backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+
+# React frontend
+cd frontend
+npm install
+cd ..
 ```
 
 **Required Environment Variables**:
@@ -105,11 +130,14 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 
 **Run Application**:
 ```bash
+# Terminal 1 - Start FastAPI backend
 source .venv/bin/activate
-python main.py
+./run-api.sh
+# Or: uvicorn backend.api.main:app --reload --host 0.0.0.0 --port 8000
 
-# Or use the startup script:
-./run.sh
+# Terminal 2 - Start React frontend
+./run-frontend.sh
+# Or: cd frontend && npm run dev
 ```
 
 **Testing**:
@@ -137,14 +165,14 @@ python test_rag.py
 
 **Admin Access**:
 - Default admin password: `admin123`
-- Access via "Admin Panel" tab in web interface
-- Change password in Admin Settings after first login
-- Session-based authentication with configurable timeout
+- Authentication via FastAPI `/auth` endpoints
+- React admin UI under development
+- Session-based authentication with JWT tokens
 
 **Utility Scripts**:
 ```bash
 # Rebuild vectorstore from command line
-python utils/rebuild_vectordb.py
+python scripts/rebuild_vectordb.py
 
 # Test LLM backend connections
 python test_llm_backends.py
@@ -169,7 +197,9 @@ docker compose up -d
 # View logs
 docker compose logs -f
 
-# Access at http://localhost:7860
+# Access at:
+# Frontend: http://localhost:5173
+# Backend: http://localhost:8000
 ```
 
 **Docker Files**:
@@ -235,9 +265,27 @@ docker compose logs -f
 
 ## File Structure
 
-**Application Code**:
-- `main.py` - Gradio UI entry point (768 lines, UI only)
-- `backend/` - All backend logic (NEW: organized module)
+**Frontend Application**:
+- `frontend/` - React 18 + TypeScript application
+  - `src/`
+    - `components/` - React components (Sidebar, ChatContainer, ChatMessage, ChatInput)
+    - `store/` - Zustand state management (chatStore.ts)
+    - `services/` - API client (api.ts with Axios)
+    - `types/` - TypeScript type definitions
+    - `App.tsx` - Main application component
+    - `App.css` - Styles with Markdown support
+    - `main.tsx` - React entry point
+  - `package.json` - NPM dependencies
+  - `vite.config.ts` - Vite build configuration
+  - `index.html` - HTML entry point
+
+**Backend Application**:
+- `backend/` - All backend logic (organized modules)
+  - `api/` - FastAPI application layer
+    - `main.py` - FastAPI entry point
+    - `routes/` - API endpoints (chat.py, auth.py, health.py)
+    - `models/` - Pydantic request/response models
+    - `middleware/` - Authentication middleware
   - `rag_engine.py` - Core RAG system with EnhancedNegotiationRAG and ModelConfig classes
   - `llm_backend_config.py` - Multi-backend LLM configuration (OpenAI, Anthropic, Ollama)
   - `admin_config.py` - Admin authentication, sessions, and usage tracking
@@ -256,8 +304,9 @@ docker compose logs -f
 
 **Scripts**:
 - `scripts/` - Utility scripts
-  - `run.sh` - Application startup script
   - `rebuild_vectordb.py` - Vectorstore regeneration utility
+- `run-api.sh` - Start FastAPI backend (port 8000)
+- `run-frontend.sh` - Start React frontend (port 5173)
 
 **Configuration Files**:
 - `requirements.txt` - Python dependencies
@@ -271,8 +320,8 @@ docker compose logs -f
 - `prompt_config.json` - Stored prompt templates (auto-generated)
 
 **Docker Deployment**:
-- `Dockerfile` - Multi-stage Docker build configuration
-- `docker-compose.yml` - Docker Compose orchestration file
+- `Dockerfile` - Multi-stage Docker build (React + FastAPI)
+- `docker-compose.yml` - Docker Compose with backend and frontend services
 - `.dockerignore` - Files excluded from Docker build context
 
 **Documentation**:
@@ -281,7 +330,7 @@ docker compose logs -f
 - `docs/` - All documentation
   - `deployment/` - DEPLOYMENT.md, DOCKER-DEPLOY.md
   - `features/` - ADMIN_FEATURES.md, OLLAMA_CLOUD_SETUP.md, QUICKSTART.md
-  - `archive/` - GRADIO.md, UI_UPGRADE.md
+  - `archive/` - Historical documentation (Gradio UI docs, POC migration files)
   - `TESTING.md` - Testing guide
 
 **Database**:

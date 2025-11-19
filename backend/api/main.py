@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from .routes import chat_router, auth_router, health_router
+from .routes import chat_router, auth_router, health_router, models_router
 
 # Set up logging
 logging.basicConfig(
@@ -70,6 +70,7 @@ app.add_middleware(
 app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(chat_router)
+app.include_router(models_router)
 
 
 @app.get("/")

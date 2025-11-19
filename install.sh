@@ -61,7 +61,7 @@ check_python() {
 # Check if pip is available
 check_pip() {
     print_status "Checking pip installation..."
-    
+
     if command -v pip3 &> /dev/null; then
         print_success "pip3 found"
     elif command -v pip &> /dev/null; then
@@ -69,6 +69,38 @@ check_pip() {
     else
         print_error "pip is not installed. Please install pip first."
         exit 1
+    fi
+}
+
+# Check if Node.js and npm are installed
+check_nodejs() {
+    print_status "Checking Node.js installation..."
+
+    if command -v node &> /dev/null; then
+        NODE_VERSION=$(node --version | sed 's/v//')
+        print_success "Node.js found: $NODE_VERSION"
+
+        # Check if version is 18 or higher
+        NODE_MAJOR=$(echo $NODE_VERSION | cut -d. -f1)
+
+        if [ "$NODE_MAJOR" -ge 18 ]; then
+            print_success "Node.js version is compatible (18+)"
+        else
+            print_warning "Node.js 18+ is recommended. Current version: $NODE_VERSION"
+        fi
+    else
+        print_warning "Node.js is not installed. Node.js 18+ is required for the React frontend."
+        echo "Visit: https://nodejs.org/"
+        echo "Or install via nvm: https://github.com/nvm-sh/nvm"
+        echo ""
+        print_warning "Continuing with backend installation only..."
+    fi
+
+    if command -v npm &> /dev/null; then
+        NPM_VERSION=$(npm --version)
+        print_success "npm found: $NPM_VERSION"
+    else
+        print_warning "npm is not installed (comes with Node.js)"
     fi
 }
 
@@ -123,7 +155,6 @@ setup_env() {
         else
             print_warning ".env.example not found. Creating basic .env file..."
             echo "OPENAI_API_KEY=your_api_key_here" > .env
-            echo "GRADIO_SERVER_PORT=7860" >> .env
             print_success "Basic .env file created"
         fi
     else
@@ -131,11 +162,28 @@ setup_env() {
     fi
 }
 
+# Install frontend dependencies
+install_frontend() {
+    print_status "Installing frontend dependencies..."
+
+    if [ -d "frontend" ] && command -v npm &> /dev/null; then
+        cd frontend
+        npm install
+        cd ..
+        print_success "Frontend dependencies installed successfully"
+    elif [ ! -d "frontend" ]; then
+        print_warning "Frontend directory not found. Skipping frontend setup."
+    else
+        print_warning "npm not found. Skipping frontend installation."
+        print_warning "Install Node.js 18+ to set up the React frontend."
+    fi
+}
+
 # Create necessary directories
 create_directories() {
     print_status "Creating necessary directories..."
-    
-    mkdir -p sources uploads static .config
+
+    mkdir -p sources uploads .config
     print_success "Directories created"
 }
 
@@ -161,13 +209,19 @@ check_api_key() {
 
 # Create a simple run script
 create_run_script() {
-    print_status "Creating run script..."
-    
+    print_status "Creating run script (legacy)..."
+
     cat > run_negotiatorpro.sh << 'EOF'
 #!/bin/bash
 
-# NegotiatorPro Runner Script
+# NegotiatorPro Runner Script (Legacy)
 echo "🤝 Starting NegotiatorPro..."
+echo ""
+echo "⚠️  This script is for legacy Gradio UI only."
+echo "For the new React + FastAPI architecture, use:"
+echo "  ./run-api.sh    (FastAPI backend)"
+echo "  ./run-frontend.sh (React frontend)"
+echo ""
 
 # Change to script directory
 cd "$(dirname "$0")"
@@ -193,29 +247,31 @@ if grep -q "your_api_key_here" .env; then
     exit 1
 fi
 
-# Run the application
-echo "🚀 Launching NegotiatorPro..."
-python main.py
+echo ""
+echo "Note: main.py (Gradio UI) has been removed in favor of React + FastAPI."
+echo "This script is kept for reference only."
 EOF
-    
+
     chmod +x run_negotiatorpro.sh
-    print_success "Run script created: ./run_negotiatorpro.sh"
+    print_success "Legacy run script created: ./run_negotiatorpro.sh"
 }
 
 # Main installation process
 main() {
     echo "Starting installation process..."
     echo ""
-    
+
     check_python
     check_pip
+    check_nodejs
     create_venv
     install_dependencies
+    install_frontend
     setup_env
     create_directories
     check_api_key
     create_run_script
-    
+
     echo ""
     echo "🎉 Installation completed successfully!"
     echo ""
@@ -223,11 +279,25 @@ main() {
     echo "1. Edit .env file and add your OpenAI API key"
     echo "2. (Optional) Add PDF negotiation books to the 'sources/' directory"
     echo "3. Run the application:"
-    echo "   ./run_negotiatorpro.sh"
-    echo "   OR"
-    echo "   source .venv/bin/activate && python main.py"
     echo ""
-    echo "The application will be available at: http://localhost:7860"
+    echo "   Option A - Using Docker (recommended):"
+    echo "     docker compose up -d"
+    echo ""
+    echo "   Option B - Local development:"
+    echo "     # Terminal 1 - Start FastAPI backend:"
+    echo "     ./run-api.sh"
+    echo ""
+    echo "     # Terminal 2 - Start React frontend:"
+    echo "     ./run-frontend.sh"
+    echo ""
+    echo "   Option C - Legacy runner (if available):"
+    echo "     ./run_negotiatorpro.sh"
+    echo ""
+    echo "Access the application:"
+    echo "  Frontend: http://localhost:5173"
+    echo "  Backend API: http://localhost:8000"
+    echo "  API Docs: http://localhost:8000/docs"
+    echo ""
     echo "Default admin password: admin123 (change immediately!)"
     echo ""
     echo "For support, visit: https://github.com/tmattoneill/NegotiatorPro"

@@ -48,6 +48,8 @@ async def process_chat(request: ChatRequest):
 
         logger.info(f"Processing question: {request.question[:50]}...")
         logger.info(f"Premium model: {request.use_premium_model}, Preprocessing: {request.use_preprocessing}")
+        if request.provider and request.model:
+            logger.info(f"Model override: {request.provider}/{request.model}")
 
         # Enhance question with partner info if provided
         enhanced_question = request.question
@@ -55,21 +57,27 @@ async def process_chat(request: ChatRequest):
             enhanced_question = f"Context about my negotiation partner: {request.partner_info}\n\nMy question: {request.question}"
 
         # Process question using existing RAG system
+        # Pass provider/model overrides if specified
         answer = rag.get_advice(
             question=enhanced_question,
             use_premium_model=request.use_premium_model,
-            use_preprocessing=request.use_preprocessing
+            use_preprocessing=request.use_preprocessing,
+            override_backend=request.provider,
+            override_model=request.model
         )
 
         processing_time = time.time() - start_time
 
         # Determine which model was used
-        if request.use_premium_model:
+        if request.provider and request.model:
+            # User specified explicit override
+            model_used = f"{request.provider}/{request.model}"
+        elif request.use_premium_model:
             model_config = rag.backend_manager.get_active_model_config("premium")
+            model_used = f"{model_config.get('backend', 'unknown')}/{model_config.get('model', 'unknown')}"
         else:
             model_config = rag.backend_manager.get_active_model_config("default")
-
-        model_used = f"{model_config.get('backend', 'unknown')}/{model_config.get('model', 'unknown')}"
+            model_used = f"{model_config.get('backend', 'unknown')}/{model_config.get('model', 'unknown')}"
 
         logger.info(f"Question processed successfully in {processing_time:.2f}s using {model_used}")
 

@@ -25,10 +25,8 @@ def temp_dir():
 def mock_env_vars(monkeypatch):
     """Mock environment variables"""
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key-1234567890")
-    monkeypatch.setenv("GRADIO_SERVER_PORT", "7860")
     return {
-        "OPENAI_API_KEY": "sk-test-key-1234567890",
-        "GRADIO_SERVER_PORT": "7860"
+        "OPENAI_API_KEY": "sk-test-key-1234567890"
     }
 
 
@@ -146,10 +144,11 @@ def mock_vectorstore():
 
 
 @pytest.fixture
-def mock_gradio_app():
-    """Mock Gradio application"""
+def mock_fastapi_app():
+    """Mock FastAPI application"""
     mock_app = Mock()
-    mock_app.launch = Mock()
+    mock_app.get = Mock()
+    mock_app.post = Mock()
     return mock_app
 
 
