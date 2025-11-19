@@ -3,30 +3,40 @@
 ## What You Need
 
 1. **OpenAI API Key** - Get one from https://platform.openai.com/api-keys
-2. **Python 3.8+** OR **Docker** (choose one method below)
+2. **Python 3.8+ & Node.js 18+** OR **Docker** (choose one method below)
 
-## Method 1: Run with Python (5 minutes)
+## Method 1: Run with Local Development (5 minutes)
 
 ```bash
 # 1. Set up your environment
 cp .env.example .env
 # Edit .env and add your OPENAI_API_KEY
 
-# 2. Create virtual environment
+# 2. Set up Python backend
 python3 -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# 3. Install dependencies
 pip install -r requirements.txt
+
+# 3. Set up React frontend
+cd frontend
+npm install
+cd ..
 
 # 4. Add your negotiation books (optional)
 # Place PDF/TXT/DOCX files in the sources/ directory
 
-# 5. Run the application
-python main.py
+# 5. Start the application (requires 2 terminals)
+# Terminal 1 - Backend:
+./run-api.sh
+
+# Terminal 2 - Frontend:
+./run-frontend.sh
 ```
 
-**Access**: Open http://localhost:7860 in your browser
+**Access**:
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
 
 **Default Admin Password**: `admin123` (change this immediately!)
 
@@ -39,14 +49,18 @@ python main.py
 cp .env.example .env
 # Edit .env and add your OPENAI_API_KEY
 
-# 2. Start with Docker Compose
+# 2. Start with Docker Compose (both backend + frontend)
 docker compose up -d
 
 # 3. View logs (optional)
-docker compose logs -f
+docker compose logs -f         # All services
+docker compose logs -f backend  # Backend only
+docker compose logs -f frontend # Frontend only
 ```
 
-**Access**: Open http://localhost:7860 in your browser
+**Access**:
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:8000
 
 **Stop**: `docker compose down`
 
@@ -54,40 +68,42 @@ docker compose logs -f
 
 ## First Steps After Starting
 
-1. **Open the app** at http://localhost:7860
+1. **Open the app** at http://localhost:5173
 2. **Try a question** like: "How should I respond to a lowball offer?"
-3. **Access Admin Panel**:
-   - Click the "Admin" tab
+3. **Create conversations**: Start new chat sessions for different scenarios
+4. **Toggle Premium Model**: Use advanced reasoning when needed
+5. **Admin Features** (coming soon to React UI):
+   - Access via FastAPI endpoints at http://localhost:8000/docs
    - Login with password: `admin123`
    - **IMPORTANT**: Change the admin password immediately!
-4. **Upload your books** (Admin > Documents tab):
-   - Upload PDF/DOCX/TXT files of negotiation books
-   - Click "Rebuild Index" to process them
 
 ---
 
 ## Features You Can Use
 
-### Chat Interface
+### Chat Interface (React Frontend)
 - Ask negotiation questions in plain English
-- Add context about your negotiation partner
+- Create multiple conversation sessions
 - Toggle "Premium Model" for advanced reasoning
-- Enable "Optimize Text" to reduce costs
+- View full conversation history
+- Markdown-formatted AI responses
 
-### Admin Dashboard
-- **Configuration**: Customize system prompts and AI behavior
-- **Documents**: Upload books, manage knowledge base
-- **Analytics**: Track API usage and costs
-- **Security**: Change admin password
+### Admin Features (FastAPI Backend)
+- **Configuration**: Customize system prompts and AI behavior (API endpoints)
+- **Documents**: Upload books, manage knowledge base (command line for now)
+- **Analytics**: Track API usage and costs (via backend)
+- **Security**: Change admin password (via backend API)
 
 ---
 
 ## Adding Your Own Negotiation Books
 
-1. Go to Admin Panel > Documents tab
-2. Upload PDF, TXT, DOC, or DOCX files
-3. Click "Rebuild Index" to process new documents
-4. Books are added to the AI's knowledge base
+**Current Method** (command line):
+1. Add PDF, TXT, DOC, or DOCX files to `sources/` directory
+2. Run: `python scripts/rebuild_vectordb.py`
+3. Restart the backend to load new documents
+
+**Future**: React admin UI will support file uploads
 
 **Example Sources** (not included, you need to add):
 - "Getting to Yes" by Fisher & Ury
@@ -99,19 +115,26 @@ docker compose logs -f
 
 ## Troubleshooting
 
-**"No module named 'gradio'"**
-- Run: `pip install -r requirements.txt`
+**"Module not found" errors**
+- Backend: `pip install -r requirements.txt`
+- Frontend: `cd frontend && npm install`
 
 **"OpenAI API key not found"**
 - Make sure `.env` file exists with `OPENAI_API_KEY=your_key_here`
 
 **"No documents found"**
 - Add PDF/TXT/DOCX files to `sources/` directory
-- Or upload via Admin Panel > Documents
+- Run: `python scripts/rebuild_vectordb.py`
 
-**Port 7860 already in use**
-- Change port in `.env`: `GRADIO_SERVER_PORT=8080`
-- Or stop the other service: `lsof -ti:7860 | xargs kill -9`
+**"Port already in use"**
+- Backend (8000): Change port in `run-api.sh` or use different port
+- Frontend (5173): Change port in `vite.config.ts`
+- Stop conflicting services: `lsof -ti:8000 | xargs kill -9`
+
+**"Connection refused" in browser**
+- Ensure both backend and frontend are running
+- Check backend is at http://localhost:8000
+- Check frontend is at http://localhost:5173
 
 ---
 

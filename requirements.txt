@@ -5,7 +5,6 @@ langchain-openai
 langchain-anthropic
 langchain-ollama
 langchain-text-splitters
-gradio==5.35.0
 PyPDF2
 faiss-cpu
 sentence-transformers
@@ -16,7 +15,7 @@ tiktoken
 pypdf
 docx2txt
 
-# FastAPI dependencies for POC (compatible with Gradio)
+# FastAPI dependencies for React frontend
 fastapi>=0.115.2
 uvicorn[standard]>=0.24.0
 python-jose[cryptography]>=3.3.0

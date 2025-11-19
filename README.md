@@ -48,7 +48,10 @@ An AI-powered negotiation advisor that leverages expert knowledge from leading n
 ### Prerequisites
 
 - **Docker Deployment** (Recommended): Docker and Docker Compose
-- **Local Development**: Python 3.8+ and at least one LLM API key (OpenAI recommended)
+- **Local Development**:
+  - Python 3.8+ for backend
+  - Node.js 18+ and npm for frontend
+  - At least one LLM API key (OpenAI recommended)
 
 ### Option 1: Docker Deployment (Recommended) 🐳
 
@@ -69,8 +72,9 @@ Perfect for production deployments on Ubuntu/Linux systems.
    ```
 
 3. **Access the application**
-   - Open your browser to `http://localhost:7860`
-   - Admin Panel (default password: `admin123`)
+   - **Frontend**: Open your browser to `http://localhost:5173`
+   - **API**: Backend available at `http://localhost:8000`
+   - Admin authentication required (default password: `admin123`)
 
 📖 **See [docs/deployment/DOCKER-DEPLOY.md](docs/deployment/DOCKER-DEPLOY.md) for the quick start guide**
 📖 **See [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md) for production deployment**
@@ -83,18 +87,17 @@ Perfect for production deployments on Ubuntu/Linux systems.
    cd NegotiatorPro
    ```
 
-2. **Create virtual environment**
+2. **Set up Python backend**
    ```bash
+   # Create virtual environment
    python3 -m venv .venv
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
 
-3. **Install dependencies**
-   ```bash
+   # Install Python dependencies
    pip install -r requirements.txt
    ```
 
-4. **Configure environment**
+3. **Configure environment**
    Create a `.env` file in the root directory:
    ```bash
    # Required: At least one LLM backend API key
@@ -111,26 +114,44 @@ Perfect for production deployments on Ubuntu/Linux systems.
    OLLAMA_API_KEY=your_ollama_api_key_here
    ```
 
-5. **Run the application**
+4. **Set up React frontend**
    ```bash
-   python main.py
-   # Or use the startup script:
-   ./scripts/run.sh
+   cd frontend
+   npm install
+   cd ..
+   ```
+
+5. **Start the application**
+
+   **Terminal 1 - Start FastAPI backend:**
+   ```bash
+   ./run-api.sh
+   # Or manually:
+   # uvicorn backend.api.main:app --reload --host 0.0.0.0 --port 8000
+   ```
+
+   **Terminal 2 - Start React frontend:**
+   ```bash
+   ./run-frontend.sh
+   # Or manually:
+   # cd frontend && npm run dev
    ```
 
 6. **Access the interface**
-   - Open your browser to the URL shown in the terminal (typically `http://localhost:7860`)
-   - Use the "Negotiation Advisor" tab for asking questions
-   - Use the "Admin Panel" tab for administration (default password: `admin123`)
+   - **Frontend**: Open browser to `http://localhost:5173`
+   - **API Docs**: View API documentation at `http://localhost:8000/docs`
+   - **Health Check**: `http://localhost:8000/health`
 
 ## 💡 How to Use
 
 ### For Users
 
-1. **Ask Negotiation Questions**: Enter your specific negotiation scenario or question
-2. **Provide Context** (Optional): Add information about your negotiation partner
-3. **Choose Model**: Toggle "Use Premium Model" to switch between default and premium models
-4. **Get Expert Advice**: Receive structured guidance following the PLEASE framework
+1. **Create Conversations**: Start new chat sessions for different negotiation scenarios
+2. **Ask Questions**: Enter your specific negotiation scenario or question
+3. **Provide Context** (Optional): Add information about your negotiation partner
+4. **Choose Model**: Toggle "Use Premium Model" to switch between default and premium models
+5. **Get Expert Advice**: Receive structured guidance following the PLEASE framework
+6. **Manage History**: View, rename, or delete previous conversations
 
 ### Example Questions
 
@@ -141,9 +162,9 @@ Perfect for production deployments on Ubuntu/Linux systems.
 
 ### For Administrators
 
-Access the Admin Panel to:
+The React frontend integrates with the existing admin system:
 
-- **🤖 LLM Backends**: Configure OpenAI, Anthropic Claude, or Ollama models
+- **🤖 LLM Backends**: Configure OpenAI, Anthropic Claude, or Ollama models (via API)
   - View backend status and available models
   - Set default model (fast, cost-effective)
   - Set premium model (advanced reasoning)
@@ -151,13 +172,25 @@ Access the Admin Panel to:
 - **📝 System Prompts**: Customize how the AI responds
 - **📄 Documents**: Upload new negotiation resources to the knowledge base
 - **📊 Usage Stats**: Track API costs, usage patterns, and token consumption
-- **⚙️ Admin Settings**: Update admin password and session configuration
+- **⚙️ Admin Settings**: Manage via FastAPI backend
 
 ## 🏗️ System Architecture
 
-### Core Components
+### Frontend Layer (React)
+- **React 18 + TypeScript**: Modern, type-safe UI components
+- **Vite**: Fast development server and optimized production builds
+- **Zustand**: Lightweight state management for conversations and UI state
+- **Axios**: HTTP client for API communication
+- **Markdown Support**: Rich formatting for AI responses
 
-**Backend Management**
+### API Layer (FastAPI)
+- **RESTful Endpoints**: `/chat`, `/auth`, `/health`
+- **Async Processing**: Non-blocking request handling
+- **JWT Authentication**: Secure session management
+- **Request/Response Models**: Pydantic validation
+- **CORS Configuration**: Cross-origin support for development
+
+### Backend Core Components
 - **LLMBackendManager**: Centralized management of multiple LLM backends (OpenAI, Anthropic, Ollama)
 - **ModelConfig**: Middleware for model-specific parameters and LLM instance creation
 - **EnhancedNegotiationRAG**: Core RAG system with admin integration
@@ -169,19 +202,23 @@ Access the Admin Panel to:
 
 ### Data Flow
 
-1. **Document Processing**: Files (PDF/TXT/DOCX/DOC) are loaded, chunked, and converted to embeddings
-2. **Vector Storage**: FAISS vectorstore persists embeddings with metadata
-3. **Query Processing**: User questions are enhanced with retrieved context from knowledge base
-4. **Backend Selection**: ModelConfig selects appropriate LLM backend based on user preference
-5. **AI Response**: Selected model generates structured negotiation advice using PLEASE framework
-6. **Usage Tracking**: Admin system logs usage statistics with token counts and costs
+1. **User Interaction**: React frontend captures user input and conversation state
+2. **API Request**: Axios sends POST request to FastAPI `/chat` endpoint
+3. **Authentication**: JWT middleware validates session token
+4. **Document Retrieval**: RAG system queries FAISS vectorstore for relevant context
+5. **Backend Selection**: ModelConfig selects appropriate LLM backend based on user preference
+6. **AI Response**: Selected model generates structured negotiation advice using PLEASE framework
+7. **Response Streaming**: FastAPI returns formatted response to React frontend
+8. **Usage Tracking**: Admin system logs usage statistics with token counts and costs
+9. **UI Update**: React updates conversation history and displays response with Markdown formatting
 
 ### Component Interaction
 
+- **Frontend ↔ API**: React communicates with FastAPI via REST endpoints (port 5173 → 8000)
 - **Singleton Backend Manager**: Global `backend_manager` instance manages all LLM backends
-- **Model Creation Flow**: UI selection → ModelConfig.create_llm() → LLMBackendManager.create_llm_instance() → LangChain ChatModel
+- **Model Creation Flow**: UI selection → FastAPI → ModelConfig.create_llm() → LLMBackendManager → LangChain ChatModel
 - **Configuration Persistence**: All settings auto-save to JSON files (no database required)
-- **Session-Based Auth**: UUID tokens stored in admin_sessions.json
+- **Session-Based Auth**: JWT tokens for frontend sessions, UUID tokens for admin
 - **Vectorstore Lazy Loading**: Loads existing vectorstore on startup; regenerates only when requested
 - **Error Handling**: Backend failures trigger fallback to OpenAI with user notification
 
@@ -189,55 +226,74 @@ Access the Admin Panel to:
 
 ```
 NegotiatorPro/
-├── main.py                      # Gradio UI entry point
-├── backend/                     # Backend modules (organized)
-│   ├── rag_engine.py           # Core RAG system and ModelConfig
-│   ├── llm_backend_config.py   # Multi-backend LLM management
-│   ├── admin_config.py         # Admin auth and sessions
-│   ├── document_manager.py     # File upload handling
-│   ├── embedding_config.py     # Embedding configuration
-│   ├── text_preprocessor.py    # Text optimization
-│   └── prompt_manager.py       # Prompt templates
-├── scripts/                     # Utility scripts
-│   ├── run.sh                  # Application startup
-│   └── rebuild_vectordb.py     # Vectorstore regeneration
-├── sources/                     # Source documents (PDF, TXT, DOCX, DOC)
-├── uploads/                     # Temporary upload storage
-├── vectorstore/                 # Generated FAISS embeddings
-├── tests/                       # Test suite (100+ tests)
-│   ├── test_docker.py          # Docker infrastructure
-│   ├── test_admin_config.py    # Admin system
+├── frontend/                    # React frontend application
+│   ├── src/
+│   │   ├── components/         # React components (Sidebar, Chat, etc.)
+│   │   ├── store/              # Zustand state management
+│   │   ├── services/           # API client (Axios)
+│   │   ├── types/              # TypeScript type definitions
+│   │   ├── App.tsx             # Main application component
+│   │   ├── App.css             # Styles with Markdown support
+│   │   └── main.tsx            # React entry point
+│   ├── package.json            # NPM dependencies
+│   ├── tsconfig.json           # TypeScript configuration
+│   ├── vite.config.ts          # Vite build configuration
+│   └── index.html              # HTML entry point
+├── backend/                     # Backend modules
+│   ├── api/                    # FastAPI application
+│   │   ├── main.py            # FastAPI entry point
+│   │   ├── routes/            # API endpoints (chat, auth, health)
+│   │   ├── models/            # Request/response models
+│   │   └── middleware/        # Auth middleware
+│   ├── rag_engine.py          # Core RAG system and ModelConfig
+│   ├── llm_backend_config.py  # Multi-backend LLM management
+│   ├── admin_config.py        # Admin auth and sessions
+│   ├── document_manager.py    # File upload handling
+│   ├── embedding_config.py    # Embedding configuration
+│   ├── text_preprocessor.py   # Text optimization
+│   └── prompt_manager.py      # Prompt templates
+├── scripts/                    # Utility scripts
+│   └── rebuild_vectordb.py    # Vectorstore regeneration
+├── sources/                    # Source documents (PDF, TXT, DOCX, DOC)
+├── uploads/                    # Temporary upload storage
+├── vectorstore/                # Generated FAISS embeddings
+├── tests/                      # Test suite (100+ tests)
+│   ├── test_docker.py         # Docker infrastructure
+│   ├── test_admin_config.py   # Admin system
 │   ├── test_document_manager.py # Document handling
-│   ├── test_model_config.py    # LLM backends
-│   ├── test_modules.py         # Supporting modules
-│   ├── test_integration.py     # Integration tests
-│   └── conftest.py             # Test fixtures
-├── docs/                        # Documentation
-│   ├── deployment/             # DEPLOYMENT.md, DOCKER-DEPLOY.md
-│   ├── features/               # ADMIN_FEATURES.md, OLLAMA_CLOUD_SETUP.md
-│   └── TESTING.md              # Testing guide
-├── migrations/                  # Database migrations
+│   ├── test_model_config.py   # LLM backends
+│   ├── test_modules.py        # Supporting modules
+│   ├── test_integration.py    # Integration tests
+│   └── conftest.py            # Test fixtures
+├── docs/                       # Documentation
+│   ├── deployment/            # DEPLOYMENT.md, DOCKER-DEPLOY.md
+│   ├── features/              # ADMIN_FEATURES.md, OLLAMA_CLOUD_SETUP.md
+│   ├── archive/               # Historical docs (Gradio, POC)
+│   └── TESTING.md             # Testing guide
+├── migrations/                 # Database migrations
 │   └── 001_initial_schema.sql
 ├── .github/workflows/
-│   └── test.yml                # CI/CD pipeline
-├── requirements.txt            # Python dependencies
-├── requirements-test.txt       # Test dependencies
-├── .env                        # Environment variables (create from .env.example)
-├── .env.example                # Environment template
-├── Dockerfile                  # Docker image definition
-├── docker-compose.yml          # Docker orchestration
-├── pytest.ini                  # Test configuration
-├── .coveragerc                 # Coverage configuration
-├── README.md                   # This file
-└── CLAUDE.md                   # AI development guide
+│   └── test.yml               # CI/CD pipeline
+├── run-api.sh                 # Start FastAPI backend
+├── run-frontend.sh            # Start React frontend
+├── requirements.txt           # Python dependencies
+├── requirements-test.txt      # Test dependencies
+├── .env                       # Environment variables (create from .env.example)
+├── .env.example               # Environment template
+├── Dockerfile                 # Multi-stage Docker build (React + FastAPI)
+├── docker-compose.yml         # Docker orchestration (backend + frontend services)
+├── pytest.ini                 # Test configuration
+├── .coveragerc                # Coverage configuration
+├── README.md                  # This file
+└── CLAUDE.md                  # AI development guide
 
 Auto-generated configuration files:
-├── llm_backend_config.json     # LLM backend settings
-├── admin_config.json           # Admin configuration
-├── admin_sessions.json         # Active sessions
-├── usage_stats.json            # Usage statistics
-├── embedding_config.json       # Embedding config
-└── prompt_config.json          # Prompt templates
+├── llm_backend_config.json    # LLM backend settings
+├── admin_config.json          # Admin configuration
+├── admin_sessions.json        # Active sessions
+├── usage_stats.json           # Usage statistics
+├── embedding_config.json      # Embedding config
+└── prompt_config.json         # Prompt templates
 ```
 
 ## ⚙️ Configuration
@@ -404,38 +460,49 @@ python test_llm_backends.py
 
 ### Features
 
-- **Multi-stage build**: Optimized image size (~800MB)
+- **Multi-stage build**: Optimized image with separate React and Python build stages
+- **Dual services**: Separate containers for backend (FastAPI) and frontend (React)
 - **Non-root user**: Security best practices
-- **Health checks**: Container monitoring
+- **Health checks**: Container monitoring for backend API
 - **Persistent volumes**: Data survives restarts (vectorstore, uploads, sources, config)
-- **Resource limits**: Configurable CPU/memory (default: 2GB/2 cores)
+- **Resource limits**: Configurable CPU/memory (default: 2GB/2 cores for backend)
 - **Auto-restart**: Production reliability
 - **JSON logging**: Structured logs with rotation
 
 ### Quick Commands
 
 ```bash
-# Start application
+# Start both services (backend + frontend)
 docker compose up -d
 
-# Stop application
+# Stop all services
 docker compose stop
 
 # Rebuild containers
 docker compose build --no-cache
 
-# View logs
+# View logs (all services)
 docker compose logs -f
+
+# View logs (specific service)
+docker compose logs -f backend
+docker compose logs -f frontend
 
 # Check status
 docker compose ps
 
-# Access shell in container
-docker compose exec negotiator bash
+# Access shell in backend container
+docker compose exec backend bash
 
 # Remove everything
 docker compose down -v
 ```
+
+### Port Mapping
+
+- **Frontend (React)**: Port 5173 - `http://localhost:5173`
+- **Backend (FastAPI)**: Port 8000 - `http://localhost:8000`
+- **API Docs**: `http://localhost:8000/docs`
 
 📖 **See [docs/deployment/DOCKER-DEPLOY.md](docs/deployment/DOCKER-DEPLOY.md) for quick start**
 📖 **See [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md) for production deployment**
@@ -490,10 +557,9 @@ From command line:
 python scripts/rebuild_vectordb.py
 ```
 
-From web interface:
-1. Go to Admin Panel → 📄 Documents
-2. Click "Regenerate Vector Database"
-3. Wait for processing to complete
+From FastAPI (coming soon):
+- Admin endpoints for document management and vectorstore regeneration
+- Will be integrated into React admin interface
 
 ## 🔄 CI/CD Pipeline
 
@@ -540,11 +606,14 @@ See [LICENSE](LICENSE) file for details.
 ## 🙏 Acknowledgments
 
 Built with:
+- **React** - Modern frontend framework
+- **TypeScript** - Type-safe JavaScript
+- **Vite** - Fast build tool and dev server
+- **FastAPI** - High-performance Python web framework
 - **LangChain** - RAG framework and LLM orchestration
 - **OpenAI** - GPT models and embeddings
 - **Anthropic** - Claude models
 - **Ollama** - Local and cloud LLM deployment
-- **Gradio** - Web interface
 - **FAISS** - Vector similarity search
 - **Docker** - Containerization
 

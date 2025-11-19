@@ -7,6 +7,8 @@ export interface ChatRequest {
   partner_info?: string;
   use_premium_model: boolean;
   use_preprocessing: boolean;
+  provider?: string;
+  model?: string;
 }
 
 export interface ChatResponse {
@@ -33,4 +35,20 @@ export interface Message {
   timestamp: Date;
   model_used?: string;
   processing_time?: number;
+}
+
+export interface ModelInfo {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface BackendInfo {
+  name: string;
+  enabled: boolean;
+  models: ModelInfo[];
+}
+
+export interface ModelsResponse {
+  [backendId: string]: BackendInfo;
 }

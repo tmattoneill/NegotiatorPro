@@ -1,22 +1,23 @@
-version: '3.8'
-
 services:
-  negotiator-pro:
+  # FastAPI Backend
+  backend:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: negotiator-pro
+    container_name: negotiator-pro-backend
     restart: unless-stopped
 
-    # Port mapping - map host port to container port
+    # Port mapping - FastAPI backend
     ports:
-      - "7860:7860"
+      - "8000:8000"
 
     # Environment variables
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - GRADIO_SERVER_NAME=0.0.0.0
-      - GRADIO_SERVER_PORT=7860
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
+      - OLLAMA_API_KEY=${OLLAMA_API_KEY}
+      - OLLAMA_CLOUD_URL=${OLLAMA_CLOUD_URL}
 
     # Volume mounts for persistent data
     volumes:
@@ -34,6 +35,7 @@ services:
       - ./admin_sessions.json:/app/admin_sessions.json
       - ./usage_stats.json:/app/usage_stats.json
       - ./embedding_config.json:/app/embedding_config.json
+      - ./llm_backend_config.json:/app/llm_backend_config.json
       - ./prompt_config.json:/app/prompt_config.json
 
     # Resource limits (adjust based on your needs)
@@ -52,7 +54,7 @@ services:
 
     # Health check
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:7860', timeout=5)"]
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/api/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -64,6 +66,37 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  # React Frontend (development mode)
+  frontend:
+    image: node:20-alpine
+    container_name: negotiator-pro-frontend
+    restart: unless-stopped
+    working_dir: /app/frontend
+
+    # Port mapping - React dev server
+    ports:
+      - "5173:5173"
+
+    # Environment variables
+    environment:
+      - VITE_API_URL=http://backend:8000
+
+    # Volume mounts
+    volumes:
+      - ./frontend:/app/frontend
+      - /app/frontend/node_modules
+
+    # Command to run dev server
+    command: sh -c "npm install && npm run dev -- --host"
+
+    # Networking
+    networks:
+      - negotiator-network
+
+    # Depends on backend
+    depends_on:
+      - backend
 
 networks:
   negotiator-network:

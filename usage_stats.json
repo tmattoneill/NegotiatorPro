@@ -36,5 +36,27 @@
         "cost": 0.0
       }
     }
+  },
+  "2025-11-17": {
+    "total_tokens": 1000,
+    "total_cost": 0.0,
+    "models": {
+      "ollama/gpt-oss:120b-cloud": {
+        "tokens": 1000,
+        "requests": 1,
+        "cost": 0.0
+      }
+    }
+  },
+  "2025-11-19": {
+    "total_tokens": 1000,
+    "total_cost": 0.0,
+    "models": {
+      "ollama/gpt-oss:120b-cloud": {
+        "tokens": 1000,
+        "requests": 1,
+        "cost": 0.0
+      }
+    }
   }
 }
