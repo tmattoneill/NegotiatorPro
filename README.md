@@ -29,6 +29,8 @@ An AI-powered negotiation advisor that leverages expert knowledge from leading n
 **Mix and Match**: Use OpenAI GPT-4o Mini as your default and Claude 3.5 Sonnet as premium!
 
 ### 🛠️ **Advanced Features**
+- **User Profile Management**: Multi-user support with PostgreSQL backend
+- **Secure API Key Storage**: User-specific OpenAI/Anthropic keys with encryption
 - **Intelligent Preprocessing**: Removes email signatures, footers, legal disclaimers, and fluff
 - **Context-Aware**: Preserves critical negotiation elements (emotions, numbers, commitments, deadlines)
 - **Real-time Statistics**: Track token usage, cost savings, and optimization results
@@ -36,6 +38,7 @@ An AI-powered negotiation advisor that leverages expert knowledge from leading n
 - **Document Management**: Web-based upload for PDF, TXT, DOCX, DOC files
 - **Vectorstore Intelligence**: Automatic embedding model compatibility detection
 - **Usage Analytics**: Track API usage, tokens, and costs by model and backend
+- **Docker-First Architecture**: All services containerized with persistent `/data` mount
 
 ### 📊 **Text Optimization Engine**
 - **Email Content Cleaning**: Removes signatures, footers, forwarding headers
@@ -55,28 +58,56 @@ An AI-powered negotiation advisor that leverages expert knowledge from leading n
 
 ### Option 1: Docker Deployment (Recommended) 🐳
 
-Perfect for production deployments on Ubuntu/Linux systems.
+**Docker-first architecture** - No local Python, Node, or PostgreSQL installation needed!
 
 1. **Clone and configure**
    ```bash
    git clone <repository-url>
    cd NegotiatorPro
    cp .env.example .env
-   # Edit .env and add your OPENAI_API_KEY (required)
-   # Optionally add ANTHROPIC_API_KEY or OLLAMA_API_KEY
    ```
 
-2. **Start with Docker**
+2. **Edit `.env` and configure:**
+   ```bash
+   # Required: LLM API keys
+   OPENAI_API_KEY=sk-your-key-here
+
+   # Optional: Additional LLM backends
+   ANTHROPIC_API_KEY=sk-ant-your-key-here
+
+   # Database configuration
+   POSTGRES_DB=negotiatorpro
+   POSTGRES_USER=negotiatorpro
+   POSTGRES_PASSWORD=your_secure_password_here
+
+   # Generate encryption key for user API keys
+   # docker run --rm python:3.11 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+   ENCRYPTION_KEY=your_generated_key_here
+   ```
+
+3. **Start all services**
    ```bash
    docker compose up -d
    ```
+   This starts:
+   - PostgreSQL database
+   - FastAPI backend (with auto-migrations)
+   - React frontend
 
-3. **Access the application**
-   - **Frontend**: Open your browser to `http://localhost:5173`
-   - **API**: Backend available at `http://localhost:8000`
-   - Admin authentication required (default password: `admin123`)
+4. **Initialize user profiles**
+   ```bash
+   docker exec -it negotiator-pro-backend python scripts/init_user_profile.py
+   ```
+   Creates default users:
+   - Admin: `admin` / `admin123`
+   - Test user: `testuser` / `testpass123`
 
-📖 **See [docs/deployment/DOCKER-DEPLOY.md](docs/deployment/DOCKER-DEPLOY.md) for the quick start guide**
+5. **Access the application**
+   - **Frontend**: http://localhost:5173
+   - **API Docs**: http://localhost:8000/api/docs
+   - **Backend**: http://localhost:8000
+
+📖 **See [DOCKER_SETUP.md](DOCKER_SETUP.md) for complete Docker guide**
 📖 **See [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md) for production deployment**
 
 ### Option 2: Local Development

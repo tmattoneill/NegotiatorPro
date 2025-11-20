@@ -153,14 +153,15 @@ CREATE TABLE prompts (
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_by UUID REFERENCES users(id) ON DELETE SET NULL,
-    notes TEXT,
-
-    CONSTRAINT unique_active_prompt UNIQUE (prompt_type, is_active) WHERE is_active = TRUE
+    notes TEXT
 );
 
 CREATE INDEX idx_prompts_type ON prompts(prompt_type);
 CREATE INDEX idx_prompts_is_active ON prompts(is_active);
 CREATE INDEX idx_prompts_created_at ON prompts(created_at DESC);
+
+-- Partial unique index: only one active prompt per type
+CREATE UNIQUE INDEX unique_active_prompt_per_type ON prompts(prompt_type) WHERE is_active = TRUE;
 
 -- ============================================================================
 -- CHAT HISTORY

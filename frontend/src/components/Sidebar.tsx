@@ -1,11 +1,20 @@
 /**
  * Sidebar component with session management
  */
+import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '../store/chatStore';
+import { useAuthStore } from '../store/authStore';
 import SettingsPanel from './SettingsPanel';
 
 export default function Sidebar() {
+  const navigate = useNavigate();
   const { sessions, currentSessionId, createNewSession, switchSession } = useChatStore();
+  const { user, logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <div className="sidebar">
@@ -48,6 +57,43 @@ export default function Sidebar() {
             No sessions yet. Click "New Negotiation" to start.
           </div>
         )}
+      </div>
+
+      {/* User info and logout */}
+      <div style={{
+        padding: '16px',
+        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+        marginTop: 'auto'
+      }}>
+        <div style={{
+          fontSize: '13px',
+          color: '#cbd5e0',
+          marginBottom: '12px'
+        }}>
+          Logged in as <strong>{user?.username || 'User'}</strong>
+        </div>
+        <button
+          onClick={handleLogout}
+          style={{
+            width: '100%',
+            padding: '8px 16px',
+            background: 'rgba(255, 255, 255, 0.1)',
+            color: '#fff',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: '6px',
+            fontSize: '13px',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+          }}
+        >
+          Logout
+        </button>
       </div>
     </div>
   );

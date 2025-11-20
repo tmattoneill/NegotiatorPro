@@ -15,7 +15,7 @@ from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError
 from dotenv import load_dotenv
 
-from .routes import chat_router, auth_router, health_router, models_router
+from .routes import chat_router, auth_router, health_router, models_router, users_router
 
 # Set up logging
 logging.basicConfig(
@@ -33,14 +33,27 @@ async def lifespan(app: FastAPI):
     """
     Lifespan context manager for startup/shutdown events.
     """
+    from ..database import db
+
     # Startup
     logger.info("=== Starting NegotiatorPro FastAPI Backend ===")
+    logger.info("Initializing database connection...")
+
+    try:
+        await db.connect()
+        logger.info("Database connection established")
+    except Exception as e:
+        logger.error(f"Failed to connect to database: {e}")
+        logger.warning("Application will continue but database features will be unavailable")
+
     logger.info("Initializing RAG system on first request...")
 
     yield
 
     # Shutdown
     logger.info("=== Shutting down NegotiatorPro FastAPI Backend ===")
+    logger.info("Closing database connection...")
+    await db.disconnect()
 
 
 # Create FastAPI app
@@ -135,6 +148,7 @@ app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(models_router)
+app.include_router(users_router)
 
 
 @app.get("/")
