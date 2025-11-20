@@ -8,8 +8,12 @@
   "ui": {
     "theme": {
       "primaryColor": "#3498db",
-      "sidebarColor": "#2c3e50",
-      "accentColor": "#667eea"
+      "sidebarColor": "#191919",
+      "backgroundColor": "#efefef",
+      "textColor": "#191919",
+      "secondaryColor": "#9fadbd",
+      "accentColor": "#b68947",
+      "highlightColor": "#7e5716"
     },
     "features": {
       "enableUserProfiles": true,

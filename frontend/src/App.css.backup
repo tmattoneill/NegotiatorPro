@@ -7,7 +7,7 @@
   display: flex;
   height: 100vh;
   overflow: hidden;
-  background: #efefef;
+  background: #f5f5f5;
 }
 
 /* Sidebar styles */
@@ -16,17 +16,17 @@
   min-width: 300px;
   max-width: 300px;
   flex-shrink: 0;
-  background: #191919;
+  background: #2c3e50;
   color: white;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #9fadbd;
+  border-right: 1px solid #34495e;
 }
 
 .sidebar-header {
   padding: 24px 20px;
-  border-bottom: 1px solid #9fadbd;
-  background: #191919;
+  border-bottom: 1px solid #34495e;
+  background: #243342;
 }
 
 .sidebar-header h1 {
@@ -39,7 +39,7 @@
 .sidebar-header p {
   margin: 0;
   font-size: 13px;
-  color: #9fadbd;
+  color: #95a5a6;
 }
 
 .new-session-btn {
@@ -56,7 +56,7 @@
 }
 
 .new-session-btn:hover {
-  background: #3498db;
+  background: #2980b9;
 }
 
 .new-session-btn:active {
@@ -107,7 +107,7 @@
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #191919;
+  color: #2c3e50;
 }
 
 /* Messages container */
@@ -132,13 +132,13 @@
   margin: 0 0 8px 0;
   font-size: 24px;
   font-weight: 600;
-  color: #191919;
+  color: #2c3e50;
 }
 
 .welcome-message p {
   margin: 0;
   font-size: 16px;
-  color: #9fadbd;
+  color: #95a5a6;
 }
 
 /* Message bubbles */
@@ -202,12 +202,12 @@
 }
 
 .message.assistant .message-header {
-  color: #191919;
+  color: #2c3e50;
 }
 
 .message.assistant .message-content {
   background: white;
-  color: #191919;
+  color: #2c3e50;
   border: 1px solid #e1e8ed;
   border-bottom-left-radius: 4px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -217,7 +217,7 @@
 .message-meta {
   margin-top: 6px;
   font-size: 11px;
-  color: #9fadbd;
+  color: #95a5a6;
   padding-left: 4px;
 }
 
@@ -328,7 +328,7 @@
 }
 
 .message-content table th {
-  background: #efefef;
+  background: #f5f5f5;
   font-weight: 600;
 }
 
@@ -389,7 +389,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #9fadbd;
+  background: #95a5a6;
   margin: 0 2px;
   animation: typing 1.4s infinite;
 }
@@ -444,7 +444,7 @@
 }
 
 .input-wrapper textarea:disabled {
-  background: #efefef;
+  background: #f5f5f5;
   cursor: not-allowed;
 }
 
@@ -462,7 +462,7 @@
 }
 
 .send-button:hover:not(:disabled) {
-  background: #3498db;
+  background: #2980b9;
 }
 
 .send-button:active:not(:disabled) {
@@ -485,7 +485,7 @@
 }
 
 .messages-container::-webkit-scrollbar-thumb {
-  background: #9fadbd;
+  background: #cbd5e0;
   border-radius: 4px;
 }
 
@@ -541,7 +541,7 @@
   padding: 12px;
   text-align: center;
   font-size: 13px;
-  color: #9fadbd;
+  color: #cbd5e0;
 }
 
 .model-selector.error {
@@ -574,7 +574,7 @@
   font-size: 12px;
   font-weight: 500;
   margin-bottom: 6px;
-  color: #9fadbd;
+  color: #cbd5e0;
 }
 
 .selector-dropdown {
@@ -660,7 +660,7 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: #b68947;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 24px;
 }
 
@@ -677,7 +677,7 @@
   margin: 0 0 8px 0;
   font-size: 32px;
   font-weight: 700;
-  color: #191919;
+  color: #2c3e50;
   text-align: center;
 }
 
@@ -696,7 +696,7 @@
   margin: 0 0 16px 0;
   font-size: 18px;
   font-weight: 600;
-  color: #191919;
+  color: #2c3e50;
   padding-bottom: 8px;
   border-bottom: 2px solid #e1e8ed;
 }
@@ -704,7 +704,7 @@
 .optional {
   font-size: 14px;
   font-weight: 400;
-  color: #9fadbd;
+  color: #95a5a6;
 }
 
 .form-group {
@@ -722,7 +722,7 @@
   margin-bottom: 6px;
   font-size: 14px;
   font-weight: 500;
-  color: #191919;
+  color: #2c3e50;
 }
 
 .form-group input {
@@ -737,7 +737,7 @@
 
 .form-group input:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -750,7 +750,7 @@
   display: block;
   margin-top: 6px;
   font-size: 12px;
-  color: #9fadbd;
+  color: #95a5a6;
 }
 
 .error {
@@ -772,12 +772,12 @@
 }
 
 .toggle-button {
-  background: #efefef;
+  background: #f5f5f5;
   border: 1px solid #e1e8ed;
   padding: 10px 16px;
   border-radius: 8px;
   font-size: 14px;
-  color: #191919;
+  color: #2c3e50;
   cursor: pointer;
   transition: all 0.2s;
   margin-bottom: 16px;
@@ -793,7 +793,7 @@
 .submit-button {
   width: 100%;
   padding: 14px 24px;
-  background: #b68947;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
   border-radius: 8px;

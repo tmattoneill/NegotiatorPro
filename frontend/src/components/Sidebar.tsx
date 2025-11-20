@@ -59,7 +59,7 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* User info and logout */}
+      {/* User info and actions */}
       <div style={{
         padding: '16px',
         borderTop: '1px solid rgba(255, 255, 255, 0.1)',
@@ -67,33 +67,57 @@ export default function Sidebar() {
       }}>
         <div style={{
           fontSize: '13px',
-          color: '#cbd5e0',
+          color: '#9fadbd',
           marginBottom: '12px'
         }}>
           Logged in as <strong>{user?.username || 'User'}</strong>
         </div>
-        <button
-          onClick={handleLogout}
-          style={{
-            width: '100%',
-            padding: '8px 16px',
-            background: 'rgba(255, 255, 255, 0.1)',
-            color: '#fff',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            borderRadius: '6px',
-            fontSize: '13px',
-            cursor: 'pointer',
-            transition: 'all 0.2s'
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-          }}
-        >
-          Logout
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <button
+            onClick={() => navigate('/profile')}
+            style={{
+              width: '100%',
+              padding: '8px 16px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              color: '#fff',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '6px',
+              fontSize: '13px',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+            }}
+          >
+            My Profile
+          </button>
+          <button
+            onClick={handleLogout}
+            style={{
+              width: '100%',
+              padding: '8px 16px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              color: '#fff',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '6px',
+              fontSize: '13px',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+            }}
+          >
+            Logout
+          </button>
+        </div>
       </div>
     </div>
   );
