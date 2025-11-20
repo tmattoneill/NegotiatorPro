@@ -16,6 +16,10 @@ export default function UserProfile() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [testingOpenAI, setTestingOpenAI] = useState(false);
+  const [testingAnthropic, setTestingAnthropic] = useState(false);
+  const [openAITestResult, setOpenAITestResult] = useState<{ valid: boolean; message: string } | null>(null);
+  const [anthropicTestResult, setAnthropicTestResult] = useState<{ valid: boolean; message: string } | null>(null);
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -36,6 +40,53 @@ export default function UserProfile() {
       });
     }
   }, [user]);
+
+  const handleTestAPIKey = async (provider: 'openai' | 'anthropic') => {
+    const apiKey = provider === 'openai' ? formData.openai_api_key : formData.anthropic_api_key;
+
+    if (!apiKey || !apiKey.trim()) {
+      if (provider === 'openai') {
+        setOpenAITestResult({ valid: false, message: 'Please enter an API key to test' });
+      } else {
+        setAnthropicTestResult({ valid: false, message: 'Please enter an API key to test' });
+      }
+      return;
+    }
+
+    if (provider === 'openai') {
+      setTestingOpenAI(true);
+      setOpenAITestResult(null);
+    } else {
+      setTestingAnthropic(true);
+      setAnthropicTestResult(null);
+    }
+
+    try {
+      const response = await api.post('/users/test-api-key', {
+        provider,
+        api_key: apiKey,
+      });
+
+      if (provider === 'openai') {
+        setOpenAITestResult({ valid: true, message: response.data.message });
+      } else {
+        setAnthropicTestResult({ valid: true, message: response.data.message });
+      }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.detail || 'API key validation failed';
+      if (provider === 'openai') {
+        setOpenAITestResult({ valid: false, message: errorMessage });
+      } else {
+        setAnthropicTestResult({ valid: false, message: errorMessage });
+      }
+    } finally {
+      if (provider === 'openai') {
+        setTestingOpenAI(false);
+      } else {
+        setTestingAnthropic(false);
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,12 +201,74 @@ export default function UserProfile() {
               gridTemplateColumns: '150px 1fr',
               gap: '12px',
               fontSize: '14px',
+              marginBottom: '20px',
             }}>
               <div style={{ color: '#9fadbd' }}>Username:</div>
               <div style={{ color: '#191919', fontWeight: '500' }}>{user.username}</div>
 
               <div style={{ color: '#9fadbd' }}>Role:</div>
               <div style={{ color: '#191919', fontWeight: '500' }}>{user.role}</div>
+            </div>
+
+            {/* API Keys Status */}
+            <div style={{ marginTop: '20px' }}>
+              <h3 style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#191919',
+                marginBottom: '12px',
+              }}>
+                API Keys Status
+              </h3>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 14px',
+                  borderRadius: '6px',
+                  background: user.has_openai_key ? '#f0fdf4' : '#f8f9fa',
+                  border: user.has_openai_key ? '1px solid #86efac' : '1px solid #e0e0e0',
+                }}>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: user.has_openai_key ? '#22c55e' : '#9fadbd',
+                  }}></div>
+                  <span style={{
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    color: user.has_openai_key ? '#166534' : '#9fadbd',
+                  }}>
+                    OpenAI
+                  </span>
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 14px',
+                  borderRadius: '6px',
+                  background: user.has_anthropic_key ? '#f0fdf4' : '#f8f9fa',
+                  border: user.has_anthropic_key ? '1px solid #86efac' : '1px solid #e0e0e0',
+                }}>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: user.has_anthropic_key ? '#22c55e' : '#9fadbd',
+                  }}></div>
+                  <span style={{
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    color: user.has_anthropic_key ? '#166534' : '#9fadbd',
+                  }}>
+                    Anthropic
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -301,6 +414,7 @@ export default function UserProfile() {
                 </p>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {/* OpenAI API Key */}
                   <div>
                     <label style={{
                       display: 'block',
@@ -311,23 +425,61 @@ export default function UserProfile() {
                     }}>
                       OpenAI API Key
                     </label>
-                    <input
-                      type="password"
-                      value={formData.openai_api_key}
-                      onChange={(e) => setFormData({ ...formData, openai_api_key: e.target.value })}
-                      placeholder="sk-..."
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        fontSize: '14px',
-                        border: '1px solid #9fadbd',
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="password"
+                        value={formData.openai_api_key}
+                        onChange={(e) => {
+                          setFormData({ ...formData, openai_api_key: e.target.value });
+                          setOpenAITestResult(null);
+                        }}
+                        placeholder="sk-..."
+                        style={{
+                          flex: 1,
+                          padding: '10px 12px',
+                          fontSize: '14px',
+                          border: '1px solid #9fadbd',
+                          borderRadius: '6px',
+                          background: '#ffffff',
+                          color: '#191919',
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleTestAPIKey('openai')}
+                        disabled={testingOpenAI || !formData.openai_api_key}
+                        style={{
+                          padding: '10px 16px',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          color: '#ffffff',
+                          background: testingOpenAI ? '#9fadbd' : '#3498db',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: testingOpenAI || !formData.openai_api_key ? 'not-allowed' : 'pointer',
+                          opacity: testingOpenAI || !formData.openai_api_key ? 0.6 : 1,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {testingOpenAI ? 'Testing...' : 'Test Key'}
+                      </button>
+                    </div>
+                    {openAITestResult && (
+                      <div style={{
+                        marginTop: '8px',
+                        padding: '8px 12px',
                         borderRadius: '6px',
-                        background: '#ffffff',
-                        color: '#191919',
-                      }}
-                    />
+                        fontSize: '13px',
+                        background: openAITestResult.valid ? '#f0fdf4' : '#fff5f5',
+                        border: openAITestResult.valid ? '1px solid #86efac' : '1px solid #fc8181',
+                        color: openAITestResult.valid ? '#166534' : '#c53030',
+                      }}>
+                        {openAITestResult.message}
+                      </div>
+                    )}
                   </div>
 
+                  {/* Anthropic API Key */}
                   <div>
                     <label style={{
                       display: 'block',
@@ -338,21 +490,58 @@ export default function UserProfile() {
                     }}>
                       Anthropic API Key
                     </label>
-                    <input
-                      type="password"
-                      value={formData.anthropic_api_key}
-                      onChange={(e) => setFormData({ ...formData, anthropic_api_key: e.target.value })}
-                      placeholder="sk-ant-..."
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        fontSize: '14px',
-                        border: '1px solid #9fadbd',
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="password"
+                        value={formData.anthropic_api_key}
+                        onChange={(e) => {
+                          setFormData({ ...formData, anthropic_api_key: e.target.value });
+                          setAnthropicTestResult(null);
+                        }}
+                        placeholder="sk-ant-..."
+                        style={{
+                          flex: 1,
+                          padding: '10px 12px',
+                          fontSize: '14px',
+                          border: '1px solid #9fadbd',
+                          borderRadius: '6px',
+                          background: '#ffffff',
+                          color: '#191919',
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleTestAPIKey('anthropic')}
+                        disabled={testingAnthropic || !formData.anthropic_api_key}
+                        style={{
+                          padding: '10px 16px',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          color: '#ffffff',
+                          background: testingAnthropic ? '#9fadbd' : '#3498db',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: testingAnthropic || !formData.anthropic_api_key ? 'not-allowed' : 'pointer',
+                          opacity: testingAnthropic || !formData.anthropic_api_key ? 0.6 : 1,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {testingAnthropic ? 'Testing...' : 'Test Key'}
+                      </button>
+                    </div>
+                    {anthropicTestResult && (
+                      <div style={{
+                        marginTop: '8px',
+                        padding: '8px 12px',
                         borderRadius: '6px',
-                        background: '#ffffff',
-                        color: '#191919',
-                      }}
-                    />
+                        fontSize: '13px',
+                        background: anthropicTestResult.valid ? '#f0fdf4' : '#fff5f5',
+                        border: anthropicTestResult.valid ? '1px solid #86efac' : '1px solid #fc8181',
+                        color: anthropicTestResult.valid ? '#166534' : '#c53030',
+                      }}>
+                        {anthropicTestResult.message}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

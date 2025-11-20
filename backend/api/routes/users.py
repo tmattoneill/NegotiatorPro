@@ -11,6 +11,7 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from ...user_profile import (
     UserProfileManager,
@@ -165,6 +166,7 @@ async def get_user_by_email(email: str):
         )
 
 
+@users_router.put("/{user_id}", response_model=UserProfile)
 @users_router.patch("/{user_id}", response_model=UserProfile)
 async def update_user(user_id: str, update_data: UserProfileUpdate):
     """
@@ -282,4 +284,102 @@ async def get_user_api_keys(user_id: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve API keys"
+        )
+
+
+class TestAPIKeyRequest(BaseModel):
+    """Request model for testing API keys"""
+    provider: str  # 'openai' or 'anthropic'
+    api_key: str
+
+
+@users_router.post("/test-api-key")
+async def test_api_key(request: TestAPIKeyRequest):
+    """
+    Test an API key by making a simple request to the provider's API.
+
+    Args:
+        request: Provider name and API key to test
+
+    Returns:
+        Success status and message
+
+    Raises:
+        400: If provider is unsupported or API key is invalid
+    """
+    try:
+        provider = request.provider.lower()
+        api_key = request.api_key
+
+        if not api_key or not api_key.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="API key cannot be empty"
+            )
+
+        if provider == "openai":
+            # Test OpenAI API key with a minimal request
+            import openai
+            try:
+                client = openai.OpenAI(api_key=api_key)
+                # Make a minimal request to verify the key
+                response = client.models.list()
+                return {
+                    "valid": True,
+                    "message": "OpenAI API key is valid",
+                    "provider": "openai"
+                }
+            except openai.AuthenticationError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid OpenAI API key"
+                )
+            except Exception as e:
+                logger.error(f"OpenAI API test failed: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Failed to validate OpenAI API key: {str(e)}"
+                )
+
+        elif provider == "anthropic":
+            # Test Anthropic API key with a minimal request
+            import anthropic
+            try:
+                client = anthropic.Anthropic(api_key=api_key)
+                # Make a minimal request to verify the key
+                # We'll use a very short message to minimize cost
+                response = client.messages.create(
+                    model="claude-3-haiku-20240307",
+                    max_tokens=10,
+                    messages=[{"role": "user", "content": "Hi"}]
+                )
+                return {
+                    "valid": True,
+                    "message": "Anthropic API key is valid",
+                    "provider": "anthropic"
+                }
+            except anthropic.AuthenticationError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid Anthropic API key"
+                )
+            except Exception as e:
+                logger.error(f"Anthropic API test failed: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Failed to validate Anthropic API key: {str(e)}"
+                )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported provider: {provider}. Supported providers: openai, anthropic"
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"API key test failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to test API key"
         )

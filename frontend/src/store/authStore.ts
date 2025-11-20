@@ -11,6 +11,8 @@ interface User {
   first_name?: string;
   last_name?: string;
   role: string;
+  has_openai_key?: boolean;
+  has_anthropic_key?: boolean;
 }
 
 interface AuthState {
