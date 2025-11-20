@@ -59,34 +59,42 @@ export default function ModelSelector() {
     );
   }
 
-  return (
-    <div className="model-selector">
-      {/* Provider Dropdown */}
-      <div className="selector-group">
-        <label htmlFor="provider-select">Provider</label>
-        <select
-          id="provider-select"
-          value={selectedProvider || ''}
-          onChange={(e) => setProvider(e.target.value)}
-          className="selector-dropdown"
-        >
-          {availableBackends.map((backendId) => (
-            <option key={backendId} value={backendId}>
-              {availableModels[backendId].name}
-            </option>
-          ))}
-        </select>
-      </div>
+  // Get provider name for selected provider
+  const providerName = selectedProvider ? availableModels[selectedProvider]?.name : '';
 
+  return (
+    <div style={{ marginBottom: '8px' }}>
       {/* Model Dropdown */}
-      <div className="selector-group">
-        <label htmlFor="model-select">Model</label>
+      <div>
+        <label
+          htmlFor="model-select"
+          style={{
+            display: 'block',
+            fontSize: '11px',
+            fontWeight: '600',
+            color: '#9fadbd',
+            marginBottom: '6px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+          }}
+        >
+          Model ({providerName})
+        </label>
         <select
           id="model-select"
           value={selectedModel || ''}
           onChange={(e) => setModel(e.target.value)}
-          className="selector-dropdown"
           disabled={currentProviderModels.length === 0}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            fontSize: '13px',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: '6px',
+            background: 'rgba(255, 255, 255, 0.1)',
+            color: '#fff',
+            cursor: currentProviderModels.length === 0 ? 'not-allowed' : 'pointer',
+          }}
         >
           {currentProviderModels.length === 0 ? (
             <option value="">No models available</option>
@@ -99,13 +107,6 @@ export default function ModelSelector() {
           )}
         </select>
       </div>
-
-      {/* Model Description */}
-      {selectedModel && currentProviderModels.length > 0 && (
-        <div className="model-description">
-          {currentProviderModels.find((m) => m.id === selectedModel)?.description}
-        </div>
-      )}
     </div>
   );
 }

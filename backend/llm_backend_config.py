@@ -120,33 +120,17 @@ class LLMBackendManager:
             requires_api_key=True,
             models=[
                 ModelInfo(
-                    id="claude-3-5-sonnet-20241022",
-                    name="Claude 3.5 Sonnet",
-                    description="Most intelligent Claude model with extended thinking",
+                    id="claude-sonnet-4-5-20250929",
+                    name="Claude Sonnet 4.5",
+                    description="Latest Claude Sonnet with enhanced capabilities",
                     max_context_length=200000,
                     cost_per_1k_input=3.0,
                     cost_per_1k_output=15.0
                 ),
                 ModelInfo(
-                    id="claude-3-opus-20240229",
-                    name="Claude 3 Opus",
-                    description="Most capable Claude 3 model for complex tasks",
-                    max_context_length=200000,
-                    cost_per_1k_input=15.0,
-                    cost_per_1k_output=75.0
-                ),
-                ModelInfo(
-                    id="claude-3-sonnet-20240229",
-                    name="Claude 3 Sonnet",
-                    description="Balanced intelligence and speed",
-                    max_context_length=200000,
-                    cost_per_1k_input=3.0,
-                    cost_per_1k_output=15.0
-                ),
-                ModelInfo(
-                    id="claude-3-haiku-20240307",
-                    name="Claude 3 Haiku",
-                    description="Fastest and most compact Claude model",
+                    id="claude-haiku-4-5-20251001",
+                    name="Claude Haiku 4.5",
+                    description="Latest Claude Haiku - fast and efficient",
                     max_context_length=200000,
                     cost_per_1k_input=0.25,
                     cost_per_1k_output=1.25
