@@ -1,27 +1,27 @@
 {
-  "active_backend": "ollama",
+  "active_backend": "ollama-cloud",
   "active_models": {
     "default": {
-      "backend": "ollama",
+      "backend": "ollama-cloud",
       "model": "gpt-oss:120b-cloud"
     },
     "premium": {
-      "backend": "ollama",
-      "model": "gpt-oss:120b-cloud"
+      "backend": "anthropic",
+      "model": "claude-3-5-sonnet-20241022"
     }
   },
   "backend_settings": {
     "openai": {
-      "enabled": false
+      "enabled": true
     },
     "anthropic": {
-      "enabled": false
+      "enabled": true
     },
     "ollama": {
       "enabled": true
     },
     "ollama-cloud": {
-      "enabled": false
+      "enabled": true
     }
   }
 }
