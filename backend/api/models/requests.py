@@ -5,8 +5,8 @@ from typing import Optional
 
 class ChatRequest(BaseModel):
     """Request model for chat endpoint"""
-    question: str = Field(..., min_length=1, max_length=2000, description="User's question")
-    partner_info: Optional[str] = Field(None, max_length=5000, description="Optional context about negotiation partner")
+    question: str = Field(..., min_length=1, max_length=50000, description="User's question or negotiation context")
+    partner_info: Optional[str] = Field(None, max_length=20000, description="Optional context about negotiation partner")
     use_premium_model: bool = Field(False, description="Whether to use premium model")
     use_preprocessing: bool = Field(True, description="Whether to apply text preprocessing")
     provider: Optional[str] = Field(None, description="LLM provider override (openai, anthropic, ollama, ollama-cloud)")

@@ -52,11 +52,26 @@ export default function ChatContainer() {
       };
       addMessage(assistantMessage);
     } catch (error) {
+      // Extract user-friendly error message from backend response
+      let errorContent = 'Failed to get response. Please try again.';
+
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { data?: { detail?: string | string[] } } };
+        const detail = axiosError.response?.data?.detail;
+
+        if (detail) {
+          // Handle both single string and array of errors
+          errorContent = Array.isArray(detail) ? detail.join('\n') : detail;
+        }
+      } else if (error instanceof Error) {
+        errorContent = error.message;
+      }
+
       // Add error message
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `Error: ${error instanceof Error ? error.message : 'Failed to get response'}`,
+        content: `❌ ${errorContent}`,
         timestamp: new Date(),
       };
       addMessage(errorMessage);
