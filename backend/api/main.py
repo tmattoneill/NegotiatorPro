@@ -8,8 +8,11 @@ import os
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from pydantic import ValidationError
 from dotenv import load_dotenv
 
 from .routes import chat_router, auth_router, health_router, models_router
@@ -65,6 +68,67 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Custom exception handler for validation errors
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """
+    Handle Pydantic validation errors with user-friendly messages.
+
+    Provides specific feedback for common validation failures like:
+    - String length constraints
+    - Missing required fields
+    - Type mismatches
+    """
+    errors = exc.errors()
+
+    # Build user-friendly error messages
+    friendly_errors = []
+    for error in errors:
+        field = error.get("loc", ["unknown"])[-1]  # Get the field name
+        error_type = error.get("type", "")
+
+        # Handle string length constraints
+        if "string_too_long" in error_type or "too_long" in error_type:
+            ctx = error.get("ctx", {})
+            max_length = ctx.get("max_length", "unknown")
+            actual_length = ctx.get("actual_length", "unknown")
+            friendly_errors.append(
+                f"Field '{field}': Message length ({actual_length:,} characters) exceeds maximum limit of {max_length:,} characters."
+            )
+
+        # Handle string too short
+        elif "string_too_short" in error_type or "too_short" in error_type:
+            ctx = error.get("ctx", {})
+            min_length = ctx.get("min_length", "unknown")
+            friendly_errors.append(
+                f"Field '{field}': Message must be at least {min_length} characters long."
+            )
+
+        # Handle missing required fields
+        elif error_type == "missing":
+            friendly_errors.append(f"Required field '{field}' is missing.")
+
+        # Handle type errors
+        elif "type_error" in error_type:
+            expected_type = error.get("ctx", {}).get("expected", "correct type")
+            friendly_errors.append(f"Field '{field}': Expected {expected_type}.")
+
+        # Default to original error message
+        else:
+            friendly_errors.append(f"Field '{field}': {error.get('msg', 'Invalid value')}")
+
+    # Log the full validation error for debugging
+    logger.warning(f"Validation error on {request.url.path}: {friendly_errors}")
+
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "detail": friendly_errors[0] if len(friendly_errors) == 1 else friendly_errors,
+            "error_type": "validation_error"
+        }
+    )
+
 
 # Register routers
 app.include_router(health_router)
