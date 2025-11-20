@@ -276,9 +276,9 @@ function CreateProfile() {
             {isLoading ? 'Creating Profile...' : 'Create Profile'}
           </button>
 
-          <div style={{ marginTop: '24px', textAlign: 'center', color: '#7f8c8d' }}>
+          <div style={{ marginTop: '24px', textAlign: 'center', color: '#9fadbd' }}>
             Already have an account?{' '}
-            <Link to="/login" style={{ color: '#667eea', textDecoration: 'none', fontWeight: 500 }}>
+            <Link to="/login" style={{ color: '#3498db', textDecoration: 'none', fontWeight: 500 }}>
               Login here
             </Link>
           </div>

@@ -140,9 +140,9 @@ function Login() {
             {isLoading ? 'Logging in...' : 'Login'}
           </button>
 
-          <div style={{ marginTop: '24px', textAlign: 'center', color: '#7f8c8d' }}>
+          <div style={{ marginTop: '24px', textAlign: 'center', color: '#9fadbd' }}>
             Don't have an account?{' '}
-            <Link to="/create-profile" style={{ color: '#667eea', textDecoration: 'none', fontWeight: 500 }}>
+            <Link to="/create-profile" style={{ color: '#3498db', textDecoration: 'none', fontWeight: 500 }}>
               Create one here
             </Link>
           </div>
