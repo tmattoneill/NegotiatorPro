@@ -83,6 +83,12 @@ services:
       # Persist configuration files in /data/config
       - ./data/config:/app/config
 
+      # Mount config.json (main application configuration)
+      - ./config.json:/app/config.json
+
+      # Mount llm_backend_config.json (LLM model definitions)
+      - ./llm_backend_config.json:/app/llm_backend_config.json
+
       # Mount migrations for database setup scripts
       - ./migrations:/app/migrations
 

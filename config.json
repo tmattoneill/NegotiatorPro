@@ -1,0 +1,231 @@
+{
+  "app": {
+    "name": "NegotiatorPro",
+    "description": "AI-powered negotiation guidance",
+    "version": "1.0.0",
+    "environment": "development"
+  },
+  "ui": {
+    "theme": {
+      "primaryColor": "#3498db",
+      "sidebarColor": "#2c3e50",
+      "accentColor": "#667eea"
+    },
+    "features": {
+      "enableUserProfiles": true,
+      "enableModelSelection": true,
+      "enableTextOptimization": true,
+      "enablePremiumModels": true,
+      "enableConversationHistory": true
+    },
+    "limits": {
+      "maxMessageLength": 10000,
+      "maxConversationsPerUser": 100,
+      "sessionTimeoutMinutes": 60
+    }
+  },
+  "_comment_llm_models": "LLM models are defined in backend/llm_backend_config.py for consistency with chat engine",
+  "llm_models_DEPRECATED": [
+    {
+      "provider": "openai",
+      "provider_prettyname": "OpenAI",
+      "provider_description": "Industry-leading AI models from OpenAI",
+      "enabled": true,
+      "requires_api_key": true,
+      "models": [
+        {
+          "id": "gpt-5-mini-2025-08-07",
+          "name": "GPT-5 Mini",
+          "description": "Latest compact GPT-5 model optimized for speed and efficiency",
+          "tier": "default",
+          "context_window": 128000,
+          "supports_streaming": true,
+          "cost_per_1k_input_tokens": 0.00015,
+          "cost_per_1k_output_tokens": 0.0006
+        },
+        {
+          "id": "gpt-4.1-2025-04-14",
+          "name": "GPT-4.1",
+          "description": "Most capable GPT-4 series model with enhanced reasoning",
+          "tier": "premium",
+          "context_window": 128000,
+          "supports_streaming": true,
+          "cost_per_1k_input_tokens": 0.0025,
+          "cost_per_1k_output_tokens": 0.01
+        },
+        {
+          "id": "o1-mini-2024-09-12",
+          "name": "O1 Mini",
+          "description": "Advanced reasoning model with analytical capabilities",
+          "tier": "premium",
+          "context_window": 128000,
+          "supports_streaming": true,
+          "cost_per_1k_input_tokens": 0.00275,
+          "cost_per_1k_output_tokens": 0.011
+        }
+      ]
+    },
+    {
+      "provider": "anthropic",
+      "provider_prettyname": "Claude",
+      "provider_description": "Anthropic's Claude models with exceptional reasoning",
+      "enabled": true,
+      "requires_api_key": true,
+      "models": [
+        {
+          "id": "claude-sonnet-4-5",
+          "name": "Claude Sonnet 4.5",
+          "description": "Latest Claude with enhanced capabilities and best-in-class reasoning",
+          "tier": "premium",
+          "context_window": 200000,
+          "supports_streaming": true,
+          "cost_per_1k_input_tokens": 0.003,
+          "cost_per_1k_output_tokens": 0.015
+        },
+        {
+          "id": "claude-haiku-4-5",
+          "name": "Claude Haiku 4.5",
+          "description": "Fast and efficient latest Haiku model with exceptional speed",
+          "tier": "default",
+          "context_window": 200000,
+          "supports_streaming": true,
+          "cost_per_1k_input_tokens": 0.00025,
+          "cost_per_1k_output_tokens": 0.00125
+        }
+      ]
+    },
+    {
+      "provider": "ollama",
+      "provider_prettyname": "Ollama (Local)",
+      "provider_description": "Run open-source models locally on your machine",
+      "enabled": true,
+      "requires_api_key": false,
+      "models": [
+        {
+          "id": "granite3.1-moe:latest",
+          "name": "Granite 3.1 MoE",
+          "description": "IBM's Granite 3.1 mixture-of-experts model",
+          "tier": "default",
+          "context_window": 8192,
+          "supports_streaming": true,
+          "cost_per_1k_input_tokens": 0,
+          "cost_per_1k_output_tokens": 0
+        },
+        {
+          "id": "granite3.1-moe:1b",
+          "name": "Granite 3.1 MoE 1B",
+          "description": "IBM's compact Granite 3.1 MoE model",
+          "tier": "default",
+          "context_window": 8192,
+          "supports_streaming": true,
+          "cost_per_1k_input_tokens": 0,
+          "cost_per_1k_output_tokens": 0
+        }
+      ]
+    },
+    {
+      "provider": "ollama-cloud",
+      "provider_prettyname": "Ollama Cloud",
+      "provider_description": "Cloud-hosted Ollama models",
+      "enabled": true,
+      "requires_api_key": true,
+      "models": [
+        {
+          "id": "glm-4.6:cloud",
+          "name": "GLM-4.6 Cloud",
+          "description": "Zhipu AI's GLM-4.6 language model (cloud-hosted)",
+          "tier": "premium",
+          "context_window": 128000,
+          "supports_streaming": true,
+          "cost_per_1k_input_tokens": 0.001,
+          "cost_per_1k_output_tokens": 0.002
+        },
+        {
+          "id": "gpt-oss:20b-cloud",
+          "name": "GPT-OSS 20B Cloud",
+          "description": "Medium GPT-OSS model (cloud-hosted)",
+          "tier": "default",
+          "context_window": 32768,
+          "supports_streaming": true,
+          "cost_per_1k_input_tokens": 0.0005,
+          "cost_per_1k_output_tokens": 0.001
+        },
+        {
+          "id": "gpt-oss:120b-cloud",
+          "name": "GPT-OSS 120B Cloud",
+          "description": "Large GPT-OSS model (cloud-hosted)",
+          "tier": "default",
+          "context_window": 32768,
+          "supports_streaming": true,
+          "cost_per_1k_input_tokens": 0.001,
+          "cost_per_1k_output_tokens": 0.002
+        },
+        {
+          "id": "qwen3-coder:480b-cloud",
+          "name": "Qwen3 Coder 480B Cloud",
+          "description": "Alibaba's massive Qwen3 coding model (cloud-hosted)",
+          "tier": "premium",
+          "context_window": 32768,
+          "supports_streaming": true,
+          "cost_per_1k_input_tokens": 0.002,
+          "cost_per_1k_output_tokens": 0.004
+        }
+      ]
+    }
+  ],
+  "defaults": {
+    "default_provider": "ollama-cloud",
+    "default_model": "gpt-oss:120b-cloud",
+    "premium_provider": "anthropic",
+    "premium_model": "claude-sonnet-4-5",
+    "enable_text_preprocessing": true,
+    "max_tokens": 4096,
+    "temperature": 0.7,
+    "streaming_enabled": true
+  },
+  "negotiation": {
+    "framework": "PLEASE",
+    "response_format": {
+      "include_analysis": true,
+      "include_questions": true,
+      "include_draft_response": true,
+      "include_scenarios": true,
+      "include_self_assessment": true
+    },
+    "analysis_elements": [
+      "Context",
+      "Stakeholder Identification",
+      "Current Position",
+      "Potential Interests",
+      "Emotional Tone",
+      "Power Balance"
+    ],
+    "self_assessment_criteria": [
+      "Polite",
+      "Logical",
+      "Empathetic",
+      "Assertive",
+      "Strategic",
+      "Engaging"
+    ]
+  },
+  "security": {
+    "jwt_expiration_minutes": 30,
+    "session_timeout_minutes": 60,
+    "password_min_length": 8,
+    "require_email_verification": false,
+    "max_login_attempts": 5,
+    "lockout_duration_minutes": 15
+  },
+  "database": {
+    "connection_pool_size": 20,
+    "connection_timeout_seconds": 30,
+    "max_overflow": 10
+  },
+  "admin": {
+    "default_username": "admin",
+    "default_email": "test@example.com",
+    "allow_user_registration": true,
+    "require_admin_approval": false
+  }
+}

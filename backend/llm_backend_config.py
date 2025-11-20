@@ -162,76 +162,17 @@ class LLMBackendManager:
             default_base_url="http://localhost:11434",
             requires_api_key=False,
             models=[
+                # Only include locally installed models
                 ModelInfo(
-                    id="gpt-oss:120b-cloud",
-                    name="GPT-OSS 120B Cloud",
-                    description="Large GPT-OSS model (cloud-hosted)",
-                    max_context_length=128000,
-                ),
-                ModelInfo(
-                    id="llama3.1:70b",
-                    name="Llama 3.1 70B",
-                    description="Meta's largest Llama 3.1 model",
-                    max_context_length=128000,
-                ),
-                ModelInfo(
-                    id="llama3.1:8b",
-                    name="Llama 3.1 8B",
-                    description="Efficient Llama 3.1 model",
-                    max_context_length=128000,
-                ),
-                ModelInfo(
-                    id="llama3:70b",
-                    name="Llama 3 70B",
-                    description="Meta's Llama 3 70B model",
+                    id="granite3.1-moe:latest",
+                    name="Granite 3.1 MoE",
+                    description="IBM's Granite 3.1 mixture-of-experts model",
                     max_context_length=8192,
                 ),
                 ModelInfo(
-                    id="llama3:8b",
-                    name="Llama 3 8B",
-                    description="Meta's Llama 3 8B model",
-                    max_context_length=8192,
-                ),
-                ModelInfo(
-                    id="mistral:7b",
-                    name="Mistral 7B",
-                    description="Mistral's efficient 7B model",
-                    max_context_length=8192,
-                ),
-                ModelInfo(
-                    id="mixtral:8x7b",
-                    name="Mixtral 8x7B",
-                    description="Mistral's mixture-of-experts model",
-                    max_context_length=32768,
-                ),
-                ModelInfo(
-                    id="qwen2.5:72b",
-                    name="Qwen 2.5 72B",
-                    description="Alibaba's Qwen 2.5 large model",
-                    max_context_length=128000,
-                ),
-                ModelInfo(
-                    id="qwen2.5:14b",
-                    name="Qwen 2.5 14B",
-                    description="Alibaba's Qwen 2.5 medium model",
-                    max_context_length=128000,
-                ),
-                ModelInfo(
-                    id="phi3:14b",
-                    name="Phi-3 14B",
-                    description="Microsoft's Phi-3 model",
-                    max_context_length=128000,
-                ),
-                ModelInfo(
-                    id="gemma2:27b",
-                    name="Gemma 2 27B",
-                    description="Google's Gemma 2 large model",
-                    max_context_length=8192,
-                ),
-                ModelInfo(
-                    id="gemma2:9b",
-                    name="Gemma 2 9B",
-                    description="Google's Gemma 2 medium model",
+                    id="granite3.1-moe:1b",
+                    name="Granite 3.1 MoE 1B",
+                    description="IBM's compact Granite 3.1 MoE model",
                     max_context_length=8192,
                 ),
             ]
@@ -245,24 +186,30 @@ class LLMBackendManager:
             default_base_url="https://ollama.com",  # Ollama cloud endpoint
             requires_api_key=True,
             models=[
-                # Same models as local Ollama, but running on cloud instance
+                # Cloud-hosted Ollama models (from ollama list output)
+                ModelInfo(
+                    id="glm-4.6:cloud",
+                    name="GLM-4.6 Cloud",
+                    description="Zhipu AI's GLM-4.6 language model (cloud-hosted)",
+                    max_context_length=128000,
+                ),
+                ModelInfo(
+                    id="gpt-oss:20b-cloud",
+                    name="GPT-OSS 20B Cloud",
+                    description="Medium GPT-OSS model (cloud-hosted)",
+                    max_context_length=32768,
+                ),
                 ModelInfo(
                     id="gpt-oss:120b-cloud",
                     name="GPT-OSS 120B Cloud",
                     description="Large GPT-OSS model (cloud-hosted)",
-                    max_context_length=128000,
+                    max_context_length=32768,
                 ),
                 ModelInfo(
-                    id="llama3.1:70b",
-                    name="Llama 3.1 70B",
-                    description="Meta's largest Llama 3.1 model (Cloud)",
-                    max_context_length=128000,
-                ),
-                ModelInfo(
-                    id="llama3.1:8b",
-                    name="Llama 3.1 8B",
-                    description="Efficient Llama 3.1 model (Cloud)",
-                    max_context_length=128000,
+                    id="qwen3-coder:480b-cloud",
+                    name="Qwen3 Coder 480B Cloud",
+                    description="Alibaba's massive Qwen3 coding model (cloud-hosted)",
+                    max_context_length=32768,
                 ),
             ]
         ),

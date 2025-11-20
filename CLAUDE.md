@@ -16,10 +16,11 @@ This is an enhanced RAG (Retrieval-Augmented Generation) system that provides ex
 - **Markdown Support**: Rich formatting for AI responses
 
 **API Layer**: FastAPI application in `backend/api/`:
-- **Routes**: `/chat`, `/auth`, `/health` endpoints
+- **Routes**: `/chat`, `/auth`, `/health`, `/models`, `/users`, `/config` endpoints
 - **Models**: Pydantic request/response validation
 - **Middleware**: JWT authentication and CORS
 - **Async**: Non-blocking request handling
+- **Database**: PostgreSQL with asyncpg for user profiles and conversation history
 
 **Backend Core**: Shared RAG system in `backend/`:
 - **LLMBackendManager**: Centralized management of multiple LLM backends (OpenAI, Anthropic, Ollama)
@@ -28,6 +29,8 @@ This is an enhanced RAG (Retrieval-Augmented Generation) system that provides ex
 - **AdminConfig**: Manages admin authentication, sessions, system prompts, and usage statistics
 - **DocumentManager**: Handles file uploads, validation, and source document management
 - **EmbeddingConfig**: Manages embedding model configuration and vectorstore compatibility
+- **UserProfile**: Handles user account management, API key storage (encrypted), and user preferences
+- **Database**: Async PostgreSQL interface using asyncpg for all persistent data
 
 **Document Processing Flow**:
 1. Multiple file formats (PDF, TXT, DOCX, DOC) in `sources/` directory are loaded via appropriate loaders
@@ -51,8 +54,15 @@ This is an enhanced RAG (Retrieval-Augmented Generation) system that provides ex
 - **Frontend ↔ API**: React frontend (port 5173) communicates with FastAPI backend (port 8000) via REST endpoints
 - **Singleton Backend Manager**: `backend_manager` is a global singleton instance of `LLMBackendManager` used throughout the application
 - **Model Creation Flow**: React UI → FastAPI `/chat` → ModelConfig.create_llm() → LLMBackendManager.create_llm_instance() → LangChain ChatModel
-- **Configuration Persistence**: All settings auto-save to JSON files in root directory; no database required
-- **Session-Based Auth**: JWT tokens for React frontend, UUID tokens for admin sessions (AdminConfig)
+- **Configuration System**: Dual configuration approach
+  - `config.json`: Centralized app, UI, and default settings (accessed via `/api/config` endpoints)
+  - `llm_backend_config.json`: Runtime LLM backend state and model selection (managed by LLMBackendManager)
+  - Note: LLM model definitions live in `backend/llm_backend_config.py`, not `config.json`
+- **Data Persistence**: Hybrid approach
+  - User accounts, profiles, and API keys: PostgreSQL database (`backend/database.py`)
+  - Configuration and settings: JSON files in root directory
+  - Conversation history: PostgreSQL database
+- **Session-Based Auth**: JWT tokens for React frontend (validated against PostgreSQL), UUID tokens for admin sessions (AdminConfig)
 - **Vectorstore Lazy Loading**: EnhancedNegotiationRAG loads existing vectorstore on startup; regenerates only when explicitly requested
 - **Usage Tracking**: All LLM calls logged to usage_stats.json with token counts and costs
 - **Error Handling**: Backend failures trigger fallback to OpenAI default model with user notification
@@ -79,12 +89,15 @@ pytest --cov=. --cov-report=html
 pytest -m unit             # Unit tests
 pytest -m integration      # Integration tests
 
-# Docker deployment (both services)
-docker compose up -d       # Start backend + frontend
+# Docker deployment (all services: backend + frontend + PostgreSQL)
+docker compose up -d       # Start all services
 docker compose logs -f     # View logs (all services)
 docker compose logs -f backend   # Backend logs only
 docker compose logs -f frontend  # Frontend logs only
 docker compose stop        # Stop all services
+
+# Initialize database and user profiles
+docker exec -it negotiator-pro-backend python scripts/init_user_profile.py
 
 # Rebuild vectorstore
 python scripts/rebuild_vectordb.py
@@ -124,9 +137,19 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 # Get your API key from: https://ollama.com/settings/keys
 # OLLAMA_CLOUD_URL=https://ollama.com
 # OLLAMA_API_KEY=your_ollama_api_key_here
+
+# PostgreSQL Database (Required for user profiles)
+POSTGRES_DB=negotiatorpro
+POSTGRES_USER=negotiatorpro
+POSTGRES_PASSWORD=your_secure_password_here
+DATABASE_URL=postgresql://negotiatorpro:your_secure_password_here@localhost:5432/negotiatorpro
+
+# Encryption (Required for storing user API keys securely)
+# Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+ENCRYPTION_KEY=your_generated_encryption_key_here
 ```
 
-**Note**: Only OpenAI API key is required by default. Add other API keys to enable additional backends.
+**Note**: For development, OpenAI API key is required. For production Docker deployment, also configure PostgreSQL and encryption settings.
 
 **Run Application**:
 ```bash
@@ -180,6 +203,78 @@ python test_llm_backends.py
 # Debug ChatOllama integration
 python debug_chatollama.py
 ```
+
+## User Profile and Database System
+
+### Database Architecture
+
+**PostgreSQL Database** (`backend/database.py`):
+- **Async Interface**: Uses `asyncpg` for non-blocking database operations
+- **Connection Pool**: Efficient connection management with automatic retry
+- **Lifespan Management**: Connects on startup, disconnects on shutdown (see `backend/api/main.py`)
+- **Migrations**: SQL schema files in `migrations/` directory
+  - `001_initial_schema.sql` - User profiles, API keys, conversations
+
+### User Profile System
+
+**UserProfile Class** (`backend/user_profile.py`):
+- **Authentication**: Username/password-based user accounts
+- **API Key Storage**: Encrypted storage of user-specific OpenAI/Anthropic API keys
+  - Uses Fernet symmetric encryption (key from `ENCRYPTION_KEY` env var)
+  - Allows users to bring their own API keys instead of using system keys
+- **Preferences**: Per-user settings and model preferences
+- **Conversation History**: Tracks chat sessions per user
+
+**Key Methods**:
+```python
+# Create new user
+await UserProfile.create_user(username, password, email)
+
+# Authenticate user
+user = await UserProfile.authenticate(username, password)
+
+# Store encrypted API key
+await user.set_api_key("openai", openai_api_key)
+
+# Retrieve decrypted API key
+api_key = await user.get_api_key("openai")
+```
+
+### Database Initialization
+
+**Docker Deployment**:
+```bash
+# Initialize database with default users
+docker exec -it negotiator-pro-backend python scripts/init_user_profile.py
+```
+
+**Creates**:
+- Admin user: `admin` / `admin123`
+- Test user: `testuser` / `testpass123`
+
+**Local Development**:
+```bash
+# Set up PostgreSQL locally
+# Update DATABASE_URL in .env
+# Run migrations
+python scripts/init_user_profile.py
+```
+
+### Authentication Flow
+
+1. **User Registration**: POST `/api/users/register` with username, password, email
+2. **User Login**: POST `/api/auth/login` returns JWT token
+3. **API Requests**: Include JWT in `Authorization: Bearer <token>` header
+4. **Token Validation**: Middleware validates JWT and loads user profile
+5. **API Key Resolution**: System checks user's stored API keys first, falls back to system keys
+
+### Security Features
+
+- **Password Hashing**: Uses bcrypt for secure password storage
+- **JWT Tokens**: Expiring session tokens (configurable timeout)
+- **API Key Encryption**: Fernet encryption for sensitive API keys
+- **SQL Injection Protection**: asyncpg parameterized queries
+- **Session Expiry**: Automatic cleanup of expired sessions
 
 ## Docker Deployment
 
@@ -282,8 +377,14 @@ docker compose logs -f
 **Backend Application**:
 - `backend/` - All backend logic (organized modules)
   - `api/` - FastAPI application layer
-    - `main.py` - FastAPI entry point
-    - `routes/` - API endpoints (chat.py, auth.py, health.py)
+    - `main.py` - FastAPI entry point with lifespan events
+    - `routes/` - API endpoints
+      - `chat.py` - Chat and negotiation advice
+      - `auth.py` - User authentication and sessions
+      - `health.py` - Health check endpoint
+      - `models.py` - LLM model listing
+      - `users.py` - User profile management
+      - `config.py` - Configuration API (app, UI, defaults)
     - `models/` - Pydantic request/response models
     - `middleware/` - Authentication middleware
   - `rag_engine.py` - Core RAG system with EnhancedNegotiationRAG and ModelConfig classes
@@ -293,6 +394,9 @@ docker compose logs -f
   - `embedding_config.py` - Embedding model configuration and vectorstore compatibility
   - `text_preprocessor.py` - Intelligent text preprocessing for token optimization
   - `prompt_manager.py` - System and user prompt template management
+  - `database.py` - Async PostgreSQL interface using asyncpg
+  - `user_profile.py` - User account management with encrypted API key storage
+  - `config_loader.py` - Centralized configuration loader for config.json
 
 **Data Directories**:
 - `sources/` - Source documents for RAG knowledge base (PDF, TXT, DOCX, DOC)
@@ -310,9 +414,11 @@ docker compose logs -f
 
 **Configuration Files**:
 - `requirements.txt` - Python dependencies
-- `.env` - API keys for LLM backends (create manually from .env.example)
+- `.env` - API keys, database credentials, encryption keys (create manually from .env.example)
 - `.env.example` - Template for environment variables with all supported backends
-- `llm_backend_config.json` - LLM backend and model selection configuration (auto-generated)
+- `config.json` - Centralized configuration for app, UI, features, and defaults (manually edited)
+- `CONFIG_README.md` - Guide to configuration system and config.json structure
+- `llm_backend_config.json` - LLM backend runtime state and active model selection (auto-generated by LLMBackendManager)
 - `admin_config.json` - Admin configuration and settings (auto-generated)
 - `admin_sessions.json` - Active admin sessions (auto-generated)
 - `usage_stats.json` - API usage statistics (auto-generated)
@@ -535,3 +641,107 @@ The system uses LangChain's chat model abstractions which automatically handle:
 - Error handling and retries
 
 This allows the application to use the same code regardless of which backend is active.
+
+## Configuration System Architecture
+
+NegotiatorPro uses a **dual configuration approach** to separate concerns:
+
+### config.json (Centralized Settings)
+**Purpose**: Define app-wide settings, UI configuration, and system defaults
+**Location**: `/config.json`
+**Access**: Via `/api/config/*` REST endpoints
+**Management**: Manually edited, version-controlled
+
+**Contains**:
+- App metadata (name, version, environment)
+- UI theme colors and feature flags
+- System limits (max message length, session timeout)
+- Security settings (JWT expiration, password requirements)
+- PLEASE framework configuration
+- **Note**: Does NOT contain LLM model definitions (those live in `backend/llm_backend_config.py`)
+
+**Key Endpoints**:
+```bash
+GET /api/config/          # Full configuration
+GET /api/config/app       # App info only
+GET /api/config/ui        # UI settings
+GET /api/config/defaults  # Default settings
+POST /api/config/reload   # Reload config.json without restart
+```
+
+**Usage**:
+```python
+from backend.config_loader import config
+
+app_name = config.get("app.name")
+max_length = config.get("ui.limits.maxMessageLength")
+enable_profiles = config.get("ui.features.enableUserProfiles")
+```
+
+### llm_backend_config.json (Runtime LLM State)
+**Purpose**: Track active LLM backend selections and runtime state
+**Location**: `/llm_backend_config.json`
+**Access**: Via `LLMBackendManager` class
+**Management**: Auto-generated by backend, modified via admin interface
+
+**Contains**:
+```json
+{
+  "active_backend": "openai",
+  "active_models": {
+    "default": {
+      "backend": "openai",
+      "model": "gpt-4o-mini"
+    },
+    "premium": {
+      "backend": "anthropic",
+      "model": "claude-3-5-sonnet-20241022"
+    }
+  },
+  "backend_settings": {
+    "openai": {"enabled": true},
+    "anthropic": {"enabled": true},
+    "ollama": {"enabled": false}
+  }
+}
+```
+
+**Important**: LLM model definitions (ModelInfo objects with pricing, capabilities, etc.) are hardcoded in `backend/llm_backend_config.py` as the `BACKENDS` dictionary. This ensures consistency between the RAG engine and admin interface.
+
+**Adding New Models**: To add support for a new LLM model:
+1. Edit `backend/llm_backend_config.py`
+2. Add `ModelInfo` entry to the appropriate backend's `models` list
+3. Include: id, name, description, pricing, context length, capabilities
+4. Restart backend - new model immediately available in admin interface
+5. Do NOT edit `config.json` for models (deprecated section marked `llm_models_DEPRECATED`)
+
+### Why This Separation?
+
+**Static Configuration** (`config.json`):
+- UI behavior and feature flags
+- System constraints and security settings
+- Rarely changes; version-controlled
+
+**Dynamic Runtime State** (`llm_backend_config.json`):
+- Current active model selections
+- Backend availability status
+- Changes frequently via admin interface
+- Not version-controlled (gitignored)
+
+### Database vs JSON Files
+
+**PostgreSQL Database**:
+- User accounts and authentication
+- User profiles and preferences
+- Encrypted user API keys
+- Conversation history
+- Session tokens
+
+**JSON Configuration Files**:
+- System-wide settings (config.json)
+- LLM backend state (llm_backend_config.json)
+- Admin sessions (admin_sessions.json)
+- Usage statistics (usage_stats.json)
+- Prompt templates (prompt_config.json)
+
+**Rationale**: User-specific data requires relational integrity and scalability (PostgreSQL), while system configuration benefits from simple file-based management with version control.
