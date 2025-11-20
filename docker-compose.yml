@@ -1,4 +1,43 @@
 services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: negotiator-pro-postgres
+    restart: unless-stopped
+
+    # Environment variables
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-negotiatorpro}
+      - POSTGRES_USER=${POSTGRES_USER:-negotiatorpro}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+
+    # Volume for persistent data - mapped to /data/db
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+
+    # Port mapping (optional, for external access during development)
+    ports:
+      - "5432:5432"
+
+    # Networking
+    networks:
+      - negotiator-network
+
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-negotiatorpro}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   # FastAPI Backend
   backend:
     build:
@@ -18,25 +57,37 @@ services:
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
       - OLLAMA_API_KEY=${OLLAMA_API_KEY}
       - OLLAMA_CLOUD_URL=${OLLAMA_CLOUD_URL}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-negotiatorpro}
+      - POSTGRES_USER=${POSTGRES_USER:-negotiatorpro}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
 
-    # Volume mounts for persistent data
+    # Depends on database
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    # Volume mounts for persistent data - all in /data
     volumes:
-      # Persist vectorstore (embeddings database)
-      - ./vectorstore:/app/vectorstore
+      # Persist vectorstore (embeddings database) in /data/vectorstore
+      - ./data/vectorstore:/app/vectorstore
 
-      # Persist uploaded documents
-      - ./uploads:/app/uploads
+      # Persist uploaded documents in /data/uploads
+      - ./data/uploads:/app/uploads
 
-      # Source documents (negotiation books)
-      - ./sources:/app/sources
+      # Source documents (negotiation books) in /data/sources
+      - ./data/sources:/app/sources
 
-      # Persist configuration files
-      - ./admin_config.json:/app/admin_config.json
-      - ./admin_sessions.json:/app/admin_sessions.json
-      - ./usage_stats.json:/app/usage_stats.json
-      - ./embedding_config.json:/app/embedding_config.json
-      - ./llm_backend_config.json:/app/llm_backend_config.json
-      - ./prompt_config.json:/app/prompt_config.json
+      # Persist configuration files in /data/config
+      - ./data/config:/app/config
+
+      # Mount migrations for database setup scripts
+      - ./migrations:/app/migrations
+
+      # Mount backend code (for development hot reload)
+      - ./backend:/app/backend
 
     # Resource limits (adjust based on your needs)
     deploy:
