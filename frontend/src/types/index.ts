@@ -47,6 +47,7 @@ export interface BackendInfo {
   name: string;
   enabled: boolean;
   models: ModelInfo[];
+  error?: string;
 }
 
 export interface ModelsResponse {

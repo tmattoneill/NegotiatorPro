@@ -37,7 +37,7 @@ interface PersonaState {
   clearError: () => void;
 }
 
-export const usePersonaStore = create<PersonaState>((set, get) => ({
+export const usePersonaStore = create<PersonaState>((set, _get) => ({
   userPersonas: [],
   selectedUserPersona: null,
   userPersonasLoading: false,

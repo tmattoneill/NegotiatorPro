@@ -15,7 +15,8 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const { sessions, currentSessionId, createNewSession, switchSession } = useChatStore();
   const { user, logout } = useAuthStore();
-  const { userPersonas, partnerPersonas, fetchUserPersonas, fetchPartnerPersonas } = usePersonaStore();
+  const { userPersonas, partnerPersonas: _partnerPersonas, fetchUserPersonas, fetchPartnerPersonas } = usePersonaStore();
+  void _partnerPersonas; // Available for future use
   const { currentNegotiation } = useNegotiationStore();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);

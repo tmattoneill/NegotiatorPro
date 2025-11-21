@@ -1,10 +1,28 @@
 import json
 import os
+import re
 import logging
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 
 logger = logging.getLogger(__name__)
+
+# Test/ping patterns that should trigger quick response instead of full RAG workflow
+TEST_PROMPT_PATTERNS = [
+    r'^hello\s*world[!?.]?$',
+    r'^test(ing)?[!?.\s]*\d*[!?.\s]*$',
+    r'^testing\s+\d+(\s+\d+)*[!?.]?$',  # "testing 1 2 3"
+    r'^are\s+you\s+there[!?.]?$',
+    r'^hey[!?.]?$',
+    r'^hi[!?.]?$',
+    r'^ping[!?.]?$',
+    r'^is\s+(this|it)\s+(working|on)[!?.]?$',
+    r'^can\s+you\s+hear\s+me[!?.]?$',
+    r'^yo[!?.]?$',
+]
+
+# Maximum length for a message to be considered a potential test prompt
+TEST_PROMPT_MAX_LENGTH = 200
 
 class PromptManager:
     """
@@ -165,9 +183,9 @@ Based on your expertise and the negotiation principles in your knowledge base, p
         """Get information about current prompts for debugging/admin"""
         if not self._prompts:
             self.load_prompts()
-        
+
         validation = self.validate_prompts()
-        
+
         return {
             "prompts_file": str(self.prompts_file),
             "prompts_exist": self.prompts_file.exists(),
@@ -176,3 +194,33 @@ Based on your expertise and the negotiation principles in your knowledge base, p
             "validation": validation,
             "last_modified": self.prompts_file.stat().st_mtime if self.prompts_file.exists() else None
         }
+
+    def is_test_prompt(self, question: str) -> bool:
+        """
+        Check if the user's message is a test/ping prompt.
+        Returns True if this looks like a connectivity test rather than a real negotiation query.
+        """
+        # Check length first - short messages are candidates for test prompts
+        if len(question.strip()) > TEST_PROMPT_MAX_LENGTH:
+            return False
+
+        normalized = question.strip().lower()
+
+        # Check against known test patterns
+        for pattern in TEST_PROMPT_PATTERNS:
+            if re.match(pattern, normalized, re.IGNORECASE):
+                logger.info(f"Detected test prompt: '{question[:50]}...'")
+                return True
+
+        return False
+
+    def get_test_response(self) -> str:
+        """Get the response for test/ping prompts"""
+        return (
+            "**Connection confirmed!** NegotiatorPro is online and ready.\n\n"
+            "To get started, share details about your negotiation:\n"
+            "- What are you negotiating?\n"
+            "- Who is the other party?\n"
+            "- What's your goal or concern?\n\n"
+            "I'll provide expert guidance based on proven negotiation strategies."
+        )

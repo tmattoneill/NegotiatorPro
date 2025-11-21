@@ -14,7 +14,7 @@ type TabType = 'user' | 'partner';
 
 export default function PersonaManager() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const {
     userPersonas, partnerPersonas,
     userPersonasLoading, partnerPersonasLoading,
@@ -29,14 +29,16 @@ export default function PersonaManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingPersona, setEditingPersona] = useState<UserPersona | PartnerPersona | null>(null);
 
+  const userId = user?.id || '';
+
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !userId) {
       navigate('/login');
       return;
     }
-    fetchUserPersonas();
-    fetchPartnerPersonas();
-  }, [isAuthenticated]);
+    fetchUserPersonas(userId);
+    fetchPartnerPersonas(userId);
+  }, [isAuthenticated, userId]);
 
   const handleCreateNew = () => {
     setEditingPersona(null);
@@ -52,24 +54,24 @@ export default function PersonaManager() {
     if (!confirm('Are you sure you want to delete this persona?')) return;
 
     if (activeTab === 'user') {
-      await deleteUserPersona(id);
+      await deleteUserPersona(userId, id);
     } else {
-      await deletePartnerPersona(id);
+      await deletePartnerPersona(userId, id);
     }
   };
 
   const handleFormSubmit = async (data: UserPersonaCreate | PartnerPersonaCreate) => {
     if (activeTab === 'user') {
       if (editingPersona) {
-        await updateUserPersona(editingPersona.id, data as Partial<UserPersonaCreate>);
+        await updateUserPersona(userId, editingPersona.id, data as Partial<UserPersonaCreate>);
       } else {
-        await createUserPersona(data as UserPersonaCreate);
+        await createUserPersona(userId, data as UserPersonaCreate);
       }
     } else {
       if (editingPersona) {
-        await updatePartnerPersona(editingPersona.id, data as Partial<PartnerPersonaCreate>);
+        await updatePartnerPersona(userId, editingPersona.id, data as Partial<PartnerPersonaCreate>);
       } else {
-        await createPartnerPersona(data as PartnerPersonaCreate);
+        await createPartnerPersona(userId, data as PartnerPersonaCreate);
       }
     }
     setShowForm(false);

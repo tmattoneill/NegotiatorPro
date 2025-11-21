@@ -471,6 +471,11 @@ class EnhancedNegotiationRAG:
         Returns:
             The AI's response as a string
         """
+        # Check for test/ping prompts first - skip full RAG workflow
+        if self.prompt_manager.is_test_prompt(question):
+            logger.info("Test prompt detected - returning quick response")
+            return self.prompt_manager.get_test_response()
+
         if not hasattr(self, 'default_llm') or not hasattr(self, 'premium_llm'):
             return "System not initialized properly. Please check if documents are loaded."
 
