@@ -1,5 +1,4 @@
 """JWT authentication middleware"""
-import os
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -8,10 +7,16 @@ from passlib.context import CryptContext
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-# JWT Configuration
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-secret-key-change-in-production")
+from backend.utils.env_validator import get_required_env
+
+# JWT Configuration - secret is required in production
+SECRET_KEY = get_required_env(
+    "JWT_SECRET_KEY",
+    default="dev-secret-key-DO-NOT-USE-IN-PRODUCTION",
+    secret=True
+)
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = int(get_required_env("JWT_TOKEN_EXPIRE_MINUTES", default="30"))
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

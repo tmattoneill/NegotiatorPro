@@ -8,7 +8,7 @@ from datetime import datetime
 
 # Document processing imports
 from langchain_community.document_loaders import (
-    PyPDFLoader, 
+    PyPDFLoader,
     TextLoader,
     Docx2txtLoader
 )
@@ -18,22 +18,32 @@ try:
 except ImportError:
     HAS_UNSTRUCTURED = False
 
+from .config_loader import config
+
 logger = logging.getLogger(__name__)
+
 
 class DocumentManager:
     """Manages document uploads and processing for RAG system"""
-    
-    SUPPORTED_EXTENSIONS = {
+
+    # Get supported extensions from config or use defaults
+    _config_extensions = config.get("uploads.supported_extensions", [".pdf", ".txt", ".docx", ".doc"])
+
+    SUPPORTED_EXTENSIONS = {}
+    _ext_names = {
         '.pdf': 'PDF Document',
-        '.txt': 'Text Document', 
-        '.docx': 'Word Document (DOCX)'
+        '.txt': 'Text Document',
+        '.docx': 'Word Document (DOCX)',
+        '.doc': 'Word Document (DOC)'
     }
-    
-    # Add .doc support only if unstructured is available
-    if HAS_UNSTRUCTURED:
-        SUPPORTED_EXTENSIONS['.doc'] = 'Word Document (DOC)'
-    
-    MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+    for ext in _config_extensions:
+        if ext == '.doc' and not HAS_UNSTRUCTURED:
+            continue  # Skip .doc if unstructured not available
+        if ext in _ext_names:
+            SUPPORTED_EXTENSIONS[ext] = _ext_names[ext]
+
+    # Get max file size from config (in MB, convert to bytes)
+    MAX_FILE_SIZE = config.get("uploads.max_file_size_mb", 50) * 1024 * 1024
     
     def __init__(self, sources_dir: str = "sources", upload_dir: str = "uploads"):
         self.sources_dir = Path(sources_dir)
