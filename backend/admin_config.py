@@ -1,27 +1,40 @@
 import json
 import os
 import hashlib
-import time
+import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 
+from backend.utils.env_validator import get_required_env
+
+logger = logging.getLogger(__name__)
+
+
 class AdminConfig:
     """Admin configuration and session management"""
-    
+
     def __init__(self, config_file="admin_config.json"):
         self.config_file = config_file
         self.sessions_file = "admin_sessions.json"
         self.usage_file = "usage_stats.json"
         self.load_config()
-        
+
+    def _get_default_password(self) -> str:
+        """Get default admin password from environment or fallback"""
+        return get_required_env(
+            "ADMIN_PASSWORD",
+            default="admin123",
+            secret=True
+        )
+
     def load_config(self):
         """Load admin configuration"""
         default_config = {
-            "admin_password_hash": self._hash_password("admin123"),  # Default password
+            "admin_password_hash": self._hash_password(self._get_default_password()),
             "system_prompt": "",
             "default_user_prompt": "",
-            "session_duration_hours": 24,
-            "max_upload_size_mb": 50
+            "session_duration_hours": int(os.getenv("ADMIN_SESSION_DURATION_HOURS", "24")),
+            "max_upload_size_mb": int(os.getenv("ADMIN_MAX_UPLOAD_MB", "50"))
         }
         
         if os.path.exists(self.config_file):

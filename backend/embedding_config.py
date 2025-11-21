@@ -4,11 +4,14 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 import logging
 
+from .config_loader import config as app_config
+
 logger = logging.getLogger(__name__)
+
 
 class EmbeddingConfig:
     """Manages embedding model configuration and metadata"""
-    
+
     # Available embedding models with their specifications
     EMBEDDING_MODELS = {
         "text-embedding-3-large": {
@@ -33,20 +36,25 @@ class EmbeddingConfig:
             "max_input": 8191
         }
     }
-    
+
     def __init__(self, config_file: str = "embedding_config.json"):
         self.config_file = Path(config_file)
-        self.vectorstore_dir = Path("vectorstore")
+        # Get vectorstore directory from config
+        self.vectorstore_dir = Path(app_config.get("embedding.vectorstore_dir", "vectorstore"))
         self.load_config()
-    
+
     def load_config(self):
         """Load embedding configuration from file or create default"""
+        # Get defaults from app config
+        default_model = app_config.get("embedding.default_model", "text-embedding-3-large")
+        fallback_model = app_config.get("embedding.fallback_model", "text-embedding-ada-002")
+
         default_config = {
-            "current_model": "text-embedding-3-large",
+            "current_model": default_model,
             "vectorstore_model": None,  # Model used to build current vectorstore
             "vectorstore_created": None,
             "auto_detect": True,  # Automatically detect model from vectorstore metadata
-            "fallback_model": "text-embedding-ada-002"
+            "fallback_model": fallback_model
         }
         
         if self.config_file.exists():

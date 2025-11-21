@@ -7,11 +7,16 @@ This script runs inside the Docker container to:
 3. Set up initial configuration
 
 This should be run as part of the Docker startup process.
+
+Environment variables:
+- ADMIN_PASSWORD: Admin password (required in production, defaults to 'admin123' in dev)
+- ADMIN_EMAIL: Admin email (default: admin@negotiatorpro.local)
+- APP_ENV: Environment mode (development/production)
 """
 import asyncio
 import logging
+import os
 import sys
-import time
 from pathlib import Path
 
 # Add parent directory to path
@@ -19,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from backend.database import db
 from backend.user_profile import UserProfileManager, UserProfileCreate
+from backend.utils.env_validator import get_required_env, is_production
 
 # Set up logging
 logging.basicConfig(
@@ -67,11 +73,9 @@ async def create_default_admin():
     """
     Create default admin user if none exists.
 
-    Creates:
-    - Username: admin
-    - Email: admin@negotiatorpro.local
-    - Password: admin123
-    - Role: admin
+    Uses environment variables:
+    - ADMIN_PASSWORD: Required in production, defaults to 'admin123' in development
+    - ADMIN_EMAIL: Optional, defaults to 'admin@negotiatorpro.local'
     """
     try:
         # Check if admin user already exists
@@ -83,11 +87,15 @@ async def create_default_admin():
             logger.info(f"  Email: {existing_admin.email}")
             return existing_admin
 
+        # Get admin credentials from environment
+        admin_password = get_required_env("ADMIN_PASSWORD", default="admin123", secret=True)
+        admin_email = os.getenv("ADMIN_EMAIL", "admin@negotiatorpro.local")
+
         # Create admin user
         admin_data = UserProfileCreate(
             username="admin",
-            email="admin@negotiatorpro.local",
-            password="admin123",
+            email=admin_email,
+            password=admin_password,
             first_name="System",
             last_name="Administrator",
             role="admin"
@@ -96,10 +104,12 @@ async def create_default_admin():
         admin_user = await UserProfileManager.create_user(admin_data)
         logger.info("✓ Created default admin user")
         logger.info(f"  Username: admin")
-        logger.info(f"  Email: admin@negotiatorpro.local")
-        logger.info(f"  Password: admin123")
+        logger.info(f"  Email: {admin_email}")
+        if not is_production():
+            logger.info(f"  Password: {admin_password}")
         logger.info(f"  User ID: {admin_user.id}")
-        logger.warning("⚠️  IMPORTANT: Change the admin password after first login!")
+        if not is_production():
+            logger.warning("⚠️  IMPORTANT: Change the admin password after first login!")
 
         return admin_user
 
@@ -180,8 +190,11 @@ async def main():
 
     logger.info("\n=== Initialization Complete ===")
     logger.info("\nDefault users created:")
-    logger.info("1. Admin: admin / admin123")
-    logger.info("2. Test User: testuser / testpass123")
+    if is_production():
+        logger.info("1. Admin: admin (password set via ADMIN_PASSWORD env var)")
+    else:
+        logger.info("1. Admin: admin / admin123")
+        logger.info("2. Test User: testuser / testpass123")
     logger.info("\nAPI available at: http://localhost:8000/api/docs")
 
 

@@ -222,9 +222,24 @@
     "lockout_duration_minutes": 15
   },
   "database": {
-    "connection_pool_size": 20,
-    "connection_timeout_seconds": 30,
-    "max_overflow": 10
+    "pool_min_size": 2,
+    "pool_max_size": 10,
+    "command_timeout_seconds": 60
+  },
+  "rag": {
+    "chunk_size": 1000,
+    "chunk_overlap": 200,
+    "retrieval_k": 5,
+    "preprocess_min_length": 100
+  },
+  "uploads": {
+    "max_file_size_mb": 50,
+    "supported_extensions": [".pdf", ".txt", ".docx", ".doc"]
+  },
+  "embedding": {
+    "vectorstore_dir": "vectorstore",
+    "default_model": "text-embedding-3-large",
+    "fallback_model": "text-embedding-ada-002"
   },
   "admin": {
     "default_username": "admin",

@@ -9,7 +9,7 @@ services:
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-negotiatorpro}
       - POSTGRES_USER=${POSTGRES_USER:-negotiatorpro}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
 
     # Volume for persistent data - mapped to /data/db
     volumes:
@@ -52,17 +52,30 @@ services:
 
     # Environment variables
     environment:
+      # App environment (development/production)
+      - APP_ENV=${APP_ENV:-development}
+
+      # LLM API Keys
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       - OLLAMA_API_KEY=${OLLAMA_API_KEY}
-      - OLLAMA_CLOUD_URL=${OLLAMA_CLOUD_URL}
+      - OLLAMA_CLOUD_URL=${OLLAMA_CLOUD_URL:-https://ollama.com}
+
+      # Database
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DB=${POSTGRES_DB:-negotiatorpro}
       - POSTGRES_USER=${POSTGRES_USER:-negotiatorpro}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+      # Security (required in production)
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+
+      # CORS (comma-separated origins for production)
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
 
     # Depends on database
     depends_on:

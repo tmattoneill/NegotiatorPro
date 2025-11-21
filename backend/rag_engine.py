@@ -25,6 +25,7 @@ from .embedding_config import EmbeddingConfig
 from .text_preprocessor import TextPreprocessor
 from .prompt_manager import PromptManager
 from .llm_backend_config import backend_manager
+from .config_loader import config
 
 logger = logging.getLogger(__name__)
 
@@ -162,9 +163,13 @@ class EnhancedNegotiationRAG:
         logger.info("Starting text chunking...")
         start_time = time.time()
 
+        # Get chunk settings from config
+        chunk_size = config.get("rag.chunk_size", 1000)
+        chunk_overlap = config.get("rag.chunk_overlap", 200)
+
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
             length_function=len,
         )
         chunks = text_splitter.split_documents(documents)
@@ -257,11 +262,15 @@ class EnhancedNegotiationRAG:
                 "message": f"Error regenerating vectorstore: {str(e)}"
             }
 
-    def get_relevant_context(self, question: str, k: int = 5) -> str:
+    def get_relevant_context(self, question: str, k: int = None) -> str:
         """Retrieve relevant context from vectorstore for the given question"""
         try:
             if not self.vectorstore:
                 return "No knowledge base available."
+
+            # Get k from config if not specified
+            if k is None:
+                k = config.get("rag.retrieval_k", 5)
 
             retriever = self.vectorstore.as_retriever(search_kwargs={"k": k})
             relevant_docs = retriever.invoke(question)

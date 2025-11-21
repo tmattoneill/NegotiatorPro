@@ -12,6 +12,8 @@ from typing import Optional, AsyncGenerator
 import asyncpg
 from dotenv import load_dotenv
 
+from .config_loader import config
+
 # Load environment variables
 load_dotenv()
 
@@ -78,15 +80,20 @@ class Database:
         if self._pool is None:
             try:
                 logger.info(f"Connecting to PostgreSQL at {self.host}:{self.port}/{self.database}")
+                # Get pool settings from config
+                pool_min = config.get("database.pool_min_size", 2)
+                pool_max = config.get("database.pool_max_size", 10)
+                cmd_timeout = config.get("database.command_timeout_seconds", 60)
+
                 self._pool = await asyncpg.create_pool(
                     host=self.host,
                     port=self.port,
                     database=self.database,
                     user=self.user,
                     password=self.password,
-                    min_size=2,
-                    max_size=10,
-                    command_timeout=60,
+                    min_size=pool_min,
+                    max_size=pool_max,
+                    command_timeout=cmd_timeout,
                 )
                 logger.info("Database connection pool created successfully")
             except Exception as e:

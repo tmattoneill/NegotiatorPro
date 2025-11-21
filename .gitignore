@@ -99,6 +99,15 @@ uploads/
 data/
 !data/.gitkeep
 
+# Auto-generated config files
+admin_config.json
+admin_sessions.json
+embedding_config.json
+llm_backend_config.json
+usage_stats.json
+prompt_config.json
+.config/
+
 # Workflow files cannot be pushed by Claude Code GitHub App
 # See .github/README.md for details
 .github/workflows/
