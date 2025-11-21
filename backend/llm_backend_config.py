@@ -120,21 +120,7 @@ class LLMBackendManager:
             base_url_env_var="OLLAMA_BASE_URL",
             default_base_url="http://localhost:11434",
             requires_api_key=False,
-            models=[
-                # Only include locally installed models
-                ModelInfo(
-                    id="granite3.1-moe:latest",
-                    name="Granite 3.1 MoE",
-                    description="IBM's Granite 3.1 mixture-of-experts model",
-                    max_context_length=8192,
-                ),
-                ModelInfo(
-                    id="granite3.1-moe:1b",
-                    name="Granite 3.1 MoE 1B",
-                    description="IBM's compact Granite 3.1 MoE model",
-                    max_context_length=8192,
-                ),
-            ]
+            models=[]  # Populated dynamically via get_ollama_available_models()
         ),
         "ollama-cloud": BackendConfig(
             id="ollama-cloud",
@@ -244,8 +230,13 @@ class LLMBackendManager:
         return enabled
 
     def get_backend(self, backend_id: str) -> Optional[BackendConfig]:
-        """Get backend configuration by ID"""
-        return self.BACKENDS.get(backend_id)
+        """Get backend configuration by ID, with dynamic model discovery for Ollama"""
+        backend = self.BACKENDS.get(backend_id)
+        if backend and backend.provider == "ollama" and not backend.models:
+            # Dynamically fetch Ollama models
+            base_url = os.getenv(backend.base_url_env_var, backend.default_base_url) if backend.base_url_env_var else backend.default_base_url
+            backend.models = self.get_ollama_available_models(base_url)
+        return backend
 
     def get_model_info(self, backend_id: str, model_id: str) -> Optional[ModelInfo]:
         """Get model information"""
@@ -254,6 +245,15 @@ class LLMBackendManager:
             for model in backend.models:
                 if model.id == model_id:
                     return model
+            # For Ollama, if model not in list but backend exists, create ModelInfo on the fly
+            if backend.provider == "ollama":
+                logger.info(f"Creating dynamic ModelInfo for Ollama model: {model_id}")
+                return ModelInfo(
+                    id=model_id,
+                    name=model_id,
+                    description="Ollama model",
+                    max_context_length=128000,
+                )
         return None
 
     def get_ollama_available_models(self, base_url: str = None) -> List[ModelInfo]:

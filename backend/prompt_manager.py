@@ -10,11 +10,12 @@ logger = logging.getLogger(__name__)
 # Test/ping patterns that should trigger quick response instead of full RAG workflow
 TEST_PROMPT_PATTERNS = [
     r'^hello\s*world[!?.]?$',
-    r'^test(ing)?[!?.\s]*\d*[!?.\s]*$',
-    r'^testing\s+\d+(\s+\d+)*[!?.]?$',  # "testing 1 2 3"
+    r'^(test\s*)+[!?.]?$',  # "test", "test test", "test test test"
+    r'^testing[\s\d]*[!?.]?$',  # "testing", "testing 1 2 3"
     r'^are\s+you\s+there[!?.]?$',
     r'^hey[!?.]?$',
     r'^hi[!?.]?$',
+    r'^hello[!?.]?$',
     r'^ping[!?.]?$',
     r'^is\s+(this|it)\s+(working|on)[!?.]?$',
     r'^can\s+you\s+hear\s+me[!?.]?$',
@@ -200,27 +201,36 @@ Based on your expertise and the negotiation principles in your knowledge base, p
         Check if the user's message is a test/ping prompt.
         Returns True if this looks like a connectivity test rather than a real negotiation query.
         """
+        stripped = question.strip()
+
         # Check length first - short messages are candidates for test prompts
-        if len(question.strip()) > TEST_PROMPT_MAX_LENGTH:
+        if len(stripped) > TEST_PROMPT_MAX_LENGTH:
             return False
 
-        normalized = question.strip().lower()
+        normalized = stripped.lower()
+
+        # Simple keyword check for very short messages containing "test"
+        if len(stripped) < 50 and 'test' in normalized:
+            logger.info(f"Detected test prompt (keyword): '{stripped}'")
+            return True
 
         # Check against known test patterns
         for pattern in TEST_PROMPT_PATTERNS:
             if re.match(pattern, normalized, re.IGNORECASE):
-                logger.info(f"Detected test prompt: '{question[:50]}...'")
+                logger.info(f"Detected test prompt (pattern): '{stripped}'")
                 return True
 
         return False
 
-    def get_test_response(self) -> str:
-        """Get the response for test/ping prompts"""
+    def get_test_system_prompt(self) -> str:
+        """Get a minimal system prompt for test/ping messages"""
         return (
-            "**Connection confirmed!** NegotiatorPro is online and ready.\n\n"
-            "To get started, share details about your negotiation:\n"
-            "- What are you negotiating?\n"
-            "- Who is the other party?\n"
-            "- What's your goal or concern?\n\n"
-            "I'll provide expert guidance based on proven negotiation strategies."
+            "You are NegotiatorPro, an AI negotiation advisor. "
+            "The user is testing if the connection is working. "
+            "Respond briefly confirming you're online and ready to help with negotiations. "
+            "Keep it friendly and under 2-3 sentences."
         )
+
+    def get_test_user_prompt(self, question: str) -> str:
+        """Get the user prompt for test messages"""
+        return f"User said: \"{question}\"\n\nConfirm the connection is working and you're ready to help."

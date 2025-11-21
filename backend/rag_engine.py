@@ -471,13 +471,30 @@ class EnhancedNegotiationRAG:
         Returns:
             The AI's response as a string
         """
-        # Check for test/ping prompts first - skip full RAG workflow
-        if self.prompt_manager.is_test_prompt(question):
-            logger.info("Test prompt detected - returning quick response")
-            return self.prompt_manager.get_test_response()
-
         if not hasattr(self, 'default_llm') or not hasattr(self, 'premium_llm'):
             return "System not initialized properly. Please check if documents are loaded."
+
+        # Check for test/ping prompts - call LLM but skip RAG context retrieval
+        if self.prompt_manager.is_test_prompt(question):
+            logger.info("Test prompt detected - using simplified LLM call (no RAG)")
+            try:
+                # Use the same LLM selection logic as regular prompts
+                if override_backend and override_model:
+                    llm = self.model_config.create_llm(override_backend, override_model)
+                elif use_premium_model:
+                    llm = self.premium_llm
+                else:
+                    llm = self.default_llm
+
+                messages = [
+                    {"role": "system", "content": self.prompt_manager.get_test_system_prompt()},
+                    {"role": "user", "content": self.prompt_manager.get_test_user_prompt(question)}
+                ]
+                response = llm.invoke(messages)
+                return response.content if hasattr(response, 'content') else str(response)
+            except Exception as e:
+                logger.error(f"Test prompt LLM call failed: {e}")
+                return f"Connection test failed: {e}"
 
         # Preprocess the question if enabled
         preprocessing_info = None
