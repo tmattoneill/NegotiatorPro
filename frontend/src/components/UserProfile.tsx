@@ -7,11 +7,21 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { usePersonaStore } from '../store/personaStore';
 import api from '../services/api';
+import type { UserPersona, UserPersonaCreate } from '../types/personas';
 
 export default function UserProfile() {
   const navigate = useNavigate();
   const { user, updateUser } = useAuthStore();
+  const {
+    userPersonas,
+    fetchUserPersonas,
+    createUserPersona,
+    updateUserPersona,
+    deleteUserPersona
+  } = usePersonaStore();
+
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -20,6 +30,13 @@ export default function UserProfile() {
   const [testingAnthropic, setTestingAnthropic] = useState(false);
   const [openAITestResult, setOpenAITestResult] = useState<{ valid: boolean; message: string } | null>(null);
   const [anthropicTestResult, setAnthropicTestResult] = useState<{ valid: boolean; message: string } | null>(null);
+
+  // Persona state
+  const [showPersonaForm, setShowPersonaForm] = useState(false);
+  const [editingPersona, setEditingPersona] = useState<UserPersona | null>(null);
+  const [personaForm, setPersonaForm] = useState<UserPersonaCreate>({
+    name: '', role_title: '', organization: '', communication_style: '', negotiation_strengths: '', notes: '', is_default: false
+  });
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -38,8 +55,47 @@ export default function UserProfile() {
         openai_api_key: '',
         anthropic_api_key: '',
       });
+      fetchUserPersonas(user.id);
     }
   }, [user]);
+
+  // Persona handlers
+  const handleEditPersona = (persona: UserPersona) => {
+    setEditingPersona(persona);
+    setPersonaForm({
+      name: persona.name,
+      role_title: persona.role_title || '',
+      organization: persona.organization || '',
+      communication_style: persona.communication_style || '',
+      negotiation_strengths: persona.negotiation_strengths || '',
+      notes: persona.notes || '',
+      is_default: persona.is_default
+    });
+    setShowPersonaForm(true);
+  };
+
+  const handleSavePersona = async () => {
+    if (!user) return;
+    try {
+      if (editingPersona) {
+        await updateUserPersona(user.id, editingPersona.id, personaForm);
+      } else {
+        await createUserPersona(user.id, personaForm);
+      }
+      setShowPersonaForm(false);
+      setEditingPersona(null);
+      setPersonaForm({ name: '', role_title: '', organization: '', communication_style: '', negotiation_strengths: '', notes: '', is_default: false });
+    } catch (err) {
+      console.error('Failed to save persona:', err);
+    }
+  };
+
+  const handleDeletePersona = async (id: string) => {
+    if (!user) return;
+    if (confirm('Are you sure you want to delete this persona?')) {
+      await deleteUserPersona(user.id, id);
+    }
+  };
 
   const handleTestAPIKey = async (provider: 'openai' | 'anthropic') => {
     const apiKey = provider === 'openai' ? formData.openai_api_key : formData.anthropic_api_key;
@@ -631,6 +687,267 @@ export default function UserProfile() {
             )}
           </form>
         </div>
+
+        {/* My Personas Section */}
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '8px',
+          padding: '32px',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+          marginTop: '24px',
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '16px',
+          }}>
+            <div>
+              <h2 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#191919',
+                margin: '0 0 4px 0',
+              }}>
+                My Personas
+              </h2>
+              <p style={{ fontSize: '13px', color: '#9fadbd', margin: 0 }}>
+                Your negotiation identities - the roles you play
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setEditingPersona(null);
+                setPersonaForm({ name: '', role_title: '', organization: '', communication_style: '', negotiation_strengths: '', notes: '', is_default: false });
+                setShowPersonaForm(true);
+              }}
+              style={{
+                background: '#3498db',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '8px 16px',
+                fontSize: '14px',
+                cursor: 'pointer',
+                fontWeight: '500',
+              }}
+            >
+              + Add Persona
+            </button>
+          </div>
+
+          {userPersonas.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '32px',
+              color: '#9fadbd',
+            }}>
+              <p>No personas yet. Create one to get started.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {userPersonas.map((persona) => (
+                <div
+                  key={persona.id}
+                  style={{
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '16px', fontWeight: '600', color: '#191919' }}>
+                        {persona.name}
+                      </span>
+                      {persona.is_default && (
+                        <span style={{
+                          background: '#3498db',
+                          color: '#fff',
+                          padding: '2px 8px',
+                          borderRadius: '10px',
+                          fontSize: '11px',
+                          fontWeight: '500',
+                        }}>
+                          Default
+                        </span>
+                      )}
+                    </div>
+                    {persona.role_title && (
+                      <p style={{ fontSize: '13px', color: '#666', margin: '0 0 4px 0' }}>
+                        {persona.role_title}{persona.organization ? ` at ${persona.organization}` : ''}
+                      </p>
+                    )}
+                    {persona.communication_style && (
+                      <p style={{ fontSize: '12px', color: '#9fadbd', margin: 0 }}>
+                        {persona.communication_style}
+                      </p>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => handleEditPersona(persona)}
+                      style={{
+                        background: '#f5f5f5',
+                        border: '1px solid #ddd',
+                        borderRadius: '4px',
+                        padding: '6px 12px',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeletePersona(persona.id)}
+                      style={{
+                        background: '#fff',
+                        border: '1px solid #ddd',
+                        borderRadius: '4px',
+                        padding: '6px 12px',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                        color: '#c00',
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Persona Form Modal */}
+        {showPersonaForm && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}>
+            <div style={{
+              background: '#fff',
+              borderRadius: '12px',
+              width: '90%',
+              maxWidth: '500px',
+              maxHeight: '90vh',
+              overflow: 'auto',
+            }}>
+              <div style={{
+                padding: '20px 24px',
+                borderBottom: '1px solid #eee',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+                  {editingPersona ? 'Edit Persona' : 'Create Persona'}
+                </h3>
+                <button
+                  onClick={() => { setShowPersonaForm(false); setEditingPersona(null); }}
+                  style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#666' }}
+                >
+                  ×
+                </button>
+              </div>
+              <div style={{ padding: '24px' }}>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>Persona Name *</label>
+                  <input
+                    type="text"
+                    value={personaForm.name}
+                    onChange={(e) => setPersonaForm({ ...personaForm, name: e.target.value })}
+                    placeholder="e.g., Sales Director"
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>Role / Title</label>
+                  <input
+                    type="text"
+                    value={personaForm.role_title || ''}
+                    onChange={(e) => setPersonaForm({ ...personaForm, role_title: e.target.value })}
+                    placeholder="e.g., VP of Sales"
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>Organization</label>
+                  <input
+                    type="text"
+                    value={personaForm.organization || ''}
+                    onChange={(e) => setPersonaForm({ ...personaForm, organization: e.target.value })}
+                    placeholder="e.g., Acme Corp"
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>Communication Style</label>
+                  <textarea
+                    value={personaForm.communication_style || ''}
+                    onChange={(e) => setPersonaForm({ ...personaForm, communication_style: e.target.value })}
+                    placeholder="How do you prefer to communicate?"
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', minHeight: '60px', resize: 'vertical', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>Negotiation Strengths</label>
+                  <textarea
+                    value={personaForm.negotiation_strengths || ''}
+                    onChange={(e) => setPersonaForm({ ...personaForm, negotiation_strengths: e.target.value })}
+                    placeholder="What are your key strengths?"
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', minHeight: '60px', resize: 'vertical', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={personaForm.is_default}
+                      onChange={(e) => setPersonaForm({ ...personaForm, is_default: e.target.checked })}
+                    />
+                    Set as default persona
+                  </label>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => { setShowPersonaForm(false); setEditingPersona(null); }}
+                    style={{ padding: '10px 20px', background: '#f5f5f5', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSavePersona}
+                    disabled={!personaForm.name}
+                    style={{
+                      padding: '10px 20px',
+                      background: personaForm.name ? '#3498db' : '#ccc',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: personaForm.name ? 'pointer' : 'not-allowed',
+                    }}
+                  >
+                    {editingPersona ? 'Save Changes' : 'Create Persona'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

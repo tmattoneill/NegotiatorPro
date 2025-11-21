@@ -1,10 +1,12 @@
 /**
  * Sidebar component with session management
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
+import { usePersonaStore } from '../store/personaStore';
+import { useNegotiationStore } from '../store/negotiationStore';
 import SettingsModal from './SettingsModal';
 import ModelSelector from './ModelSelector';
 
@@ -12,8 +14,22 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const { sessions, currentSessionId, createNewSession, switchSession } = useChatStore();
   const { user, logout } = useAuthStore();
+  const { userPersonas, partnerPersonas, fetchUserPersonas, fetchPartnerPersonas } = usePersonaStore();
+  const { currentNegotiation } = useNegotiationStore();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+
+  // Fetch personas on mount
+  useEffect(() => {
+    if (user?.id) {
+      fetchUserPersonas(user.id);
+      fetchPartnerPersonas(user.id);
+    }
+  }, [user?.id]);
+
+  // Get active personas
+  const activeUserPersona = userPersonas.find(p => p.is_default) || userPersonas[0];
+  const activePartnerPersona = currentNegotiation?.partners?.[0];
 
   const handleLogout = () => {
     logout();
@@ -25,6 +41,50 @@ export default function Sidebar() {
       <div className="sidebar-header">
         <h1>Negotiator Pro</h1>
         <p>AI negotiation guidance</p>
+      </div>
+
+      {/* Active Personas Display */}
+      <div style={{
+        padding: '12px 16px',
+        background: 'rgba(255, 255, 255, 0.05)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+      }}>
+        <div style={{ marginBottom: '10px' }}>
+          <div style={{ fontSize: '10px', color: '#9fadbd', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
+            You
+          </div>
+          <div style={{ fontSize: '13px', color: '#fff', fontWeight: 500 }}>
+            {activeUserPersona ? (
+              <>
+                <i className="fa-light fa-user" style={{ marginRight: '6px', opacity: 0.7 }}></i>
+                {activeUserPersona.name}
+                {activeUserPersona.role_title && (
+                  <span style={{ opacity: 0.6, fontWeight: 400 }}> · {activeUserPersona.role_title}</span>
+                )}
+              </>
+            ) : (
+              <span style={{ opacity: 0.5, fontStyle: 'italic' }}>No persona set</span>
+            )}
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: '10px', color: '#9fadbd', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
+            Partner
+          </div>
+          <div style={{ fontSize: '13px', color: '#fff', fontWeight: 500 }}>
+            {activePartnerPersona ? (
+              <>
+                <i className="fa-light fa-handshake" style={{ marginRight: '6px', opacity: 0.7 }}></i>
+                {activePartnerPersona.name}
+                {activePartnerPersona.company && (
+                  <span style={{ opacity: 0.6, fontWeight: 400 }}> · {activePartnerPersona.company}</span>
+                )}
+              </>
+            ) : (
+              <span style={{ opacity: 0.5, fontStyle: 'italic' }}>Select a negotiation</span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Model Selector - shows models from selected provider */}

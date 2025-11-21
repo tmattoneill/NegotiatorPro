@@ -15,7 +15,11 @@ from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError
 from dotenv import load_dotenv
 
-from .routes import chat_router, auth_router, health_router, models_router, users_router, config_router, negotiations_router
+from .routes import (
+    chat_router, auth_router, health_router, models_router,
+    users_router, config_router, negotiations_router,
+    personas_router, conversations_router
+)
 
 # Set up logging
 logging.basicConfig(
@@ -151,6 +155,8 @@ app.include_router(models_router)
 app.include_router(users_router)
 app.include_router(config_router)
 app.include_router(negotiations_router)
+app.include_router(personas_router)
+app.include_router(conversations_router)
 
 
 @app.get("/")
