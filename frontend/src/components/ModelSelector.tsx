@@ -15,10 +15,11 @@ export default function ModelSelector() {
     availableModels,
     isLoadingModels,
     modelsError,
-    setProvider,
+    setProvider: _setProvider,  // Available but not currently used
     setModel,
     loadAvailableModels,
   } = useSettingsStore();
+  void _setProvider; // Silence unused warning - provider switching may be added later
 
   // Load available models on component mount
   useEffect(() => {
