@@ -30,6 +30,126 @@ from .config_loader import config
 logger = logging.getLogger(__name__)
 
 
+# =============================================================================
+# Global Model Configuration
+# =============================================================================
+# Logical role-based model configurations for the RAG system.
+# Keys are logical roles, values are OpenAI-compatible kwargs.
+# New code should use get_model_kwargs() with these logical keys.
+
+MODEL_CONFIGS: Dict[str, Dict[str, Any]] = {
+    # Primary chat model for user answers
+    "chat_default": {
+        "model": "gpt-4o",
+        "temperature": 0.2,
+        "max_tokens": None,
+    },
+    # Cheaper/faster chat model for simple queries
+    "chat_mini": {
+        "model": "gpt-4o-mini",
+        "temperature": 0.3,
+        "max_tokens": None,
+    },
+    # Reasoning model for complex analysis (o-series don't support temperature)
+    "rag_reasoning": {
+        "model": "o4-mini",
+        "reasoning_effort": "medium",
+    },
+    # Default embedding model for vectorstore
+    "embedding_default": {
+        "model": "text-embedding-3-small",
+    },
+    # Legacy models for backwards compatibility
+    "legacy_gpt4": {
+        "model": "gpt-4",
+        "temperature": 0.3,
+        "max_tokens": None,
+    },
+    "legacy_gpt35": {
+        "model": "gpt-3.5-turbo",
+        "temperature": 0.3,
+        "max_tokens": None,
+    },
+}
+
+# Mapping from raw model names to logical keys for legacy compatibility
+_MODEL_NAME_TO_KEY: Dict[str, str] = {
+    "gpt-4o": "chat_default",
+    "gpt-4o-mini": "chat_mini",
+    "o4-mini": "rag_reasoning",
+    "o3-mini": "rag_reasoning",  # Treat o3-mini as reasoning model
+    "gpt-4": "legacy_gpt4",
+    "gpt-3.5-turbo": "legacy_gpt35",
+    "text-embedding-3-small": "embedding_default",
+    "text-embedding-3-large": "embedding_default",
+    "text-embedding-ada-002": "embedding_default",
+}
+
+
+def get_model_kwargs(model_key: str) -> Dict[str, Any]:
+    """
+    Get cleaned model kwargs for a logical model key.
+
+    Args:
+        model_key: Logical key from MODEL_CONFIGS (e.g., "chat_default", "chat_mini")
+
+    Returns:
+        Cleaned dict of kwargs suitable for passing to ChatOpenAI or similar.
+
+    Raises:
+        KeyError: If model_key is not found in MODEL_CONFIGS.
+    """
+    if model_key not in MODEL_CONFIGS:
+        raise KeyError(f"Unknown model key '{model_key}'. Available: {list(MODEL_CONFIGS.keys())}")
+
+    cfg = MODEL_CONFIGS[model_key].copy()
+
+    # Clean up the config:
+    # 1. Remove temperature for o-series reasoning models (they don't support it)
+    model_name = cfg.get("model", "")
+    if model_name.startswith("o") and "temperature" in cfg:
+        del cfg["temperature"]
+        logger.debug(f"Removed temperature for reasoning model {model_name}")
+
+    # 2. Remove max_tokens if None (don't send null to API)
+    if cfg.get("max_tokens") is None:
+        cfg.pop("max_tokens", None)
+
+    logger.info(f"get_model_kwargs({model_key}): {cfg}")
+    return cfg
+
+
+def get_model_kwargs_legacy(model_name: str) -> Dict[str, Any]:
+    """
+    Legacy method for backwards compatibility.
+
+    DEPRECATED: New code should use get_model_kwargs() with logical keys.
+
+    This wrapper accepts either:
+    - Logical keys (e.g., "chat_default") - passed directly to get_model_kwargs
+    - Raw model names (e.g., "gpt-4o-mini") - mapped to logical key first
+
+    Args:
+        model_name: Either a logical key or a raw OpenAI model name.
+
+    Returns:
+        Cleaned dict of kwargs.
+    """
+    # Check if it's already a logical key
+    if model_name in MODEL_CONFIGS:
+        return get_model_kwargs(model_name)
+
+    # Map raw model name to logical key
+    model_key = _MODEL_NAME_TO_KEY.get(model_name)
+    if model_key:
+        logger.debug(f"Legacy mapping: {model_name} -> {model_key}")
+        return get_model_kwargs(model_key)
+
+    # Unknown model - return sensible defaults with warning
+    logger.warning(f"Unknown model '{model_name}', using default config")
+    return {"model": model_name, "temperature": 0.3}
+
+
 class ModelConfig:
     """Model configuration middleware to handle different model parameters and backends"""
 
@@ -38,42 +158,16 @@ class ModelConfig:
         self.backend_manager = backend_manager
 
     @staticmethod
-    def get_model_kwargs_legacy(model_name):
-        """Legacy method for backwards compatibility - use get_model_kwargs instead"""
-        MODEL_CONFIGS = {
-            "gpt-4o-mini": {
-                "model": "gpt-4o-mini",
-                "temperature": 0.3,
-                "max_tokens": None
-            },
-            "o3-mini": {
-                "model": "o3-mini",
-                # o3 models don't support temperature parameter
-            },
-            "gpt-4": {
-                "model": "gpt-4",
-                "temperature": 0.3,
-                "max_tokens": None
-            },
-            "gpt-3.5-turbo": {
-                "model": "gpt-3.5-turbo",
-                "temperature": 0.3,
-                "max_tokens": None
-            }
-        }
+    def get_model_kwargs_legacy(model_name: str) -> Dict[str, Any]:
+        """
+        Legacy static method wrapper for backwards compatibility.
 
-        if model_name not in MODEL_CONFIGS:
-            logger.warning(f"Unknown model {model_name}, using default config")
-            return {"model": model_name, "temperature": 0.3}
+        DEPRECATED: Use module-level get_model_kwargs() with logical keys instead.
+        """
+        return get_model_kwargs_legacy(model_name)
 
-        config = MODEL_CONFIGS[model_name].copy()
-        # Filter out None values to avoid passing them to ChatOpenAI
-        config = {k: v for k, v in config.items() if v is not None}
-        logger.info(f"Using config for {model_name}: {config}")
-        return config
-
-    def get_model_kwargs(self, backend_id: str, model_id: str):
-        """Get appropriate kwargs for a specific backend and model"""
+    def get_model_kwargs_for_backend(self, backend_id: str, model_id: str) -> Dict[str, Any]:
+        """Get appropriate kwargs for a specific backend and model via backend manager."""
         return self.backend_manager.get_llm_kwargs(backend_id, model_id)
 
     def create_llm(self, backend_id: str, model_id: str):
@@ -305,19 +399,21 @@ class EnhancedNegotiationRAG:
         # Create LLM instances using the model config
         try:
             self.default_llm = self.model_config.create_llm(default_backend, default_model)
-            logger.info(f"✅ Default LLM initialized: {default_backend}/{default_model}")
+            logger.info(f"Default LLM initialized: {default_backend}/{default_model}")
         except Exception as e:
             logger.error(f"Error creating default LLM: {e}")
-            logger.warning("Falling back to OpenAI gpt-4o-mini")
-            self.default_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+            fallback_cfg = get_model_kwargs("chat_mini")
+            logger.warning(f"Falling back to OpenAI {fallback_cfg['model']}")
+            self.default_llm = ChatOpenAI(**fallback_cfg)
 
         try:
             self.premium_llm = self.model_config.create_llm(premium_backend, premium_model)
-            logger.info(f"✅ Premium LLM initialized: {premium_backend}/{premium_model}")
+            logger.info(f"Premium LLM initialized: {premium_backend}/{premium_model}")
         except Exception as e:
             logger.error(f"Error creating premium LLM: {e}")
-            logger.warning("Falling back to OpenAI o3-mini")
-            self.premium_llm = ChatOpenAI(model="o3-mini")
+            fallback_cfg = get_model_kwargs("rag_reasoning")
+            logger.warning(f"Falling back to OpenAI {fallback_cfg['model']}")
+            self.premium_llm = ChatOpenAI(**fallback_cfg)
 
     def setup_system(self):
         """Initialize the RAG system"""
