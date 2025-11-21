@@ -60,12 +60,12 @@ class LLMBackendManager:
             requires_api_key=True,
             models=[
                 ModelInfo(
-                    id="gpt-4o",
-                    name="GPT-4o",
-                    description="Most advanced OpenAI model with vision capabilities",
+                    id="gpt-4.1-2025-04-14",
+                    name="GPT-4.1 (Default)",
+                    description="Latest GPT-4.1 model with enhanced capabilities",
                     max_context_length=128000,
-                    cost_per_1k_input=5.0,
-                    cost_per_1k_output=15.0
+                    cost_per_1k_input=2.0,
+                    cost_per_1k_output=8.0
                 ),
                 ModelInfo(
                     id="gpt-4o-mini",
@@ -73,40 +73,15 @@ class LLMBackendManager:
                     description="Fast and cost-effective model for most tasks",
                     max_context_length=128000,
                     cost_per_1k_input=0.15,
-                    cost_per_1k_output=0.6
+                    cost_per_1k_output=0.60
                 ),
                 ModelInfo(
-                    id="o3-mini",
-                    name="O3 Mini",
-                    description="Advanced reasoning model (no temperature control)",
-                    supports_temperature=False,
+                    id="gpt-5.1-2025-11-13",
+                    name="GPT-5.1",
+                    description="Latest GPT-5.1 model",
                     max_context_length=128000,
-                    cost_per_1k_input=1.0,
-                    cost_per_1k_output=4.0
-                ),
-                ModelInfo(
-                    id="gpt-4-turbo",
-                    name="GPT-4 Turbo",
-                    description="High-performance GPT-4 variant",
-                    max_context_length=128000,
-                    cost_per_1k_input=10.0,
-                    cost_per_1k_output=30.0
-                ),
-                ModelInfo(
-                    id="gpt-4",
-                    name="GPT-4",
-                    description="Original GPT-4 model",
-                    max_context_length=8192,
-                    cost_per_1k_input=30.0,
-                    cost_per_1k_output=60.0
-                ),
-                ModelInfo(
-                    id="gpt-3.5-turbo",
-                    name="GPT-3.5 Turbo",
-                    description="Fast and economical model",
-                    max_context_length=16385,
-                    cost_per_1k_input=0.5,
-                    cost_per_1k_output=1.5
+                    cost_per_1k_input=3.0,
+                    cost_per_1k_output=12.0
                 ),
             ]
         ),
@@ -223,23 +198,23 @@ class LLMBackendManager:
             return config
 
     def _get_default_config(self) -> Dict[str, Any]:
-        """Get default configuration"""
+        """Get default configuration - defaults to Ollama (local) unless user has API keys"""
         return {
-            "active_backend": "openai",
+            "active_backend": "ollama",
             "active_models": {
                 "default": {
-                    "backend": "openai",
-                    "model": "gpt-4o-mini"
+                    "backend": "ollama",
+                    "model": "llama3.1:8b"
                 },
                 "premium": {
-                    "backend": "openai",
-                    "model": "o3-mini"
+                    "backend": "ollama",
+                    "model": "llama3.1:70b"
                 }
             },
             "backend_settings": {
-                "openai": {"enabled": True},
+                "openai": {"enabled": False},
                 "anthropic": {"enabled": False},
-                "ollama": {"enabled": False},
+                "ollama": {"enabled": True},
                 "ollama-cloud": {"enabled": False}
             }
         }

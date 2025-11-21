@@ -40,15 +40,50 @@ async def get_available_models():
                 backend.id, {}
             ).get("enabled", False)
 
-            # Convert ModelInfo objects to dicts
-            models_list = [
-                {
-                    "id": model.id,
-                    "name": model.name,
-                    "description": model.description
-                }
-                for model in backend.models
-            ]
+            # For Ollama backends, dynamically fetch available models
+            if backend.provider == "ollama":
+                import os
+                if backend.id == "ollama":
+                    base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+                else:  # ollama-cloud
+                    base_url = os.getenv("OLLAMA_CLOUD_URL", "https://ollama.com")
+
+                dynamic_models = backend_manager.get_ollama_available_models(base_url)
+                if dynamic_models:
+                    models_list = [
+                        {
+                            "id": model.id,
+                            "name": model.name,
+                            "description": model.description
+                        }
+                        for model in dynamic_models
+                    ]
+                    models_by_backend[backend.id] = {
+                        "name": backend.name,
+                        "enabled": is_enabled,
+                        "models": models_list,
+                        "available": True
+                    }
+                else:
+                    # Ollama not reachable - report error to user
+                    models_by_backend[backend.id] = {
+                        "name": backend.name,
+                        "enabled": is_enabled,
+                        "models": [],
+                        "available": False,
+                        "error": f"Could not connect to Ollama at {base_url}. Please ensure Ollama is running."
+                    }
+                continue
+            else:
+                # Convert ModelInfo objects to dicts for non-Ollama backends
+                models_list = [
+                    {
+                        "id": model.id,
+                        "name": model.name,
+                        "description": model.description
+                    }
+                    for model in backend.models
+                ]
 
             models_by_backend[backend.id] = {
                 "name": backend.name,
