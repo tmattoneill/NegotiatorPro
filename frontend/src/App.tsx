@@ -4,13 +4,16 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
+import { useAdminStore } from './store/adminStore';
 import Sidebar from './components/Sidebar';
 import ChatContainer from './components/ChatContainer';
+import SystemPromptEditor from './components/SystemPromptEditor';
 import './App.css';
 
 function App() {
   const navigate = useNavigate();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const adminView = useAdminStore((state) => state.currentView);
 
   useEffect(() => {
     // Redirect to login if not authenticated
@@ -27,7 +30,7 @@ function App() {
   return (
     <div className="app-container">
       <Sidebar />
-      <ChatContainer />
+      {adminView === 'system-prompt' ? <SystemPromptEditor /> : <ChatContainer />}
     </div>
   );
 }

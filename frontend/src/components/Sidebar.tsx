@@ -9,6 +9,7 @@ import { usePersonaStore } from '../store/personaStore';
 import { useNegotiationStore } from '../store/negotiationStore';
 import SettingsModal from './SettingsModal';
 import ModelSelector from './ModelSelector';
+import { useAdminStore } from '../store/adminStore';
 
 export default function Sidebar() {
   const navigate = useNavigate();
@@ -18,6 +19,10 @@ export default function Sidebar() {
   const { currentNegotiation } = useNegotiationStore();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const { currentView, setView } = useAdminStore();
+
+  // Check if user is admin
+  const isAdmin = user?.role === 'admin';
 
   // Fetch personas on mount
   useEffect(() => {
@@ -124,6 +129,55 @@ export default function Sidebar() {
           </div>
         )}
       </div>
+
+      {/* Admin Section - only visible to admin users */}
+      {isAdmin && (
+        <div style={{
+          padding: '16px',
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+        }}>
+          <div style={{
+            fontSize: '10px',
+            color: '#9fadbd',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}>
+            <i className="fa-light fa-shield-halved"></i>
+            Admin
+          </div>
+          <button
+            onClick={() => setView(currentView === 'system-prompt' ? 'none' : 'system-prompt')}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              background: currentView === 'system-prompt' ? 'rgba(182, 137, 71, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+              border: currentView === 'system-prompt' ? '1px solid rgba(182, 137, 71, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '6px',
+              color: '#fff',
+              fontSize: '13px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              textAlign: 'left',
+              transition: 'all 0.2s',
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+            }}
+          >
+            <i className="fa-light fa-terminal" style={{ opacity: 0.7 }}></i>
+            System Prompt
+          </button>
+        </div>
+      )}
 
       {/* User info and actions */}
       <div style={{
