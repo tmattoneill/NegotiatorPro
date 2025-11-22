@@ -17,7 +17,15 @@ export default function Sidebar() {
   const { user, logout } = useAuthStore();
   const { userPersonas, partnerPersonas: _partnerPersonas, fetchUserPersonas, fetchPartnerPersonas } = usePersonaStore();
   void _partnerPersonas; // Available for future use
-  const { currentNegotiation, negotiations, loadNegotiations } = useNegotiationStore();
+  const { negotiations, loadNegotiations, setCurrentNegotiation, currentNegotiationId } = useNegotiationStore();
+  // Compute currentNegotiation from negotiations and currentNegotiationId
+  const currentNegotiation = negotiations.find(n => n.id === currentNegotiationId) || null;
+
+  // Debug: log when currentNegotiationId changes
+  useEffect(() => {
+    console.log('Current Negotiation ID changed:', currentNegotiationId);
+    console.log('Current Negotiation object:', currentNegotiation);
+  }, [currentNegotiationId, currentNegotiation]);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const { currentView, setView } = useAdminStore();
@@ -36,7 +44,9 @@ export default function Sidebar() {
 
   // Load conversations when negotiation changes
   useEffect(() => {
+    console.log('Negotiation changed:', currentNegotiation?.id);
     if (currentNegotiation?.id && user?.id) {
+      console.log('Loading conversations for negotiation:', currentNegotiation.id);
       loadConversations(currentNegotiation.id, user.id);
     }
   }, [currentNegotiation?.id, user?.id]);
@@ -101,6 +111,69 @@ export default function Sidebar() {
         </div>
       </div>
 
+      {/* Negotiation Selector */}
+      <div style={{
+        padding: '12px 16px',
+        background: 'rgba(255, 255, 255, 0.05)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+      }}>
+        <div style={{ fontSize: '10px', color: '#9fadbd', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+          Active Negotiation
+        </div>
+        {negotiations.length > 0 ? (
+          <select
+            value={currentNegotiation?.id || ''}
+            onChange={(e) => {
+              const selectedId = e.target.value;
+              console.log('Negotiation dropdown changed to:', selectedId);
+              console.log('Available negotiations:', negotiations);
+              setCurrentNegotiation(selectedId);
+              console.log('After setCurrentNegotiation, currentNegotiationId should be:', selectedId);
+            }}
+            style={{
+              width: '100%',
+              padding: '8px 10px',
+              background: 'rgba(0, 0, 0, 0.3)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '6px',
+              color: '#fff',
+              fontSize: '13px',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="">Select a negotiation...</option>
+            {negotiations.map((neg) => (
+              <option key={neg.id} value={neg.id}>
+                {neg.title || neg.name || 'Untitled Negotiation'}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <div style={{ fontSize: '13px', color: '#fff', opacity: 0.5, fontStyle: 'italic' }}>
+            No negotiations yet
+          </div>
+        )}
+        {negotiations.length === 0 && (
+          <button
+            onClick={() => navigate('/profile')}
+            style={{
+              marginTop: '8px',
+              width: '100%',
+              padding: '8px 12px',
+              background: 'rgba(182, 137, 71, 0.2)',
+              border: '1px solid rgba(182, 137, 71, 0.5)',
+              borderRadius: '6px',
+              color: '#b68947',
+              fontSize: '12px',
+              cursor: 'pointer',
+              fontWeight: 500,
+            }}
+          >
+            + Create Negotiation
+          </button>
+        )}
+      </div>
+
       {/* Model Selector - shows models from selected provider */}
       <div style={{ padding: '16px 16px 0 16px' }}>
         <ModelSelector />
@@ -113,6 +186,7 @@ export default function Sidebar() {
         className="new-session-btn"
         onClick={() => currentNegotiation?.id && user?.id && createNewSession(currentNegotiation.id, user.id)}
         disabled={!currentNegotiation?.id}
+        title={!currentNegotiation?.id ? 'Please select a negotiation first' : 'Create a new conversation'}
       >
         + New Conversation
       </button>

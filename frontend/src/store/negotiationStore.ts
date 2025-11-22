@@ -48,7 +48,7 @@ export const useNegotiationStore = create<NegotiationState>()(
         set({ isLoading: true, error: null });
 
         try {
-          const response = await api.get(`/negotiations?user_id=${userId}`);
+          const response = await api.get(`/negotiations/?user_id=${userId}`);
           const negotiations = response.data;
 
           set({

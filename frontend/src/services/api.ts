@@ -24,6 +24,8 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // Debug: log the full URL being requested
+    console.log('Axios request:', config.method?.toUpperCase(), config.baseURL, config.url, '→', config.baseURL + config.url);
     return config;
   },
   (error) => Promise.reject(error)
@@ -170,12 +172,12 @@ export const deletePartnerPersona = async (userId: string, id: string): Promise<
 // ============================================================================
 
 export const createConversation = async (data: ConversationCreate): Promise<Conversation> => {
-  const response = await api.post<Conversation>('/conversations', data);
+  const response = await api.post<Conversation>('/conversations/', data);
   return response.data;
 };
 
-export const getNegotiationConversations = async (negotiationId: string): Promise<Conversation[]> => {
-  const response = await api.get<Conversation[]>(`/conversations/negotiation/${negotiationId}`);
+export const getNegotiationConversations = async (negotiationId: string, userId: string): Promise<Conversation[]> => {
+  const response = await api.get<Conversation[]>(`/conversations/negotiation/${negotiationId}?user_id=${userId}`);
   return response.data;
 };
 

@@ -4,6 +4,8 @@
 import { useEffect, useRef } from 'react';
 import { useChatStore } from '../store/chatStore';
 import { useSettingsStore } from '../store/settingsStore';
+import { useNegotiationStore } from '../store/negotiationStore';
+import { useAuthStore } from '../store/authStore';
 import { sendChatMessage } from '../services/api';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
@@ -27,9 +29,46 @@ export default function ChatContainer() {
   }, [currentSession?.messages]);
 
   const handleSendMessage = async (content: string, files?: File[]) => {
-    // Don't send if no active conversation
+    // Auto-create conversation if none exists but we have a negotiation
+    const { negotiations, currentNegotiationId } = useNegotiationStore.getState();
+    const currentNegotiation = negotiations.find(n => n.id === currentNegotiationId);
+    const { user } = useAuthStore.getState();
+
     if (!currentSession?.id) {
-      return;
+      // Check if we have a negotiation to create a conversation for
+      if (!currentNegotiation?.id) {
+        console.warn('No negotiation selected - cannot send message');
+        const errorMessage: Message = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: '⚠️ Please select a negotiation from the dropdown first.',
+          timestamp: new Date(),
+        };
+        addMessage(errorMessage);
+        return;
+      }
+
+      // Auto-create a new conversation
+      console.log('Auto-creating conversation for negotiation:', currentNegotiation.id);
+      const { createNewSession } = useChatStore.getState();
+      await createNewSession(currentNegotiation.id, user?.id || '');
+
+      // Give it a moment for state to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Get the newly created session
+      const updatedSession = getCurrentSession();
+      if (!updatedSession?.id) {
+        console.error('Failed to create conversation');
+        const errorMessage: Message = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: '❌ Failed to create conversation. Please try clicking "New Conversation" button.',
+          timestamp: new Date(),
+        };
+        addMessage(errorMessage);
+        return;
+      }
     }
 
     // Build user message content with file info
