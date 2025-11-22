@@ -47,41 +47,37 @@ api.interceptors.response.use(
  * Supports file uploads (images, txt, csv)
  */
 export const sendChatMessage = async (request: ChatRequest, files?: File[]): Promise<ChatResponse> => {
-  // If files are provided, use FormData for multipart upload
+  // Always use FormData since backend now expects form fields
+  const formData = new FormData();
+  formData.append('question', request.question);
+
+  if (request.partner_info) {
+    formData.append('partner_info', request.partner_info);
+  }
+
+  formData.append('use_premium_model', String(request.use_premium_model || false));
+  formData.append('use_preprocessing', String(request.use_preprocessing !== false));
+
+  if (request.provider) {
+    formData.append('provider', request.provider);
+  }
+
+  if (request.model) {
+    formData.append('model', request.model);
+  }
+
+  // Append files if provided
   if (files && files.length > 0) {
-    const formData = new FormData();
-    formData.append('question', request.question);
-
-    if (request.partner_info) {
-      formData.append('partner_info', request.partner_info);
-    }
-
-    formData.append('use_premium_model', String(request.use_premium_model || false));
-    formData.append('use_preprocessing', String(request.use_preprocessing !== false));
-
-    if (request.provider) {
-      formData.append('provider', request.provider);
-    }
-
-    if (request.model) {
-      formData.append('model', request.model);
-    }
-
-    // Append all files
     files.forEach((file) => {
       formData.append('files', file);
     });
-
-    const response = await api.post<ChatResponse>('/chat', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
   }
 
-  // Otherwise use JSON
-  const response = await api.post<ChatResponse>('/chat', request);
+  const response = await api.post<ChatResponse>('/chat', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return response.data;
 };
 
