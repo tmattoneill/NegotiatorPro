@@ -20,6 +20,7 @@ interface ChatState {
   isLoading: boolean;
 
   // Actions
+  createLocalSession: () => void;
   loadConversations: (negotiationId: string, userId: string) => Promise<void>;
   loadConversationMessages: (conversationId: string, userId: string) => Promise<void>;
   createNewSession: (negotiationId: string, userId: string) => Promise<void>;
@@ -33,6 +34,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
   sessions: [],
   currentSessionId: null,
   isLoading: false,
+
+  // Create a local-only session (no database persistence)
+  createLocalSession: () => {
+    const sessionId = `local-${Date.now()}`;
+    const newSession: Session = {
+      id: sessionId,
+      title: 'Chat Session',
+      messages: [],
+      createdAt: new Date(),
+      messageCount: 0,
+    };
+
+    set((state) => ({
+      sessions: [newSession, ...state.sessions],
+      currentSessionId: newSession.id,
+    }));
+  },
 
   // Load all conversations for a negotiation from database
   loadConversations: async (negotiationId: string, userId: string) => {
