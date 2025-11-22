@@ -1,7 +1,9 @@
 """Chat endpoint"""
 import logging
 import time
-from fastapi import APIRouter, HTTPException, status
+import base64
+from typing import List, Optional
+from fastapi import APIRouter, HTTPException, status, File, UploadFile, Form
 
 from ..models.requests import ChatRequest
 from ..models.responses import ChatResponse
@@ -26,13 +28,66 @@ def get_rag_system():
     return rag_system
 
 
+async def process_uploaded_files(files: List[UploadFile]) -> str:
+    """
+    Process uploaded files and return formatted context string.
+
+    Supports:
+    - Images: Convert to base64 for vision models
+    - Text files (.txt, .csv): Extract text content
+    """
+    file_context = []
+
+    for file in files:
+        content_type = file.content_type or ""
+        filename = file.filename or "unknown"
+
+        # Read file content
+        file_bytes = await file.read()
+
+        if content_type.startswith("image/"):
+            # For images, encode as base64
+            base64_image = base64.b64encode(file_bytes).decode('utf-8')
+            file_context.append(f"[Image: {filename}]")
+            # Note: We're adding this as context. For vision models, we'd need to format differently
+            # For now, we just note that an image was uploaded
+            logger.info(f"Image uploaded: {filename} ({len(file_bytes)} bytes)")
+
+        elif filename.endswith(('.txt', '.csv')):
+            # Extract text from text files
+            try:
+                text_content = file_bytes.decode('utf-8')
+                file_context.append(f"[File: {filename}]\n{text_content}")
+                logger.info(f"Text file uploaded: {filename} ({len(text_content)} chars)")
+            except UnicodeDecodeError:
+                logger.warning(f"Could not decode file: {filename}")
+                file_context.append(f"[File: {filename} - could not read content]")
+
+    return "\n\n".join(file_context) if file_context else ""
+
+
 @router.post("/chat", response_model=ChatResponse)
-async def process_chat(request: ChatRequest):
+async def process_chat(
+    question: str = Form(...),
+    partner_info: Optional[str] = Form(None),
+    use_premium_model: bool = Form(False),
+    use_preprocessing: bool = Form(True),
+    provider: Optional[str] = Form(None),
+    model: Optional[str] = Form(None),
+    files: Optional[List[UploadFile]] = File(None)
+):
     """
     Process a chat question using the RAG system.
+    Supports file uploads (images, txt, csv).
 
     Args:
-        request: ChatRequest with question and options
+        question: User's question or negotiation context
+        partner_info: Optional context about negotiation partner
+        use_premium_model: Whether to use premium model
+        use_preprocessing: Whether to apply text preprocessing
+        provider: LLM provider override
+        model: Model ID override
+        files: Optional uploaded files (images, documents)
 
     Returns:
         ChatResponse with AI-generated answer
@@ -46,33 +101,44 @@ async def process_chat(request: ChatRequest):
         # Get RAG system instance
         rag = get_rag_system()
 
-        logger.info(f"Processing question: {request.question[:50]}...")
-        logger.info(f"Premium model: {request.use_premium_model}, Preprocessing: {request.use_preprocessing}")
-        if request.provider and request.model:
-            logger.info(f"Model override: {request.provider}/{request.model}")
+        logger.info(f"Processing question: {question[:50]}...")
+        logger.info(f"Premium model: {use_premium_model}, Preprocessing: {use_preprocessing}")
+        if provider and model:
+            logger.info(f"Model override: {provider}/{model}")
+        if files:
+            logger.info(f"Files uploaded: {len(files)}")
 
-        # Enhance question with partner info if provided
-        enhanced_question = request.question
-        if request.partner_info and request.partner_info.strip():
-            enhanced_question = f"Context about my negotiation partner: {request.partner_info}\n\nMy question: {request.question}"
+        # Process uploaded files
+        file_context = ""
+        if files:
+            file_context = await process_uploaded_files(files)
+
+        # Enhance question with partner info and file context if provided
+        enhanced_question = question
+
+        if file_context:
+            enhanced_question = f"{file_context}\n\n{enhanced_question}"
+
+        if partner_info and partner_info.strip():
+            enhanced_question = f"Context about my negotiation partner: {partner_info}\n\n{enhanced_question}"
 
         # Process question using existing RAG system
         # Pass provider/model overrides if specified
         answer = rag.get_advice(
             question=enhanced_question,
-            use_premium_model=request.use_premium_model,
-            use_preprocessing=request.use_preprocessing,
-            override_backend=request.provider,
-            override_model=request.model
+            use_premium_model=use_premium_model,
+            use_preprocessing=use_preprocessing,
+            override_backend=provider,
+            override_model=model
         )
 
         processing_time = time.time() - start_time
 
         # Determine which model was used
-        if request.provider and request.model:
+        if provider and model:
             # User specified explicit override
-            model_used = f"{request.provider}/{request.model}"
-        elif request.use_premium_model:
+            model_used = f"{provider}/{model}"
+        elif use_premium_model:
             model_config = rag.backend_manager.get_active_model_config("premium")
             model_used = f"{model_config.get('backend', 'unknown')}/{model_config.get('model', 'unknown')}"
         else:
