@@ -97,3 +97,19 @@ async def delete_conversation(conversation_id: str, user_id: str):
         raise HTTPException(status_code=404, detail="Conversation not found")
 
     await db_ops.delete_conversation(UUID(conversation_id))
+
+
+@conversations_router.get("/{conversation_id}/messages")
+async def get_conversation_messages(conversation_id: str, user_id: str, limit: int = None):
+    """Get all messages for a conversation."""
+    conversation = await db_ops.get_conversation(UUID(conversation_id))
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    # Verify ownership via negotiation
+    negotiation = await db_ops.get_negotiation(conversation['negotiation_id'])
+    if not negotiation or str(negotiation['user_id']) != user_id:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    messages = await db_ops.get_conversation_messages(UUID(conversation_id), limit)
+    return messages

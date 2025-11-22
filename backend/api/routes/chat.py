@@ -2,12 +2,15 @@
 import logging
 import time
 import base64
+from uuid import UUID
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, status, File, UploadFile, Form
+from fastapi import APIRouter, HTTPException, status, File, UploadFile, Form, Depends
 
 from ..models.requests import ChatRequest
 from ..models.responses import ChatResponse
 from ...rag_engine import EnhancedNegotiationRAG
+from ... import db_operations as db_ops
+from ..middleware.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -69,25 +72,29 @@ async def process_uploaded_files(files: List[UploadFile]) -> str:
 @router.post("/chat", response_model=ChatResponse)
 async def process_chat(
     question: str = Form(...),
+    conversation_id: Optional[str] = Form(None),
     partner_info: Optional[str] = Form(None),
     use_premium_model: bool = Form(False),
     use_preprocessing: bool = Form(True),
     provider: Optional[str] = Form(None),
     model: Optional[str] = Form(None),
-    files: Optional[List[UploadFile]] = File(None)
+    files: Optional[List[UploadFile]] = File(None),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Process a chat question using the RAG system.
-    Supports file uploads (images, txt, csv).
+    Supports file uploads (images, txt, csv) and saves to database.
 
     Args:
         question: User's question or negotiation context
+        conversation_id: Optional conversation ID to save messages to
         partner_info: Optional context about negotiation partner
         use_premium_model: Whether to use premium model
         use_preprocessing: Whether to apply text preprocessing
         provider: LLM provider override
         model: Model ID override
         files: Optional uploaded files (images, documents)
+        current_user: Authenticated user (injected by dependency)
 
     Returns:
         ChatResponse with AI-generated answer
@@ -146,6 +153,39 @@ async def process_chat(
             model_used = f"{model_config.get('backend', 'unknown')}/{model_config.get('model', 'unknown')}"
 
         logger.info(f"Question processed successfully in {processing_time:.2f}s using {model_used}")
+
+        # Save messages to database if conversation_id is provided
+        conversation_uuid: Optional[UUID] = None
+        if conversation_id:
+            try:
+                conversation_uuid = UUID(conversation_id)
+                user_uuid = UUID(current_user['id'])
+
+                # Save user message
+                await db_ops.create_chat_message(
+                    conversation_id=conversation_uuid,
+                    user_id=user_uuid,
+                    role="user",
+                    content=question,
+                    preprocessing_applied=use_preprocessing
+                )
+
+                # Save assistant response
+                await db_ops.create_chat_message(
+                    conversation_id=conversation_uuid,
+                    user_id=user_uuid,
+                    role="assistant",
+                    content=answer,
+                    model=model_used,
+                    preprocessing_applied=use_preprocessing
+                )
+
+                logger.info(f"Messages saved to conversation {conversation_id}")
+            except ValueError as ve:
+                logger.warning(f"Invalid conversation_id format: {conversation_id}")
+            except Exception as db_error:
+                # Don't fail the request if database save fails
+                logger.error(f"Failed to save messages to database: {db_error}", exc_info=True)
 
         return ChatResponse(
             answer=answer,

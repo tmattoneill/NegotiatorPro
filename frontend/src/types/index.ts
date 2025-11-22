@@ -4,6 +4,7 @@
 
 export interface ChatRequest {
   question: string;
+  conversation_id?: string;
   partner_info?: string;
   use_premium_model: boolean;
   use_preprocessing: boolean;
