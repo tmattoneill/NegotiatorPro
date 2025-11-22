@@ -11,7 +11,13 @@ import type { Message } from '../types';
 
 export default function ChatContainer() {
   const { getCurrentSession, addMessage, isLoading, setLoading } = useChatStore();
-  const { selectedProvider, selectedModel, usePremiumModel, usePreprocessing } = useSettingsStore();
+  const { selectedProvider, selectedModel, usePremiumModel, usePreprocessing, availableModels } = useSettingsStore();
+
+  // Get display names for provider and model
+  const providerDisplayName = selectedProvider && availableModels[selectedProvider]?.name
+    ? availableModels[selectedProvider].name
+    : selectedProvider || 'Unknown';
+  const modelDisplayName = selectedModel || 'Unknown';
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentSession = getCurrentSession();
 
@@ -84,6 +90,7 @@ export default function ChatContainer() {
     <div className="chat-container">
       <div className="chat-header">
         <h2>{currentSession?.title || 'Select or create a conversation'}</h2>
+        <span className="provider-model-display">{providerDisplayName} / {modelDisplayName}</span>
       </div>
 
       <div className="messages-container">
