@@ -6,6 +6,7 @@ from typing import Optional
 class ChatRequest(BaseModel):
     """Request model for chat endpoint"""
     question: str = Field(..., min_length=1, max_length=50000, description="User's question or negotiation context")
+    conversation_id: Optional[str] = Field(None, description="Conversation ID to save messages to")
     partner_info: Optional[str] = Field(None, max_length=20000, description="Optional context about negotiation partner")
     use_premium_model: bool = Field(False, description="Whether to use premium model")
     use_preprocessing: bool = Field(True, description="Whether to apply text preprocessing")

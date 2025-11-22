@@ -158,4 +158,13 @@ export const deleteConversation = async (id: string): Promise<void> => {
   await api.delete(`/conversations/${id}`);
 };
 
+export const getConversationMessages = async (conversationId: string, userId: string, limit?: number): Promise<any[]> => {
+  const params = new URLSearchParams({ user_id: userId });
+  if (limit) {
+    params.append('limit', limit.toString());
+  }
+  const response = await api.get(`/conversations/${conversationId}/messages?${params.toString()}`);
+  return response.data;
+};
+
 export default api;

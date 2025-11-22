@@ -13,11 +13,11 @@ import { useAdminStore } from '../store/adminStore';
 
 export default function Sidebar() {
   const navigate = useNavigate();
-  const { sessions, currentSessionId, createNewSession, switchSession } = useChatStore();
+  const { sessions, currentSessionId, createNewSession, switchSession, loadConversations } = useChatStore();
   const { user, logout } = useAuthStore();
   const { userPersonas, partnerPersonas: _partnerPersonas, fetchUserPersonas, fetchPartnerPersonas } = usePersonaStore();
   void _partnerPersonas; // Available for future use
-  const { currentNegotiation } = useNegotiationStore();
+  const { currentNegotiation, negotiations, loadNegotiations } = useNegotiationStore();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const { currentView, setView } = useAdminStore();
@@ -25,13 +25,21 @@ export default function Sidebar() {
   // Check if user is admin
   const isAdmin = user?.role === 'admin';
 
-  // Fetch personas on mount
+  // Fetch personas and negotiations on mount
   useEffect(() => {
     if (user?.id) {
       fetchUserPersonas(user.id);
       fetchPartnerPersonas(user.id);
+      loadNegotiations(user.id);
     }
   }, [user?.id]);
+
+  // Load conversations when negotiation changes
+  useEffect(() => {
+    if (currentNegotiation?.id && user?.id) {
+      loadConversations(currentNegotiation.id, user.id);
+    }
+  }, [currentNegotiation?.id, user?.id]);
 
   // Get active personas
   const activeUserPersona = userPersonas.find(p => p.is_default) || userPersonas[0];
@@ -101,8 +109,12 @@ export default function Sidebar() {
       {/* Separator */}
       <div className="sidebar-separator"></div>
 
-      <button className="new-session-btn" onClick={createNewSession}>
-        + New Negotiation
+      <button
+        className="new-session-btn"
+        onClick={() => currentNegotiation?.id && user?.id && createNewSession(currentNegotiation.id, user.id)}
+        disabled={!currentNegotiation?.id}
+      >
+        + New Conversation
       </button>
 
       <div className="sessions-list">
@@ -113,7 +125,7 @@ export default function Sidebar() {
           <div
             key={session.id}
             className={`session-item ${session.id === currentSessionId ? 'active' : ''}`}
-            onClick={() => switchSession(session.id)}
+            onClick={() => user?.id && switchSession(session.id, user.id)}
           >
             <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
               {session.title || 'New Conversation'}
@@ -126,7 +138,7 @@ export default function Sidebar() {
 
         {sessions.length === 0 && (
           <div style={{ padding: '16px', textAlign: 'center', color: '#6c757d', fontSize: '13px' }}>
-            No sessions yet. Click "New Negotiation" to start.
+            {currentNegotiation ? 'No conversations yet. Click "New Conversation" to start.' : 'Select a negotiation to view conversations.'}
           </div>
         )}
       </div>
