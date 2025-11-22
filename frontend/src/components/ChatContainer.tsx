@@ -26,24 +26,31 @@ export default function ChatContainer() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [currentSession?.messages]);
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, files?: File[]) => {
     // Don't send if no active conversation
     if (!currentSession?.id) {
       return;
+    }
+
+    // Build user message content with file info
+    let userContent = content;
+    if (files && files.length > 0) {
+      const fileInfo = files.map(f => `[${f.name}]`).join(' ');
+      userContent = `${fileInfo}\n\n${content}`;
     }
 
     // Add user message (optimistic update)
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content,
+      content: userContent,
       timestamp: new Date(),
     };
     addMessage(userMessage);
     setLoading(true);
 
     try {
-      // Call API with settings from store and conversation_id
+      // Call API with settings, conversation_id, and files
       const response = await sendChatMessage({
         question: content,
         conversation_id: currentSession.id,  // Pass conversation ID to save to database
@@ -51,7 +58,7 @@ export default function ChatContainer() {
         use_preprocessing: usePreprocessing,
         provider: usePremiumModel ? undefined : selectedProvider || undefined,
         model: usePremiumModel ? undefined : selectedModel || undefined,
-      });
+      }, files);
 
       // Add assistant response
       const assistantMessage: Message = {
