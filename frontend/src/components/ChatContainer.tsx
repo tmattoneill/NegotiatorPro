@@ -12,7 +12,7 @@ import ChatInput from './ChatInput';
 import type { Message } from '../types';
 
 export default function ChatContainer() {
-  const { getCurrentSession, addMessage, isLoading, setLoading } = useChatStore();
+  const { getCurrentSession, addMessage, isLoading, setLoading, createLocalSession } = useChatStore();
   const { selectedProvider, selectedModel, usePremiumModel, usePreprocessing, availableModels } = useSettingsStore();
 
   // Get display names for provider and model
@@ -23,52 +23,23 @@ export default function ChatContainer() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentSession = getCurrentSession();
 
+  // Initialize a local session on mount if none exists
+  useEffect(() => {
+    if (!currentSession?.id) {
+      createLocalSession();
+    }
+  }, []); // Run once on mount
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [currentSession?.messages]);
 
   const handleSendMessage = async (content: string, files?: File[]) => {
-    // Auto-create conversation if none exists but we have a negotiation
-    const { negotiations, currentNegotiationId } = useNegotiationStore.getState();
-    const currentNegotiation = negotiations.find(n => n.id === currentNegotiationId);
-    const { user } = useAuthStore.getState();
-
+    // Create a local session if none exists (no database persistence needed for simple chat)
     if (!currentSession?.id) {
-      // Check if we have a negotiation to create a conversation for
-      if (!currentNegotiation?.id) {
-        console.warn('No negotiation selected - cannot send message');
-        const errorMessage: Message = {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: '⚠️ Please select a negotiation from the dropdown first.',
-          timestamp: new Date(),
-        };
-        addMessage(errorMessage);
-        return;
-      }
-
-      // Auto-create a new conversation
-      console.log('Auto-creating conversation for negotiation:', currentNegotiation.id);
-      const { createNewSession } = useChatStore.getState();
-      await createNewSession(currentNegotiation.id, user?.id || '');
-
-      // Give it a moment for state to update
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Get the newly created session
-      const updatedSession = getCurrentSession();
-      if (!updatedSession?.id) {
-        console.error('Failed to create conversation');
-        const errorMessage: Message = {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: '❌ Failed to create conversation. Please try clicking "New Conversation" button.',
-          timestamp: new Date(),
-        };
-        addMessage(errorMessage);
-        return;
-      }
+      const { createLocalSession } = useChatStore.getState();
+      createLocalSession();
     }
 
     // Build user message content with file info
@@ -89,10 +60,12 @@ export default function ChatContainer() {
     setLoading(true);
 
     try {
-      // Call API with settings, conversation_id, and files
+      // Call API with settings, conversation_id (only if it's a real database conversation), and files
+      const conversationId = currentSession.id.startsWith('local-') ? undefined : currentSession.id;
+
       const response = await sendChatMessage({
         question: content,
-        conversation_id: currentSession.id,  // Pass conversation ID to save to database
+        conversation_id: conversationId,  // Only pass if it's a database conversation
         use_premium_model: usePremiumModel,
         use_preprocessing: usePreprocessing,
         provider: usePremiumModel ? undefined : selectedProvider || undefined,
