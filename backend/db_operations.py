@@ -220,6 +220,8 @@ async def create_negotiation(
 
 async def get_negotiations(user_id: UUID, status: Optional[str] = None) -> List[dict]:
     """Get all negotiations for a user."""
+    import json
+
     if status:
         rows = await db.fetch(
             """
@@ -234,13 +236,33 @@ async def get_negotiations(user_id: UUID, status: Optional[str] = None) -> List[
             "SELECT * FROM negotiations WHERE user_id = $1 ORDER BY updated_at DESC",
             user_id
         )
-    return [dict(r) for r in rows]
+
+    # Convert rows to dicts and parse JSON fields
+    negotiations = []
+    for r in rows:
+        neg = dict(r)
+        # Parse settings from JSON string to dict if it's a string
+        if 'settings' in neg and isinstance(neg['settings'], str):
+            neg['settings'] = json.loads(neg['settings'])
+        negotiations.append(neg)
+
+    return negotiations
 
 
 async def get_negotiation(negotiation_id: UUID) -> Optional[dict]:
     """Get a specific negotiation."""
+    import json
+
     row = await db.fetchrow("SELECT * FROM negotiations WHERE id = $1", negotiation_id)
-    return dict(row) if row else None
+    if not row:
+        return None
+
+    neg = dict(row)
+    # Parse settings from JSON string to dict if it's a string
+    if 'settings' in neg and isinstance(neg['settings'], str):
+        neg['settings'] = json.loads(neg['settings'])
+
+    return neg
 
 
 async def get_negotiation_detail(negotiation_id: UUID) -> Optional[dict]:

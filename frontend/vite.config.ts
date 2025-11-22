@@ -12,10 +12,18 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'http://backend:8000',
+        target: 'http://172.18.0.3:8000',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path, // Don't rewrite the path
+        rewrite: (path) => path,
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log('Proxying request to:', proxyReq.path);
+          });
+        }
       }
     }
   }

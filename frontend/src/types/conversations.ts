@@ -16,6 +16,7 @@ export interface Conversation {
 export interface ConversationCreate {
   negotiation_id: string;
   title?: string;
+  user_id?: string;
 }
 
 export interface ConversationUpdate {
