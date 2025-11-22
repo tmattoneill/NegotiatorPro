@@ -116,3 +116,32 @@ def get_password_hash(password: str) -> str:
         Bcrypt hashed password
     """
     return pwd_context.hash(password)
+
+
+async def get_current_user(token_payload: dict = Depends(verify_token)) -> dict:
+    """
+    Get current authenticated user from JWT token.
+    
+    Args:
+        token_payload: Decoded JWT payload from verify_token dependency
+        
+    Returns:
+        Dictionary with user information
+        
+    Raises:
+        HTTPException: If user ID is not in token
+    """
+    user_id = token_payload.get("sub")
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Return user information from token
+    return {
+        "id": user_id,
+        "username": token_payload.get("username"),
+        "role": token_payload.get("role", "user")
+    }
