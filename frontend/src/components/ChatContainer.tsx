@@ -27,7 +27,12 @@ export default function ChatContainer() {
   }, [currentSession?.messages]);
 
   const handleSendMessage = async (content: string) => {
-    // Add user message
+    // Don't send if no active conversation
+    if (!currentSession?.id) {
+      return;
+    }
+
+    // Add user message (optimistic update)
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -38,9 +43,10 @@ export default function ChatContainer() {
     setLoading(true);
 
     try {
-      // Call API with settings from store
+      // Call API with settings from store and conversation_id
       const response = await sendChatMessage({
         question: content,
+        conversation_id: currentSession.id,  // Pass conversation ID to save to database
         use_premium_model: usePremiumModel,
         use_preprocessing: usePreprocessing,
         provider: usePremiumModel ? undefined : selectedProvider || undefined,

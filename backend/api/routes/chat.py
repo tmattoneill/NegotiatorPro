@@ -1,11 +1,15 @@
 """Chat endpoint"""
 import logging
 import time
-from fastapi import APIRouter, HTTPException, status
+from uuid import UUID
+from typing import Optional
+from fastapi import APIRouter, HTTPException, status, Depends
 
 from ..models.requests import ChatRequest
 from ..models.responses import ChatResponse
 from ...rag_engine import EnhancedNegotiationRAG
+from ... import db_operations as db_ops
+from ..middleware.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +31,7 @@ def get_rag_system():
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def process_chat(request: ChatRequest):
+async def process_chat(request: ChatRequest, current_user: dict = Depends(get_current_user)):
     """
     Process a chat question using the RAG system.
 
@@ -80,6 +84,39 @@ async def process_chat(request: ChatRequest):
             model_used = f"{model_config.get('backend', 'unknown')}/{model_config.get('model', 'unknown')}"
 
         logger.info(f"Question processed successfully in {processing_time:.2f}s using {model_used}")
+
+        # Save messages to database if conversation_id is provided
+        conversation_uuid: Optional[UUID] = None
+        if request.conversation_id:
+            try:
+                conversation_uuid = UUID(request.conversation_id)
+                user_uuid = UUID(current_user['id'])
+
+                # Save user message
+                await db_ops.create_chat_message(
+                    conversation_id=conversation_uuid,
+                    user_id=user_uuid,
+                    role="user",
+                    content=request.question,
+                    preprocessing_applied=request.use_preprocessing
+                )
+
+                # Save assistant response
+                await db_ops.create_chat_message(
+                    conversation_id=conversation_uuid,
+                    user_id=user_uuid,
+                    role="assistant",
+                    content=answer,
+                    model=model_used,
+                    preprocessing_applied=request.use_preprocessing
+                )
+
+                logger.info(f"Messages saved to conversation {request.conversation_id}")
+            except ValueError as ve:
+                logger.warning(f"Invalid conversation_id format: {request.conversation_id}")
+            except Exception as db_error:
+                # Don't fail the request if database save fails
+                logger.error(f"Failed to save messages to database: {db_error}", exc_info=True)
 
         return ChatResponse(
             answer=answer,

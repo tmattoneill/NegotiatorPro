@@ -408,3 +408,71 @@ async def delete_conversation(conversation_id: UUID) -> bool:
     """Delete a conversation."""
     result = await db.execute("DELETE FROM conversations WHERE id = $1", conversation_id)
     return result == "DELETE 1"
+
+
+# ============================================================================
+# CHAT MESSAGES
+# ============================================================================
+
+async def create_chat_message(
+    conversation_id: UUID,
+    user_id: UUID,
+    role: str,
+    content: str,
+    session_id: Optional[UUID] = None,
+    model: Optional[str] = None,
+    tokens_used: Optional[int] = None,
+    preprocessing_applied: bool = False
+) -> dict:
+    """Create a new chat message."""
+    row = await db.fetchrow(
+        """
+        INSERT INTO chat_messages
+        (conversation_id, user_id, session_id, role, content, model, tokens_used, preprocessing_applied)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING *
+        """,
+        conversation_id, user_id, session_id, role, content, model, tokens_used, preprocessing_applied
+    )
+    return dict(row)
+
+
+async def get_conversation_messages(conversation_id: UUID, limit: Optional[int] = None) -> List[dict]:
+    """Get all messages for a conversation, optionally limited."""
+    if limit:
+        rows = await db.fetch(
+            """
+            SELECT * FROM chat_messages
+            WHERE conversation_id = $1
+            ORDER BY created_at ASC
+            LIMIT $2
+            """,
+            conversation_id, limit
+        )
+    else:
+        rows = await db.fetch(
+            "SELECT * FROM chat_messages WHERE conversation_id = $1 ORDER BY created_at ASC",
+            conversation_id
+        )
+    return [dict(r) for r in rows]
+
+
+async def get_chat_message(message_id: int) -> Optional[dict]:
+    """Get a specific chat message."""
+    row = await db.fetchrow("SELECT * FROM chat_messages WHERE id = $1", message_id)
+    return dict(row) if row else None
+
+
+async def delete_chat_message(message_id: int) -> bool:
+    """Delete a chat message."""
+    result = await db.execute("DELETE FROM chat_messages WHERE id = $1", message_id)
+    return result == "DELETE 1"
+
+
+async def delete_conversation_messages(conversation_id: UUID) -> int:
+    """Delete all messages in a conversation. Returns count of deleted messages."""
+    result = await db.execute("DELETE FROM chat_messages WHERE conversation_id = $1", conversation_id)
+    # Extract count from result like "DELETE 5"
+    if result.startswith("DELETE "):
+        return int(result.split(" ")[1])
+    return 0
