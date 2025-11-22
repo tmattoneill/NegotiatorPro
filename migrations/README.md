@@ -1,62 +1,79 @@
 # Database Migrations
 
-This directory contains PostgreSQL database migration scripts for NegotiatorPro.
+This directory contains the PostgreSQL database schema for NegotiatorPro.
 
-## Migration Files
+## Migration File
 
-- `001_initial_schema.sql` - Initial database schema with users, sessions, configuration, and chat history
-
-## Running Migrations
-
-### Using psql
-
-```bash
-# Connect to your PostgreSQL database
-psql -U your_username -d negotiatorpro
-
-# Run a migration
-\i migrations/001_initial_schema.sql
-```
-
-### Using Docker Compose
-
-```bash
-# Copy SQL file to running Postgres container
-docker cp migrations/001_initial_schema.sql postgres_container:/001_initial_schema.sql
-
-# Execute migration
-docker exec -it postgres_container psql -U negotiatorpro -d negotiatorpro -f /001_initial_schema.sql
-```
-
-## Creating New Migrations
-
-When creating new migrations:
-
-1. Use sequential numbering: `002_description.sql`, `003_description.sql`, etc.
-2. Include rollback logic where appropriate
-3. Test migrations on a development database first
-4. Document schema changes in comments
+- `001_full_schema.sql` - Complete production database schema
 
 ## Schema Overview
 
-The database includes the following main tables:
+The database includes the following tables:
 
-- **users** - User accounts and authentication
-- **sessions** - Session management with expiration
-- **system_config** - System-wide configuration
-- **llm_config** - LLM backend and model settings
-- **usage_logs** - API usage statistics and tracking
-- **documents** - Uploaded source documents
+**Core User Management:**
+- **users** - User accounts with profile and encrypted API key storage
+- **sessions** - Session management with expiration tracking
+
+**System Configuration:**
+- **system_config** - System-wide configuration key-value store
+- **llm_config** - LLM backend and model configurations
+- **embedding_config** - Vector embedding model configuration
 - **prompts** - Prompt templates with versioning
-- **chat_messages** - Chat conversation history
-- **embedding_config** - Vector embedding configuration
+
+**Negotiation System:**
+- **user_personas** - User's negotiation identities/roles
+- **partner_personas** - Negotiation counterpart profiles (shareable)
+- **negotiations** - Core negotiation tracking with status
+- **negotiation_partners** - Links negotiations to partner personas
+- **conversations** - Chat sessions within negotiations
+- **chat_messages** - Conversation history
+
+**Document & Usage:**
+- **documents** - Uploaded source documents for RAG
+- **negotiation_documents** - Documents attached to negotiations
+- **usage_logs** - API usage statistics and token tracking
+
+## Running Migrations
+
+### Docker (Automatic)
+
+Migrations run automatically when the PostgreSQL container starts for the first time.
+The `migrations/` directory is mounted to `/docker-entrypoint-initdb.d/`.
+
+```bash
+docker compose up -d
+```
+
+### Manual Execution
+
+```bash
+# Using psql directly
+psql -U negotiatorpro -d negotiatorpro -f migrations/001_full_schema.sql
+
+# Using Docker
+docker exec -i negotiator-pro-postgres psql -U negotiatorpro -d negotiatorpro < migrations/001_full_schema.sql
+```
+
+## Fresh Database Setup
+
+For a completely fresh database:
+
+```bash
+# Stop containers and remove database volume
+docker compose down -v
+
+# Remove local data
+rm -rf data/db
+
+# Start fresh
+docker compose up -d
+```
 
 ## Environment Setup
 
-Create a `.env` file with PostgreSQL connection details:
+Required environment variables in `.env`:
 
 ```bash
-# PostgreSQL Configuration
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
 POSTGRES_DB=negotiatorpro
@@ -64,12 +81,9 @@ POSTGRES_USER=negotiatorpro
 POSTGRES_PASSWORD=your_secure_password
 ```
 
-## Future: Migration Tool
+## Default Users
 
-Consider using a migration tool like:
-- **Alembic** (Python)
-- **Flyway** (Java/Docker)
-- **migrate** (Go)
-- **node-pg-migrate** (Node.js)
-
-For now, migrations are manual SQL scripts.
+The migration creates a default admin user:
+- **Username:** admin
+- **Password:** admin123
+- **IMPORTANT:** Change this password immediately after first login!
