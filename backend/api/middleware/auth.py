@@ -21,8 +21,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(get_required_env("JWT_TOKEN_EXPIRE_MINUTES", d
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# HTTP Bearer token scheme
-security = HTTPBearer()
+# HTTP Bearer token scheme (auto_error=False makes it optional)
+security = HTTPBearer(auto_error=False)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -118,30 +118,39 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-async def get_current_user(token_payload: dict = Depends(verify_token)) -> dict:
+async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> Optional[dict]:
     """
     Get current authenticated user from JWT token.
+    This is OPTIONAL - returns None if no token is provided.
     
     Args:
-        token_payload: Decoded JWT payload from verify_token dependency
+        credentials: Optional HTTP Bearer credentials from request
         
     Returns:
-        Dictionary with user information
-        
-    Raises:
-        HTTPException: If user ID is not in token
+        Dictionary with user information, or None if not authenticated
     """
-    user_id = token_payload.get("sub")
-    if user_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    # If no credentials provided, return None (user not authenticated)
+    if credentials is None:
+        return None
     
-    # Return user information from token
-    return {
-        "id": user_id,
-        "username": token_payload.get("username"),
-        "role": token_payload.get("role", "user")
-    }
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        
+        # Check if token has expired
+        exp = payload.get("exp")
+        if exp and datetime.utcnow() > datetime.fromtimestamp(exp):
+            return None
+        
+        user_id = payload.get("sub")
+        if user_id is None:
+            return None
+        
+        # Return user information from token
+        return {
+            "id": user_id,
+            "username": payload.get("username"),
+            "role": payload.get("role", "user")
+        }
+    except JWTError:
+        # Invalid token, return None instead of raising exception
+        return None

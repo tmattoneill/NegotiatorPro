@@ -79,22 +79,22 @@ async def process_chat(
     provider: Optional[str] = Form(None),
     model: Optional[str] = Form(None),
     files: Optional[List[UploadFile]] = File(None),
-    current_user: dict = Depends(get_current_user)
+    current_user: Optional[dict] = Depends(get_current_user)
 ):
     """
     Process a chat question using the RAG system.
-    Supports file uploads (images, txt, csv) and saves to database.
+    Supports file uploads (images, txt, csv) and optional database persistence.
 
     Args:
         question: User's question or negotiation context
-        conversation_id: Optional conversation ID to save messages to
+        conversation_id: Optional conversation ID to save messages to (requires authentication)
         partner_info: Optional context about negotiation partner
         use_premium_model: Whether to use premium model
         use_preprocessing: Whether to apply text preprocessing
         provider: LLM provider override
         model: Model ID override
         files: Optional uploaded files (images, documents)
-        current_user: Authenticated user (injected by dependency)
+        current_user: Optional authenticated user (from JWT token)
 
     Returns:
         ChatResponse with AI-generated answer
@@ -154,9 +154,8 @@ async def process_chat(
 
         logger.info(f"Question processed successfully in {processing_time:.2f}s using {model_used}")
 
-        # Save messages to database if conversation_id is provided
-        conversation_uuid: Optional[UUID] = None
-        if conversation_id:
+        # Save messages to database if user is authenticated AND conversation_id is provided
+        if current_user and conversation_id:
             try:
                 conversation_uuid = UUID(conversation_id)
                 user_uuid = UUID(current_user['id'])
@@ -180,12 +179,14 @@ async def process_chat(
                     preprocessing_applied=use_preprocessing
                 )
 
-                logger.info(f"Messages saved to conversation {conversation_id}")
+                logger.info(f"Messages saved to conversation {conversation_id} for user {current_user['username']}")
             except ValueError as ve:
                 logger.warning(f"Invalid conversation_id format: {conversation_id}")
             except Exception as db_error:
                 # Don't fail the request if database save fails
                 logger.error(f"Failed to save messages to database: {db_error}", exc_info=True)
+        elif conversation_id and not current_user:
+            logger.warning(f"Conversation ID provided but user not authenticated - messages not saved")
 
         return ChatResponse(
             answer=answer,
