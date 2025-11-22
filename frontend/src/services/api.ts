@@ -51,6 +51,10 @@ export const sendChatMessage = async (request: ChatRequest, files?: File[]): Pro
   const formData = new FormData();
   formData.append('question', request.question);
 
+  if (request.conversation_id) {
+    formData.append('conversation_id', request.conversation_id);
+  }
+
   if (request.partner_info) {
     formData.append('partner_info', request.partner_info);
   }
