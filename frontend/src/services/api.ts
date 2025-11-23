@@ -187,13 +187,13 @@ export const getConversation = async (id: string): Promise<Conversation> => {
   return response.data;
 };
 
-export const updateConversation = async (id: string, data: ConversationUpdate): Promise<Conversation> => {
-  const response = await api.patch<Conversation>(`/conversations/${id}`, data);
+export const updateConversation = async (id: string, userId: string, data: ConversationUpdate): Promise<Conversation> => {
+  const response = await api.patch<Conversation>(`/conversations/${id}?user_id=${userId}`, data);
   return response.data;
 };
 
-export const deleteConversation = async (id: string): Promise<void> => {
-  await api.delete(`/conversations/${id}`);
+export const deleteConversation = async (id: string, userId: string): Promise<void> => {
+  await api.delete(`/conversations/${id}?user_id=${userId}`);
 };
 
 export const getConversationMessages = async (conversationId: string, userId: string, limit?: number): Promise<any[]> => {

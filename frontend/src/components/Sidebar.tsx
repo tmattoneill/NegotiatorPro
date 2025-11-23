@@ -14,7 +14,7 @@ import { useAdminStore } from '../store/adminStore';
 
 export default function Sidebar() {
   const navigate = useNavigate();
-  const { sessions, currentSessionId, createNewSession, switchSession, loadConversations } = useChatStore();
+  const { sessions, currentSessionId, createNewSession, switchSession, loadConversations, deleteSession, renameSession } = useChatStore();
   const { user, logout } = useAuthStore();
   const { userPersonas, partnerPersonas: _partnerPersonas, fetchUserPersonas, fetchPartnerPersonas } = usePersonaStore();
   void _partnerPersonas; // Available for future use
@@ -30,6 +30,10 @@ export default function Sidebar() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showNegotiationModal, setShowNegotiationModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
   const { currentView, setView } = useAdminStore();
 
   // Check if user is admin
@@ -60,6 +64,58 @@ export default function Sidebar() {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, sessionId: string) => {
+    e.stopPropagation(); // Prevent switching to this session
+    setSessionToDelete(sessionId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (sessionToDelete && user?.id) {
+      try {
+        await deleteSession(sessionToDelete, user.id);
+        setShowDeleteModal(false);
+        setSessionToDelete(null);
+      } catch (error) {
+        console.error('Failed to delete conversation:', error);
+        alert('Failed to delete conversation. Please try again.');
+      }
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setSessionToDelete(null);
+  };
+
+  const startEditing = (e: React.MouseEvent, sessionId: string, currentTitle: string) => {
+    e.stopPropagation(); // Prevent switching to this session
+    setEditingSessionId(sessionId);
+    setEditingTitle(currentTitle);
+  };
+
+  const handleRenameSubmit = async (sessionId: string) => {
+    if (editingTitle.trim() && user?.id) {
+      try {
+        await renameSession(sessionId, user.id, editingTitle);
+        setEditingSessionId(null);
+        setEditingTitle('');
+      } catch (error) {
+        console.error('Failed to rename conversation:', error);
+        alert('Failed to rename conversation. Please try again.');
+      }
+    } else {
+      // If empty, cancel the edit
+      setEditingSessionId(null);
+      setEditingTitle('');
+    }
+  };
+
+  const cancelEditing = () => {
+    setEditingSessionId(null);
+    setEditingTitle('');
   };
 
   return (
@@ -207,14 +263,84 @@ export default function Sidebar() {
           <div
             key={session.id}
             className={`session-item ${session.id === currentSessionId ? 'active' : ''}`}
-            onClick={() => switchSession(session.id, user?.id)}
+            onClick={() => editingSessionId !== session.id && switchSession(session.id, user?.id)}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}
           >
-            <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
-              {session.title || 'New Conversation'}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {editingSessionId === session.id ? (
+                <input
+                  type="text"
+                  value={editingTitle}
+                  onChange={(e) => setEditingTitle(e.target.value.slice(0, 64))}
+                  onBlur={() => handleRenameSubmit(session.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleRenameSubmit(session.id);
+                    } else if (e.key === 'Escape') {
+                      cancelEditing();
+                    }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  autoFocus
+                  maxLength={64}
+                  style={{
+                    width: '100%',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: '4px',
+                    padding: '4px 8px',
+                    color: '#fff',
+                    outline: 'none',
+                  }}
+                />
+              ) : (
+                <>
+                  <div
+                    style={{ fontSize: '14px', fontWeight: 500, marginBottom: '4px', cursor: 'pointer' }}
+                    onClick={(e) => startEditing(e, session.id, session.title || 'New Conversation')}
+                    title="Click to rename"
+                  >
+                    {session.title || 'New Conversation'}
+                  </div>
+                  <div style={{ fontSize: '11px', opacity: 0.7 }}>
+                    {session.messageCount} messages • {new Date(session.createdAt).toLocaleDateString()}
+                  </div>
+                </>
+              )}
             </div>
-            <div style={{ fontSize: '11px', opacity: 0.7 }}>
-              {session.messageCount} messages • {new Date(session.createdAt).toLocaleDateString()}
-            </div>
+            {editingSessionId !== session.id && (
+              <button
+                onClick={(e) => handleDeleteClick(e, session.id)}
+                className="delete-session-btn"
+                title="Delete conversation"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#ff6b6b',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  marginLeft: '8px',
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: 0.6,
+                  transition: 'opacity 0.2s, background 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                  e.currentTarget.style.background = 'rgba(255, 107, 107, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '0.6';
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                <i className="fa-light fa-trash" style={{ fontSize: '14px' }}></i>
+              </button>
+            )}
           </div>
         ))}
 
@@ -506,6 +632,102 @@ export default function Sidebar() {
                 }}
               >
                 Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Conversation Confirmation Modal */}
+      {showDeleteModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.7)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            background: '#1e2936',
+            padding: '32px',
+            borderRadius: '12px',
+            maxWidth: '400px',
+            width: '90%',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+          }}>
+            <h2 style={{
+              fontSize: '20px',
+              fontWeight: '600',
+              color: '#ffffff',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+            }}>
+              <i className="fa-light fa-trash" style={{ color: '#ff6b6b' }}></i>
+              Delete Conversation?
+            </h2>
+            <p style={{
+              fontSize: '14px',
+              color: '#9fadbd',
+              marginBottom: '24px',
+              lineHeight: '1.5',
+            }}>
+              Are you sure you want to delete this conversation? This action cannot be undone and all messages will be permanently removed.
+            </p>
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              justifyContent: 'flex-end',
+            }}>
+              <button
+                onClick={cancelDelete}
+                style={{
+                  padding: '10px 20px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                style={{
+                  padding: '10px 20px',
+                  background: '#ff6b6b',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = '#ff5252';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = '#ff6b6b';
+                }}
+              >
+                Delete
               </button>
             </div>
           </div>

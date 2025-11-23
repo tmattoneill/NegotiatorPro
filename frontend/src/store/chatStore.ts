@@ -24,6 +24,8 @@ interface ChatState {
   loadConversations: (negotiationId: string, userId: string) => Promise<void>;
   loadConversationMessages: (conversationId: string, userId: string) => Promise<void>;
   createNewSession: (negotiationId: string, userId: string) => Promise<void>;
+  renameSession: (sessionId: string, userId: string, newTitle: string) => Promise<void>;
+  deleteSession: (sessionId: string, userId: string) => Promise<void>;
   switchSession: (sessionId: string, userId?: string) => Promise<void>;
   getCurrentSession: () => Session | undefined;
   addMessage: (message: Message) => void;
@@ -132,6 +134,55 @@ export const useChatStore = create<ChatState>((set, get) => ({
       console.error('Failed to create conversation:', error);
       set({ isCreatingSession: false });
       throw error; // Re-throw so caller knows it failed
+    }
+  },
+
+  // Rename a conversation
+  renameSession: async (sessionId: string, userId: string, newTitle: string) => {
+    try {
+      // Trim and limit to 64 characters
+      const trimmedTitle = newTitle.trim().slice(0, 64);
+
+      if (!trimmedTitle) {
+        throw new Error('Title cannot be empty');
+      }
+
+      await api.updateConversation(sessionId, userId, { title: trimmedTitle });
+
+      // Update local state
+      set((state) => ({
+        sessions: state.sessions.map((session) =>
+          session.id === sessionId
+            ? { ...session, title: trimmedTitle }
+            : session
+        ),
+      }));
+    } catch (error) {
+      console.error('Failed to rename conversation:', error);
+      throw error;
+    }
+  },
+
+  // Delete a conversation
+  deleteSession: async (sessionId: string, userId: string) => {
+    try {
+      await api.deleteConversation(sessionId, userId);
+
+      const { sessions, currentSessionId } = get();
+      const updatedSessions = sessions.filter(s => s.id !== sessionId);
+
+      // If we deleted the current session, switch to the first available one
+      const newCurrentId = currentSessionId === sessionId
+        ? (updatedSessions[0]?.id || null)
+        : currentSessionId;
+
+      set({
+        sessions: updatedSessions,
+        currentSessionId: newCurrentId,
+      });
+    } catch (error) {
+      console.error('Failed to delete conversation:', error);
+      throw error;
     }
   },
 

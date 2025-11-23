@@ -1,7 +1,7 @@
 /**
  * Main chat container component - clean layout
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useChatStore } from '../store/chatStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useNegotiationStore } from '../store/negotiationStore';
@@ -12,7 +12,7 @@ import ChatInput from './ChatInput';
 import type { Message } from '../types';
 
 export default function ChatContainer() {
-  const { getCurrentSession, addMessage, isLoading, setLoading, createNewSession } = useChatStore();
+  const { getCurrentSession, addMessage, isLoading, setLoading, createNewSession, renameSession } = useChatStore();
   const { selectedProvider, selectedModel, usePremiumModel, usePreprocessing, availableModels } = useSettingsStore();
   const { negotiations, currentNegotiationId } = useNegotiationStore();
   const { user } = useAuthStore();
@@ -25,6 +25,16 @@ export default function ChatContainer() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentSession = getCurrentSession();
   const currentNegotiation = negotiations.find(n => n.id === currentNegotiationId);
+
+  // State for editing conversation title
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editingTitle, setEditingTitle] = useState('');
+
+  // Reset editing state when session changes
+  useEffect(() => {
+    setIsEditingTitle(false);
+    setEditingTitle('');
+  }, [currentSession?.id]);
 
   // Auto-create a conversation when user first loads the chat (if none exists)
   useEffect(() => {
@@ -123,10 +133,75 @@ export default function ChatContainer() {
     }
   };
 
+  const startEditingTitle = () => {
+    if (currentSession) {
+      setEditingTitle(currentSession.title || 'New Conversation');
+      setIsEditingTitle(true);
+    }
+  };
+
+  const handleTitleSubmit = async () => {
+    if (currentSession && editingTitle.trim() && user?.id) {
+      try {
+        await renameSession(currentSession.id, user.id, editingTitle);
+        setIsEditingTitle(false);
+        setEditingTitle('');
+      } catch (error) {
+        console.error('Failed to rename conversation:', error);
+        alert('Failed to rename conversation. Please try again.');
+      }
+    } else {
+      setIsEditingTitle(false);
+      setEditingTitle('');
+    }
+  };
+
+  const cancelTitleEdit = () => {
+    setIsEditingTitle(false);
+    setEditingTitle('');
+  };
+
   return (
     <div className="chat-container">
       <div className="chat-header">
-        <h2>{currentSession?.title || 'Select or create a conversation'}</h2>
+        {isEditingTitle ? (
+          <input
+            type="text"
+            value={editingTitle}
+            onChange={(e) => setEditingTitle(e.target.value.slice(0, 64))}
+            onBlur={handleTitleSubmit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleTitleSubmit();
+              } else if (e.key === 'Escape') {
+                cancelTitleEdit();
+              }
+            }}
+            autoFocus
+            maxLength={64}
+            style={{
+              margin: 0,
+              fontSize: '20px',
+              fontWeight: '600',
+              background: 'transparent',
+              border: '1px solid #fafafa',
+              borderRadius: '4px',
+              padding: '2px 4px',
+              color: '#191919',
+              outline: 'none',
+              fontFamily: 'inherit',
+              lineHeight: 'normal',
+            }}
+          />
+        ) : (
+          <h2
+            onClick={startEditingTitle}
+            style={{ cursor: currentSession ? 'pointer' : 'default' }}
+            title={currentSession ? 'Click to rename' : ''}
+          >
+            {currentSession?.title || 'Select or create a conversation'}
+          </h2>
+        )}
         <span className="provider-model-display">{providerDisplayName} / {modelDisplayName}</span>
       </div>
 
