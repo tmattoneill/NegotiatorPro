@@ -174,8 +174,10 @@ export default function Sidebar() {
             ))}
           </select>
         ) : (
-          <div style={{ fontSize: '13px', color: '#fff', opacity: 0.5, fontStyle: 'italic' }}>
-            No negotiations yet - click "+ New" to create one
+          <div style={{ fontSize: '13px', color: '#fff', opacity: 0.7, fontStyle: 'italic', lineHeight: '1.4' }}>
+            <div style={{ marginBottom: '4px' }}>
+              Welcome! Click "+ New" above to start your first negotiation.
+            </div>
           </div>
         )}
       </div>

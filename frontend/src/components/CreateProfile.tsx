@@ -90,10 +90,14 @@ function CreateProfile() {
         role: 'user',
       });
 
+      // Clear any previous onboarding flags to ensure new user gets the wizard
+      localStorage.removeItem('onboardingCompleted');
+      localStorage.removeItem('onboardingDismissed');
+
       // Log the user in
       login(response.data);
 
-      // Redirect to main app
+      // Redirect to main app - onboarding wizard will trigger automatically
       navigate('/');
     } catch (error: any) {
       console.error('Profile creation failed:', error);
