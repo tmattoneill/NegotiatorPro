@@ -66,8 +66,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       // Convert database messages to Message type
       const formattedMessages: Message[] = messages.map(msg => ({
+        id: msg.id || crypto.randomUUID(),
         role: msg.role,
         content: msg.content,
+        timestamp: msg.created_at ? new Date(msg.created_at) : new Date(),
+        model_used: msg.model_used,
       }));
 
       set((state) => ({
