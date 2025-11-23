@@ -3,7 +3,7 @@
  */
 import { create } from 'zustand';
 
-type AdminView = 'none' | 'system-prompt';
+type AdminView = 'none' | 'system-prompt' | 'admin-panel';
 
 interface AdminState {
   currentView: AdminView;
