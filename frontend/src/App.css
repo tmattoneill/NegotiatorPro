@@ -425,7 +425,7 @@
   margin-top: 0 !important;
 }
 
-/* 1em space between heading and following list */
+/* Eliminate gap between heading and following list */
 .message-content h1 + ul,
 .message-content h2 + ul,
 .message-content h3 + ul,
@@ -438,7 +438,7 @@
 .message-content h4 + ol,
 .message-content h5 + ol,
 .message-content h6 + ol {
-  margin-top: 1em !important;
+  margin-top: -4px !important;
 }
 
 .message-content p {
@@ -451,14 +451,18 @@
 .message-content ol {
   margin: 0 !important;
   padding: 0 !important;
-  padding-left: 20px !important;
-  list-style-position: outside !important;
+  padding-left: 16px !important;
+  list-style-position: inside !important;
 }
 
 .message-content li {
   margin: 0 !important;
   padding: 0 !important;
-  line-height: 1.25 !important;
+  line-height: 1.12 !important;
+}
+
+.message-content li + li {
+  margin-top: 2px !important;
 }
 
 .message-content li > p,

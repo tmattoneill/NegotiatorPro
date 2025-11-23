@@ -2,7 +2,7 @@
  * Advanced copy button with format options (Markdown, HTML, Plain Text)
  * Shows dropdown menu on hover after 0.5s delay
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Remarkable } from 'remarkable';
 
 interface CopyButtonProps {
@@ -17,7 +17,7 @@ const md = new Remarkable({ html: true, breaks: true });
 export default function CopyButton({ content, className = '' }: CopyButtonProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [copied, setCopied] = useState<CopyFormat | null>(null);
-  const [hoverTimer, setHoverTimer] = useState<NodeJS.Timeout | null>(null);
+  const [hoverTimer, setHoverTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const buttonRef = useRef<HTMLDivElement>(null);
 
   const convertToHTML = (markdown: string): string => {
