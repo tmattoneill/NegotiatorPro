@@ -21,7 +21,7 @@ conversations_router = APIRouter(prefix="/api/conversations", tags=["conversatio
 
 
 @conversations_router.post("/", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED)
-async def create_conversation(user_id: str, data: ConversationCreate):
+async def create_conversation(data: ConversationCreate, user_id: str):
     """Create a new conversation within a negotiation."""
     # Verify user owns the negotiation
     negotiation = await db_ops.get_negotiation(data.negotiation_id)
@@ -39,16 +39,27 @@ async def create_conversation(user_id: str, data: ConversationCreate):
         raise HTTPException(status_code=500, detail="Failed to create conversation")
 
 
-@conversations_router.get("/negotiation/{negotiation_id}", response_model=List[ConversationResponse])
+@conversations_router.get("/negotiation/{negotiation_id}", response_model=List[ConversationDetailResponse])
 async def get_negotiation_conversations(negotiation_id: str, user_id: str):
-    """Get all conversations for a negotiation."""
+    """Get all conversations for a negotiation with message counts."""
     # Verify user owns the negotiation
     negotiation = await db_ops.get_negotiation(UUID(negotiation_id))
     if not negotiation or str(negotiation['user_id']) != user_id:
         raise HTTPException(status_code=404, detail="Negotiation not found")
 
     conversations = await db_ops.get_conversations(UUID(negotiation_id))
-    return [ConversationResponse(**c) for c in conversations]
+
+    # Add message count to each conversation
+    detailed_conversations = []
+    for conv in conversations:
+        conv_detail = dict(conv)
+        conv_detail['message_count'] = await db_ops.db.fetchval(
+            "SELECT COUNT(*) FROM chat_messages WHERE conversation_id = $1",
+            conv['id']
+        )
+        detailed_conversations.append(ConversationDetailResponse(**conv_detail))
+
+    return detailed_conversations
 
 
 @conversations_router.get("/{conversation_id}", response_model=ConversationDetailResponse)

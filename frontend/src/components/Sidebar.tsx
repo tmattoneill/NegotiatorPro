@@ -9,6 +9,7 @@ import { usePersonaStore } from '../store/personaStore';
 import { useNegotiationStore } from '../store/negotiationStore';
 import SettingsModal from './SettingsModal';
 import ModelSelector from './ModelSelector';
+import NegotiationModal from './NegotiationModal';
 import { useAdminStore } from '../store/adminStore';
 
 export default function Sidebar() {
@@ -28,6 +29,7 @@ export default function Sidebar() {
   }, [currentNegotiationId, currentNegotiation]);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showNegotiationModal, setShowNegotiationModal] = useState(false);
   const { currentView, setView } = useAdminStore();
 
   // Check if user is admin
@@ -117,8 +119,31 @@ export default function Sidebar() {
         background: 'rgba(255, 255, 255, 0.05)',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
       }}>
-        <div style={{ fontSize: '10px', color: '#9fadbd', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-          Active Negotiation
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '8px'
+        }}>
+          <div style={{ fontSize: '10px', color: '#9fadbd', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Active Negotiation
+          </div>
+          <button
+            onClick={() => setShowNegotiationModal(true)}
+            style={{
+              padding: '4px 8px',
+              background: 'rgba(182, 137, 71, 0.2)',
+              border: '1px solid rgba(182, 137, 71, 0.5)',
+              borderRadius: '4px',
+              color: '#b68947',
+              fontSize: '11px',
+              cursor: 'pointer',
+              fontWeight: 500,
+            }}
+            title="Create new negotiation"
+          >
+            + New
+          </button>
         </div>
         {negotiations.length > 0 ? (
           <select
@@ -150,27 +175,8 @@ export default function Sidebar() {
           </select>
         ) : (
           <div style={{ fontSize: '13px', color: '#fff', opacity: 0.5, fontStyle: 'italic' }}>
-            No negotiations yet
+            No negotiations yet - click "+ New" to create one
           </div>
-        )}
-        {negotiations.length === 0 && (
-          <button
-            onClick={() => navigate('/profile')}
-            style={{
-              marginTop: '8px',
-              width: '100%',
-              padding: '8px 12px',
-              background: 'rgba(182, 137, 71, 0.2)',
-              border: '1px solid rgba(182, 137, 71, 0.5)',
-              borderRadius: '6px',
-              color: '#b68947',
-              fontSize: '12px',
-              cursor: 'pointer',
-              fontWeight: 500,
-            }}
-          >
-            + Create Negotiation
-          </button>
         )}
       </div>
 
@@ -185,21 +191,21 @@ export default function Sidebar() {
       <button
         className="new-session-btn"
         onClick={() => currentNegotiation?.id && user?.id && createNewSession(currentNegotiation.id, user.id)}
-        disabled={!currentNegotiation?.id}
-        title={!currentNegotiation?.id ? 'Please select a negotiation first' : 'Create a new conversation'}
+        disabled={!currentNegotiation?.id || !user?.id}
+        title={!currentNegotiation?.id ? 'Loading...' : 'Start a new conversation'}
       >
         + New Conversation
       </button>
 
       <div className="sessions-list">
         <h3 style={{ fontSize: '12px', color: '#6c757d', padding: '8px 16px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          Negotiation Sessions
+          Chat Sessions
         </h3>
         {sessions.map((session) => (
           <div
             key={session.id}
             className={`session-item ${session.id === currentSessionId ? 'active' : ''}`}
-            onClick={() => user?.id && switchSession(session.id, user.id)}
+            onClick={() => switchSession(session.id, user?.id)}
           >
             <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
               {session.title || 'New Conversation'}
@@ -212,7 +218,7 @@ export default function Sidebar() {
 
         {sessions.length === 0 && (
           <div style={{ padding: '16px', textAlign: 'center', color: '#6c757d', fontSize: '13px' }}>
-            {currentNegotiation ? 'No conversations yet. Click "New Conversation" to start.' : 'Select a negotiation to view conversations.'}
+            No chat sessions yet. Click "New Conversation" to start.
           </div>
         )}
       </div>
@@ -469,6 +475,9 @@ export default function Sidebar() {
 
       {/* Settings Modal */}
       <SettingsModal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} />
+
+      {/* Negotiation Modal */}
+      <NegotiationModal isOpen={showNegotiationModal} onClose={() => setShowNegotiationModal(false)} />
     </div>
   );
 }

@@ -20,11 +20,10 @@ interface ChatState {
   isLoading: boolean;
 
   // Actions
-  createLocalSession: () => void;
   loadConversations: (negotiationId: string, userId: string) => Promise<void>;
   loadConversationMessages: (conversationId: string, userId: string) => Promise<void>;
   createNewSession: (negotiationId: string, userId: string) => Promise<void>;
-  switchSession: (sessionId: string, userId: string) => Promise<void>;
+  switchSession: (sessionId: string, userId?: string) => Promise<void>;
   getCurrentSession: () => Session | undefined;
   addMessage: (message: Message) => void;
   setLoading: (loading: boolean) => void;
@@ -34,23 +33,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
   sessions: [],
   currentSessionId: null,
   isLoading: false,
-
-  // Create a local-only session (no database persistence)
-  createLocalSession: () => {
-    const sessionId = `local-${Date.now()}`;
-    const newSession: Session = {
-      id: sessionId,
-      title: 'Chat Session',
-      messages: [],
-      createdAt: new Date(),
-      messageCount: 0,
-    };
-
-    set((state) => ({
-      sessions: [newSession, ...state.sessions],
-      currentSessionId: newSession.id,
-    }));
-  },
 
   // Load all conversations for a negotiation from database
   loadConversations: async (negotiationId: string, userId: string) => {
@@ -62,14 +44,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
         title: conv.title || 'Untitled Conversation',
         messages: [],
         createdAt: new Date(conv.created_at),
-        messageCount: 0,
+        messageCount: conv.message_count || 0,
         negotiationId: negotiationId,
       }));
 
       set({ sessions, currentSessionId: sessions[0]?.id || null });
 
-      // Load messages for first conversation
-      if (sessions[0]) {
+      // Load messages for first conversation if it has messages
+      if (sessions[0] && sessions[0].messageCount > 0) {
         await get().loadConversationMessages(sessions[0].id, userId);
       }
     } catch (error) {
@@ -136,11 +118,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   // Switch to a different conversation and load its messages
-  switchSession: async (sessionId: string, userId: string) => {
+  switchSession: async (sessionId: string, userId?: string) => {
     const session = get().sessions.find(s => s.id === sessionId);
 
-    // Load messages if not already loaded
-    if (session && session.messages.length === 0 && session.messageCount > 0) {
+    // Load messages if not already loaded (for database sessions)
+    if (session && session.messages.length === 0 && session.messageCount > 0 && userId) {
       await get().loadConversationMessages(sessionId, userId);
     }
 

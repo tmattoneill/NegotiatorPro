@@ -172,7 +172,8 @@ export const deletePartnerPersona = async (userId: string, id: string): Promise<
 // ============================================================================
 
 export const createConversation = async (data: ConversationCreate): Promise<Conversation> => {
-  const response = await api.post<Conversation>('/conversations/', data);
+  const { user_id, ...requestData } = data;
+  const response = await api.post<Conversation>(`/conversations/?user_id=${user_id}`, requestData);
   return response.data;
 };
 
