@@ -392,16 +392,21 @@
   font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
 }
 
-/* Markdown formatting styles - Tightened spacing */
+/* NUCLEAR SPACING RESET - Ultra-tight layout for message content */
+.message-content * {
+  line-height: 1.15 !important;
+}
+
 .message-content h1,
 .message-content h2,
 .message-content h3,
 .message-content h4,
 .message-content h5,
 .message-content h6 {
-  margin: 12px 0 6px 0;
+  margin: 8px 0 0 0 !important;
+  padding: 0 !important;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.1 !important;
 }
 
 .message-content h1 { font-size: 24px; }
@@ -417,31 +422,63 @@
 .message-content h4:first-child,
 .message-content h5:first-child,
 .message-content h6:first-child {
-  margin-top: 0;
+  margin-top: 0 !important;
+}
+
+/* 1em space between heading and following list */
+.message-content h1 + ul,
+.message-content h2 + ul,
+.message-content h3 + ul,
+.message-content h4 + ul,
+.message-content h5 + ul,
+.message-content h6 + ul,
+.message-content h1 + ol,
+.message-content h2 + ol,
+.message-content h3 + ol,
+.message-content h4 + ol,
+.message-content h5 + ol,
+.message-content h6 + ol {
+  margin-top: 1em !important;
 }
 
 .message-content p {
-  margin: 6px 0;
-  line-height: 1.5;
-}
-
-.message-content p:first-child {
-  margin-top: 0;
-}
-
-.message-content p:last-child {
-  margin-bottom: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.3 !important;
 }
 
 .message-content ul,
 .message-content ol {
-  margin: 6px 0;
-  padding-left: 24px;
+  margin: 0 !important;
+  padding: 0 !important;
+  padding-left: 20px !important;
+  list-style-position: outside !important;
 }
 
 .message-content li {
-  margin: 2px 0;
-  line-height: 1.5;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.25 !important;
+}
+
+.message-content li > p,
+.message-content li p,
+.message-content li > strong,
+.message-content li strong {
+  display: inline !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Remove ALL spacing between different element types */
+.message-content > * + * {
+  margin-top: 4px !important;
+}
+
+.message-content li > ul,
+.message-content li > ol {
+  margin: 0 !important;
+  padding-left: 20px !important;
 }
 
 .message-content code {
