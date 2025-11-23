@@ -12,8 +12,10 @@ import ChatInput from './ChatInput';
 import type { Message } from '../types';
 
 export default function ChatContainer() {
-  const { getCurrentSession, addMessage, isLoading, setLoading, createLocalSession } = useChatStore();
+  const { getCurrentSession, addMessage, isLoading, setLoading, createNewSession } = useChatStore();
   const { selectedProvider, selectedModel, usePremiumModel, usePreprocessing, availableModels } = useSettingsStore();
+  const { negotiations, currentNegotiationId } = useNegotiationStore();
+  const { user } = useAuthStore();
 
   // Get display names for provider and model
   const providerDisplayName = selectedProvider && availableModels[selectedProvider]?.name
@@ -22,13 +24,17 @@ export default function ChatContainer() {
   const modelDisplayName = selectedModel || 'Unknown';
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentSession = getCurrentSession();
+  const currentNegotiation = negotiations.find(n => n.id === currentNegotiationId);
 
-  // Initialize a local session on mount if none exists
+  // Auto-create a conversation when user first loads the chat (if none exists)
   useEffect(() => {
-    if (!currentSession?.id) {
-      createLocalSession();
-    }
-  }, []); // Run once on mount
+    const initializeChat = async () => {
+      if (!currentSession?.id && currentNegotiation?.id && user?.id) {
+        await createNewSession(currentNegotiation.id, user.id);
+      }
+    };
+    initializeChat();
+  }, [currentNegotiation?.id, user?.id]); // Run when negotiation or user changes
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -36,10 +42,18 @@ export default function ChatContainer() {
   }, [currentSession?.messages]);
 
   const handleSendMessage = async (content: string, files?: File[]) => {
-    // Create a local session if none exists (no database persistence needed for simple chat)
-    if (!currentSession?.id) {
-      const { createLocalSession } = useChatStore.getState();
-      createLocalSession();
+    // Auto-create conversation if none exists
+    if (!currentSession?.id && currentNegotiation?.id && user?.id) {
+      await createNewSession(currentNegotiation.id, user.id);
+      // Give it a moment for state to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    // Check again after creation
+    const session = getCurrentSession();
+    if (!session?.id) {
+      console.error('No session available');
+      return;
     }
 
     // Build user message content with file info
@@ -60,12 +74,10 @@ export default function ChatContainer() {
     setLoading(true);
 
     try {
-      // Call API with settings, conversation_id (only if it's a real database conversation), and files
-      const conversationId = currentSession.id.startsWith('local-') ? undefined : currentSession.id;
-
+      // Call API with settings and conversation_id for database persistence
       const response = await sendChatMessage({
         question: content,
-        conversation_id: conversationId,  // Only pass if it's a database conversation
+        conversation_id: session.id,  // Always pass conversation ID for database persistence
         use_premium_model: usePremiumModel,
         use_preprocessing: usePreprocessing,
         provider: usePremiumModel ? undefined : selectedProvider || undefined,
