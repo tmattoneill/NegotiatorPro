@@ -51,11 +51,15 @@ export const useNegotiationStore = create<NegotiationState>()(
           const response = await api.get(`/negotiations/?user_id=${userId}`);
           const negotiations = response.data;
 
+          // Check if the currently selected negotiation is in the loaded list
+          const currentId = get().currentNegotiationId;
+          const isCurrentValid = currentId && negotiations.some(n => n.id === currentId);
+
           set({
             negotiations,
             isLoading: false,
-            // Auto-select first negotiation if none selected
-            currentNegotiationId: get().currentNegotiationId || (negotiations[0]?.id ?? null),
+            // Only keep current negotiation if it's valid for this user, otherwise select first
+            currentNegotiationId: isCurrentValid ? currentId : (negotiations[0]?.id ?? null),
           });
         } catch (error: any) {
           console.error('Failed to load negotiations:', error);
