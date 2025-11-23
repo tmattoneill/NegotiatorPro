@@ -29,6 +29,14 @@ class UserLoginRequest(BaseModel):
     password: str
 
 
+class UserLoginResponse(BaseModel):
+    """User login response with JWT token and user profile"""
+    access_token: str
+    token_type: str
+    expires_in: int
+    user: dict
+
+
 @router.post("/login", response_model=LoginResponse)
 async def login(request: LoginRequest):
     """
@@ -68,16 +76,16 @@ async def login(request: LoginRequest):
     )
 
 
-@router.post("/user-login", response_model=UserProfile)
+@router.post("/user-login", response_model=UserLoginResponse)
 async def user_login(request: UserLoginRequest):
     """
-    User login endpoint (simple session, no JWT).
+    User login endpoint with JWT token.
 
     Args:
         request: UserLoginRequest with username and password
 
     Returns:
-        UserProfile if credentials are valid
+        UserLoginResponse with JWT token and user profile
 
     Raises:
         HTTPException: If username not found or password is invalid
@@ -119,8 +127,22 @@ async def user_login(request: UserLoginRequest):
             request.username
         )
 
+        # Create JWT access token
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.id, "username": user.username, "role": user.role},
+            expires_delta=access_token_expires
+        )
+
         logger.info(f"User login successful: {request.username}")
-        return user
+
+        # Return token and user profile
+        return UserLoginResponse(
+            access_token=access_token,
+            token_type="bearer",
+            expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            user=user.dict()
+        )
 
     except HTTPException:
         raise

@@ -25,7 +25,7 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     // Debug: log the full URL being requested
-    console.log('Axios request:', config.method?.toUpperCase(), config.baseURL || '', config.url || '', '→', (config.baseURL || '') + (config.url || ''));
+    console.log('Axios request:', config.method?.toUpperCase(), config.baseURL ?? '', config.url ?? '', '→', (config.baseURL ?? '') + (config.url ?? ''));
     return config;
   },
   (error) => Promise.reject(error)
@@ -202,6 +202,113 @@ export const getConversationMessages = async (conversationId: string, userId: st
     params.append('limit', limit.toString());
   }
   const response = await api.get(`/conversations/${conversationId}/messages?${params.toString()}`);
+  return response.data;
+};
+
+// ============================================================================
+// ADMIN ENDPOINTS (require admin role)
+// ============================================================================
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  email: string;
+  role: string;
+  created_at: string;
+  last_login: string | null;
+  is_active: boolean;
+}
+
+export interface AdminNegotiation {
+  id: string;
+  user_id: string;
+  username: string;
+  title: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminUsageStats {
+  user_id: string;
+  username: string;
+  total_requests: number;
+  total_tokens: number;
+  total_cost: number;
+  models_used: string[];
+  last_activity: string | null;
+}
+
+export interface DatabaseResetResponse {
+  success: boolean;
+  users_deleted: number;
+  negotiations_deleted: number;
+  conversations_deleted: number;
+  messages_deleted: number;
+  message: string;
+}
+
+/**
+ * Admin: List all users
+ */
+export const adminListUsers = async (): Promise<AdminUser[]> => {
+  const response = await api.get<AdminUser[]>('/admin/users');
+  return response.data;
+};
+
+/**
+ * Admin: Delete a user
+ */
+export const adminDeleteUser = async (userId: string): Promise<{ success: boolean; message: string }> => {
+  const response = await api.delete(`/admin/users/${userId}`);
+  return response.data;
+};
+
+/**
+ * Admin: List all negotiations
+ */
+export const adminListNegotiations = async (): Promise<AdminNegotiation[]> => {
+  const response = await api.get<AdminNegotiation[]>('/admin/negotiations');
+  return response.data;
+};
+
+/**
+ * Admin: List negotiations for a specific user
+ */
+export const adminListUserNegotiations = async (userId: string): Promise<AdminNegotiation[]> => {
+  const response = await api.get<AdminNegotiation[]>(`/admin/negotiations/user/${userId}`);
+  return response.data;
+};
+
+/**
+ * Admin: Delete a negotiation
+ */
+export const adminDeleteNegotiation = async (negotiationId: string): Promise<{ success: boolean; message: string }> => {
+  const response = await api.delete(`/admin/negotiations/${negotiationId}`);
+  return response.data;
+};
+
+/**
+ * Admin: Get usage summary for all users
+ */
+export const adminGetUsageSummary = async (): Promise<AdminUsageStats[]> => {
+  const response = await api.get<AdminUsageStats[]>('/admin/usage/summary');
+  return response.data;
+};
+
+/**
+ * Admin: Get usage stats for a specific user
+ */
+export const adminGetUserUsage = async (userId: string): Promise<AdminUsageStats> => {
+  const response = await api.get<AdminUsageStats>(`/admin/usage/user/${userId}`);
+  return response.data;
+};
+
+/**
+ * Admin: Reset the entire database (except admin users)
+ */
+export const adminResetDatabase = async (): Promise<DatabaseResetResponse> => {
+  const response = await api.post<DatabaseResetResponse>('/admin/database/reset');
   return response.data;
 };
 

@@ -11,6 +11,7 @@ import { useChatStore } from './store/chatStore';
 import Sidebar from './components/Sidebar';
 import ChatContainer from './components/ChatContainer';
 import SystemPromptEditor from './components/SystemPromptEditor';
+import AdminPanel from './components/AdminPanel';
 import OnboardingWizard from './components/OnboardingWizard';
 import './App.css';
 
@@ -177,11 +178,23 @@ function App() {
     );
   }
 
+  // Render appropriate view based on admin state
+  const renderMainContent = () => {
+    switch (adminView) {
+      case 'system-prompt':
+        return <SystemPromptEditor />;
+      case 'admin-panel':
+        return <AdminPanel />;
+      default:
+        return <ChatContainer />;
+    }
+  };
+
   return (
     <>
       <div className="app-container">
         <Sidebar />
-        {adminView === 'system-prompt' ? <SystemPromptEditor /> : <ChatContainer />}
+        {renderMainContent()}
       </div>
 
       {/* Onboarding Wizard */}

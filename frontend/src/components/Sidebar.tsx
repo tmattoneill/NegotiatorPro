@@ -244,33 +244,70 @@ export default function Sidebar() {
             <i className="fa-light fa-shield-halved"></i>
             Admin
           </div>
-          <button
-            onClick={() => setView(currentView === 'system-prompt' ? 'none' : 'system-prompt')}
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              background: currentView === 'system-prompt' ? 'rgba(182, 137, 71, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-              border: currentView === 'system-prompt' ? '1px solid rgba(182, 137, 71, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '6px',
-              color: '#fff',
-              fontSize: '13px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              textAlign: 'left',
-              transition: 'all 0.2s',
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-            }}
-          >
-            <i className="fa-light fa-terminal" style={{ opacity: 0.7 }}></i>
-            System Prompt
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <button
+              onClick={() => setView(currentView === 'admin-panel' ? 'none' : 'admin-panel')}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                background: currentView === 'admin-panel' ? 'rgba(182, 137, 71, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                border: currentView === 'admin-panel' ? '1px solid rgba(182, 137, 71, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '6px',
+                color: '#fff',
+                fontSize: '13px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                textAlign: 'left',
+                transition: 'all 0.2s',
+              }}
+              onMouseOver={(e) => {
+                if (currentView !== 'admin-panel') {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                }
+              }}
+              onMouseOut={(e) => {
+                if (currentView !== 'admin-panel') {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                }
+              }}
+            >
+              <i className="fa-light fa-shield-halved" style={{ opacity: 0.7 }}></i>
+              Admin Panel
+            </button>
+            <button
+              onClick={() => setView(currentView === 'system-prompt' ? 'none' : 'system-prompt')}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                background: currentView === 'system-prompt' ? 'rgba(182, 137, 71, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                border: currentView === 'system-prompt' ? '1px solid rgba(182, 137, 71, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '6px',
+                color: '#fff',
+                fontSize: '13px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                textAlign: 'left',
+                transition: 'all 0.2s',
+              }}
+              onMouseOver={(e) => {
+                if (currentView !== 'system-prompt') {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                }
+              }}
+              onMouseOut={(e) => {
+                if (currentView !== 'system-prompt') {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                }
+              }}
+            >
+              <i className="fa-light fa-terminal" style={{ opacity: 0.7 }}></i>
+              System Prompt
+            </button>
+          </div>
         </div>
       )}
 

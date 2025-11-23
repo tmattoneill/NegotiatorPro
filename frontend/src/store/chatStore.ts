@@ -70,7 +70,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         role: msg.role,
         content: msg.content,
         timestamp: msg.created_at ? new Date(msg.created_at) : new Date(),
-        model_used: msg.model,
+        model_used: msg.model_used || msg.model,
         processing_time: msg.processing_time,
       }));
 
