@@ -40,7 +40,7 @@ export const useNegotiationStore = create<NegotiationState>()(
       // Computed property
       get currentNegotiation() {
         const { negotiations, currentNegotiationId } = get();
-        return negotiations.find(n => n.id === currentNegotiationId) || null;
+        return negotiations.find((n: Negotiation) => n.id === currentNegotiationId) || null;
       },
 
       // Load all negotiations for a user
@@ -53,7 +53,7 @@ export const useNegotiationStore = create<NegotiationState>()(
 
           // Check if the currently selected negotiation is in the loaded list
           const currentId = get().currentNegotiationId;
-          const isCurrentValid = currentId && negotiations.some(n => n.id === currentId);
+          const isCurrentValid = currentId && negotiations.some((n: Negotiation) => n.id === currentId);
 
           set({
             negotiations,
@@ -104,7 +104,7 @@ export const useNegotiationStore = create<NegotiationState>()(
           const updatedNegotiation = response.data;
 
           set((state) => ({
-            negotiations: state.negotiations.map((n) =>
+            negotiations: state.negotiations.map((n: Negotiation) =>
               n.id === negotiationId ? updatedNegotiation : n
             ),
             isLoading: false,
@@ -126,7 +126,7 @@ export const useNegotiationStore = create<NegotiationState>()(
           await api.delete(`/negotiations/${negotiationId}?user_id=${userId}`);
 
           set((state) => {
-            const updatedNegotiations = state.negotiations.filter((n) => n.id !== negotiationId);
+            const updatedNegotiations = state.negotiations.filter((n: Negotiation) => n.id !== negotiationId);
 
             return {
               negotiations: updatedNegotiations,

@@ -219,7 +219,7 @@ async def create_negotiation(
 
 
 async def get_negotiations(user_id: UUID, status: Optional[str] = None) -> List[dict]:
-    """Get all negotiations for a user."""
+    """Get all negotiations for a user, including partner personas."""
     import json
 
     if status:
@@ -244,6 +244,20 @@ async def get_negotiations(user_id: UUID, status: Optional[str] = None) -> List[
         # Parse settings from JSON string to dict if it's a string
         if 'settings' in neg and isinstance(neg['settings'], str):
             neg['settings'] = json.loads(neg['settings'])
+
+        # CRITICAL FIX: Include partners array for each negotiation
+        # This matches what get_negotiation_detail() does (lines 281-290)
+        partner_rows = await db.fetch(
+            """
+            SELECT pp.* FROM partner_personas pp
+            JOIN negotiation_partners np ON np.partner_persona_id = pp.id
+            WHERE np.negotiation_id = $1
+            ORDER BY np.is_primary DESC, pp.name
+            """,
+            neg['id']
+        )
+        neg['partners'] = [dict(p) for p in partner_rows]
+
         negotiations.append(neg)
 
     return negotiations
