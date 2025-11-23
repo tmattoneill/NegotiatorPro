@@ -61,8 +61,11 @@ function Login() {
         password: formData.password,
       });
 
+      // Store JWT token in localStorage
+      localStorage.setItem('token', response.data.access_token);
+
       // Store user data in auth store
-      login(response.data);
+      login(response.data.user);
 
       // Redirect to main app
       navigate('/');
