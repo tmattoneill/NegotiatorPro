@@ -53,7 +53,7 @@ export const useNegotiationStore = create<NegotiationState>()(
 
           // Check if the currently selected negotiation is in the loaded list
           const currentId = get().currentNegotiationId;
-          const isCurrentValid = currentId && negotiations.some(n => n.id === currentId);
+          const isCurrentValid = currentId && negotiations.some((n: Negotiation) => n.id === currentId);
 
           set({
             negotiations,
