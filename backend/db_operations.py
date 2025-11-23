@@ -215,6 +215,22 @@ async def create_negotiation(
                 negotiation['id'], partner_id, is_primary
             )
 
+        # Parse settings from JSON string to dict for response validation
+        if 'settings' in negotiation and isinstance(negotiation['settings'], str):
+            negotiation['settings'] = json.loads(negotiation['settings'])
+
+        # Load partners for response (required by NegotiationResponse model)
+        partner_rows = await conn.fetch(
+            """
+            SELECT pp.* FROM partner_personas pp
+            JOIN negotiation_partners np ON np.partner_persona_id = pp.id
+            WHERE np.negotiation_id = $1
+            ORDER BY np.is_primary DESC, pp.name
+            """,
+            negotiation['id']
+        )
+        negotiation['partners'] = [dict(p) for p in partner_rows]
+
         return negotiation
 
 

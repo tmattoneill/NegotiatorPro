@@ -18,6 +18,7 @@ interface ChatState {
   sessions: Session[];
   currentSessionId: string | null;
   isLoading: boolean;
+  isCreatingSession: boolean;
 
   // Actions
   loadConversations: (negotiationId: string, userId: string) => Promise<void>;
@@ -33,6 +34,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   sessions: [],
   currentSessionId: null,
   isLoading: false,
+  isCreatingSession: false,
 
   // Load all conversations for a negotiation from database
   loadConversations: async (negotiationId: string, userId: string) => {
@@ -89,7 +91,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // Create new conversation in database
   createNewSession: async (negotiationId: string, userId: string) => {
     console.log('createNewSession called with:', { negotiationId, userId });
+
+    // Prevent duplicate creation if already in progress
+    const { isCreatingSession } = get();
+    if (isCreatingSession) {
+      console.log('Session creation already in progress, skipping duplicate call');
+      return;
+    }
+
     try {
+      set({ isCreatingSession: true });
+
       const newConversation = await api.createConversation({
         negotiation_id: negotiationId,
         title: 'New Conversation',
@@ -112,11 +124,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set((state) => ({
         sessions: [newSession, ...state.sessions],
         currentSessionId: newSession.id,
+        isCreatingSession: false,
       }));
 
       console.log('Session added, currentSessionId:', newSession.id);
     } catch (error) {
       console.error('Failed to create conversation:', error);
+      set({ isCreatingSession: false });
       throw error; // Re-throw so caller knows it failed
     }
   },
