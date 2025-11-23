@@ -1,12 +1,15 @@
 /**
- * Chat message component - clean bubble design with Markdown support, copy button, and code highlighting
+ * Chat message component - clean bubble design with Markdown support, copy button, and advanced code highlighting
  */
-import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import CodeBlock from './CodeBlock';
+import MermaidDiagram from './MermaidDiagram';
+import CopyButton from './CopyButton';
 import type { Message } from '../types';
+import 'katex/dist/katex.min.css';
 
 interface ChatMessageProps {
   message: Message;
@@ -14,79 +17,75 @@ interface ChatMessageProps {
 
 export default function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
-  const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(message.content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy text:', err);
-    }
+  const formatTimestamp = (date: Date): string => {
+    const now = new Date();
+    const diffMs = now.getTime() - new Date(date).getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'just now';
+    if (diffMins === 1) return '1 minute ago';
+    if (diffMins < 60) return `${diffMins} minutes ago`;
+    if (diffHours === 1) return '1 hour ago';
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    if (diffDays === 1) return 'yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+
+    return new Date(date).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
   };
 
   return (
     <div className={`message ${isUser ? 'user' : 'assistant'}`}>
       <div className="message-header-row">
-        <div className="message-header">{isUser ? 'You' : 'NegotiatorPro'}</div>
-        <button
-          className="copy-button"
-          onClick={handleCopy}
-          title="Copy message"
-          aria-label="Copy message to clipboard"
-        >
-          {copied ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-          ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-          )}
-        </button>
+        <div className="message-header-left">
+          <div className="message-header">{isUser ? 'You' : 'NegotiatorPro'}</div>
+          <div className="message-timestamp" title={new Date(message.timestamp).toLocaleString()}>
+            {formatTimestamp(message.timestamp)}
+          </div>
+        </div>
+        <CopyButton content={message.content} />
       </div>
       <div className="message-content">
         <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
+          remarkPlugins={[remarkGfm, remarkMath]}
+          rehypePlugins={[rehypeKatex]}
           components={{
             code(props) {
               const { children, className, ...rest } = props;
               const match = /language-(\w+)/.exec(className || '');
               const language = match ? match[1] : '';
               const isInline = !className;
+              const codeValue = String(children).replace(/\n$/, '');
 
-              return !isInline && language ? (
-                <div className="code-block-wrapper">
-                  <div className="code-block-header">
-                    <span className="code-block-language">{language}</span>
-                    <button
-                      className="code-copy-button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
-                      }}
-                      title="Copy code"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                      </svg>
-                    </button>
-                  </div>
-                  <SyntaxHighlighter
-                    style={vscDarkPlus as any}
+              // Handle Mermaid diagrams
+              if (!isInline && (language === 'mermaid' || language === 'mmd')) {
+                return <MermaidDiagram chart={codeValue} />;
+              }
+
+              // Handle regular code blocks
+              if (!isInline && language) {
+                return (
+                  <CodeBlock
                     language={language}
-                    PreTag="div"
-                  >
-                    {String(children).replace(/\n$/, '')}
-                  </SyntaxHighlighter>
-                </div>
-              ) : (
-                <code className={className} {...rest}>
-                  {children}
-                </code>
+                    value={codeValue}
+                  />
+                );
+              }
+
+              // Handle inline code
+              return (
+                <CodeBlock
+                  language="text"
+                  value={String(children)}
+                  inline={true}
+                />
               );
             },
           }}
@@ -96,8 +95,16 @@ export default function ChatMessage({ message }: ChatMessageProps) {
       </div>
       {!isUser && message.model_used && (
         <div className="message-meta">
-          Model: {message.model_used}
-          {message.processing_time && ` • ${message.processing_time}s`}
+          <div className="message-meta-item">
+            <span className="message-meta-label">Model:</span>
+            <span className="message-meta-value">{message.model_used}</span>
+          </div>
+          {message.processing_time && (
+            <div className="message-meta-item">
+              <span className="message-meta-label">Time:</span>
+              <span className="message-meta-value">{message.processing_time.toFixed(2)}s</span>
+            </div>
+          )}
         </div>
       )}
     </div>

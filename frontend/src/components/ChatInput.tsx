@@ -1,21 +1,26 @@
 /**
- * Chat input component with file upload and image paste support
+ * Enhanced chat input component with multi-file upload, compression, and PDF support
  */
 import { useState, useRef } from 'react';
+import imageCompression from 'browser-image-compression';
+import FilePreview from './FilePreview';
+import type { FileWithMetadata } from '../types/files';
 
 interface ChatInputProps {
   onSend: (message: string, files?: File[]) => void;
   isLoading: boolean;
 }
 
-interface AttachedFile {
-  file: File;
-  preview?: string;
-}
+const MAX_FILE_SIZE_MB = 10;
+const COMPRESSION_OPTIONS = {
+  maxSizeMB: 1,
+  maxWidthOrHeight: 1920,
+  useWebWorker: true,
+};
 
 export default function ChatInput({ onSend, isLoading }: ChatInputProps) {
   const [input, setInput] = useState('');
-  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
+  const [attachedFiles, setAttachedFiles] = useState<FileWithMetadata[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -23,7 +28,11 @@ export default function ChatInput({ onSend, isLoading }: ChatInputProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if ((input.trim() || attachedFiles.length > 0) && !isLoading) {
-      onSend(input, attachedFiles.map(af => af.file));
+      const files = attachedFiles
+        .filter(af => !af.error)
+        .map(af => af.file);
+
+      onSend(input, files);
       setInput('');
       setAttachedFiles([]);
     }
@@ -48,36 +57,101 @@ export default function ChatInput({ onSend, isLoading }: ChatInputProps) {
       for (const item of imageItems) {
         const file = item.getAsFile();
         if (file) {
-          addFile(file);
+          await addFile(file);
         }
       }
     }
   };
 
-  const addFile = (file: File) => {
-    // Create preview for images
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setAttachedFiles(prev => [...prev, { file, preview: e.target?.result as string }]);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      setAttachedFiles(prev => [...prev, { file }]);
+  const compressImage = async (file: File): Promise<{ file: File; compressed: boolean }> => {
+    if (!file.type.startsWith('image/')) {
+      return { file, compressed: false };
+    }
+
+    try {
+      const compressedFile = await imageCompression(file, COMPRESSION_OPTIONS);
+      const compressionRatio = (compressedFile.size / file.size) * 100;
+
+      // Only use compressed version if it's significantly smaller (< 80% of original)
+      if (compressionRatio < 80) {
+        return { file: compressedFile, compressed: true };
+      }
+      return { file, compressed: false };
+    } catch (error) {
+      console.error('Error compressing image:', error);
+      return { file, compressed: false };
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const addFile = async (file: File) => {
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      setAttachedFiles(prev => [...prev, {
+        file,
+        error: `File exceeds ${MAX_FILE_SIZE_MB}MB limit`,
+      }]);
+      return;
+    }
+
+    // Create temporary entry with progress
+    const tempIndex = attachedFiles.length;
+    setAttachedFiles(prev => [...prev, { file, progress: 0 }]);
+
+    // Compress image if applicable
+    const { file: processedFile, compressed } = await compressImage(file);
+
+    // Update progress
+    setAttachedFiles(prev => prev.map((af, i) =>
+      i === tempIndex ? { ...af, progress: 50 } : af
+    ));
+
+    // Create preview for images
+    if (processedFile.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setAttachedFiles(prev => prev.map((af, i) =>
+          i === tempIndex
+            ? { file: processedFile, preview: e.target?.result as string, progress: 100, compressed }
+            : af
+        ));
+      };
+      reader.readAsDataURL(processedFile);
+    } else {
+      setAttachedFiles(prev => prev.map((af, i) =>
+        i === tempIndex
+          ? { file: processedFile, progress: 100, compressed }
+          : af
+      ));
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    Array.from(files).forEach(file => {
-      // Validate file types
-      const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'text/plain', 'text/csv'];
-      if (validTypes.includes(file.type) || file.name.endsWith('.txt') || file.name.endsWith('.csv')) {
-        addFile(file);
+    const validTypes = [
+      'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp',
+      'application/pdf',
+      'text/plain', 'text/csv',
+      'application/msword', // .doc
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+      'application/vnd.ms-excel', // .xls
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+    ];
+
+    for (const file of Array.from(files)) {
+      const isValidType = validTypes.includes(file.type) ||
+        file.name.match(/\.(txt|csv|doc|docx|xls|xlsx|pdf)$/i);
+
+      if (isValidType) {
+        await addFile(file);
+      } else {
+        setAttachedFiles(prev => [...prev, {
+          file,
+          error: 'Unsupported file type',
+        }]);
       }
-    });
+    }
 
     // Reset input
     if (fileInputRef.current) {
@@ -99,55 +173,42 @@ export default function ChatInput({ onSend, isLoading }: ChatInputProps) {
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
 
     const files = e.dataTransfer?.files;
     if (!files) return;
 
-    Array.from(files).forEach(file => {
-      const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'text/plain', 'text/csv'];
-      if (validTypes.includes(file.type) || file.name.endsWith('.txt') || file.name.endsWith('.csv')) {
-        addFile(file);
+    const validTypes = [
+      'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp',
+      'application/pdf',
+      'text/plain', 'text/csv',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ];
+
+    for (const file of Array.from(files)) {
+      const isValidType = validTypes.includes(file.type) ||
+        file.name.match(/\.(txt|csv|doc|docx|xls|xlsx|pdf)$/i);
+
+      if (isValidType) {
+        await addFile(file);
       }
-    });
+    }
   };
 
   return (
     <div className="input-container">
       <form onSubmit={handleSubmit}>
-        {/* File attachments preview */}
-        {attachedFiles.length > 0 && (
-          <div className="attachments-preview">
-            {attachedFiles.map((attached, index) => (
-              <div key={index} className="attachment-item">
-                {attached.preview ? (
-                  <img src={attached.preview} alt={attached.file.name} className="attachment-image" />
-                ) : (
-                  <div className="attachment-file">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
-                      <polyline points="13 2 13 9 20 9"></polyline>
-                    </svg>
-                    <span className="attachment-name">{attached.file.name}</span>
-                  </div>
-                )}
-                <button
-                  type="button"
-                  className="remove-attachment"
-                  onClick={() => removeFile(index)}
-                  aria-label="Remove file"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Enhanced file preview with PDF support */}
+        <FilePreview
+          files={attachedFiles}
+          onRemove={removeFile}
+          maxFileSize={MAX_FILE_SIZE_MB}
+        />
 
         <div
           className={`input-wrapper ${isDragging ? 'dragging' : ''}`}
@@ -160,7 +221,7 @@ export default function ChatInput({ onSend, isLoading }: ChatInputProps) {
             className="attachment-button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isLoading}
-            title="Attach files (images, txt, csv)"
+            title="Attach files (images, PDFs, documents)"
             aria-label="Attach files"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -171,7 +232,7 @@ export default function ChatInput({ onSend, isLoading }: ChatInputProps) {
             ref={fileInputRef}
             type="file"
             multiple
-            accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,.txt,.csv"
+            accept="image/*,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx"
             onChange={handleFileSelect}
             style={{ display: 'none' }}
           />
@@ -188,7 +249,7 @@ export default function ChatInput({ onSend, isLoading }: ChatInputProps) {
           <button
             type="submit"
             className="send-button"
-            disabled={isLoading || (!input.trim() && attachedFiles.length === 0)}
+            disabled={isLoading || (!input.trim() && attachedFiles.filter(af => !af.error).length === 0)}
           >
             {isLoading ? (
               <>
