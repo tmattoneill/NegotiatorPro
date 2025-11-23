@@ -35,17 +35,24 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
       return;
     }
 
-    // Find a partner persona - use first available or create error if none exist
-    if (partnerPersonas.length === 0) {
-      setError('No partner personas available. Please create a partner persona first from your profile.');
-      return;
-    }
-
-    const partnerIds = [partnerPersonas[0].id];
-
     setIsSubmitting(true);
 
     try {
+      // If no partner personas exist, create a default one
+      let partnerIds: string[];
+
+      if (partnerPersonas.length === 0) {
+        // Create a default partner persona on the fly
+        const { createPartnerPersona } = usePersonaStore.getState();
+        const defaultPartner = await createPartnerPersona(user.id, {
+          name: 'Partner',
+          is_shared: false,
+        });
+        partnerIds = [defaultPartner.id];
+      } else {
+        partnerIds = [partnerPersonas[0].id];
+      }
+
       const result = await createNegotiation(user.id, {
         title: title.trim(),
         description: description.trim() || undefined,
