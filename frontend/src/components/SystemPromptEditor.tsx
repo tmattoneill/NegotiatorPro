@@ -35,7 +35,7 @@ export default function SystemPromptEditor() {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get('/api/admin/system-prompt');
+      const response = await api.get('/admin/system-prompt');
       setContent(response.data.content || '');
       setOriginalContent(response.data.content || '');
       setLastModified(response.data.last_modified);
@@ -48,7 +48,7 @@ export default function SystemPromptEditor() {
 
   const fetchBackups = async () => {
     try {
-      const response = await api.get('/api/admin/system-prompt/backups');
+      const response = await api.get('/admin/system-prompt/backups');
       setBackups(response.data);
     } catch (err) {
       console.error('Failed to load backups:', err);
@@ -60,7 +60,7 @@ export default function SystemPromptEditor() {
     setError(null);
     setSuccess(null);
     try {
-      const response = await api.put('/api/admin/system-prompt', { content });
+      const response = await api.put('/admin/system-prompt', { content });
       setOriginalContent(content);
       setSuccess(response.data.backup_created
         ? `Saved! Backup created: ${response.data.backup_created}`
@@ -80,7 +80,7 @@ export default function SystemPromptEditor() {
     setLoading(true);
     setError(null);
     try {
-      await api.post(`/api/admin/system-prompt/restore/${filename}`);
+      await api.post(`/admin/system-prompt/restore/${filename}`);
       setSuccess(`Restored from ${filename}`);
       fetchSystemPrompt();
       fetchBackups();
