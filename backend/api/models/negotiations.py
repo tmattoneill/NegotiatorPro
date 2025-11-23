@@ -67,6 +67,7 @@ class NegotiationResponse(NegotiationBase):
     user_id: UUID
     created_at: datetime
     updated_at: datetime
+    partners: List[PartnerPersonaResponse] = []  # CRITICAL FIX: Include partners for UI display
 
     class Config:
         from_attributes = True
