@@ -21,6 +21,9 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+# Reserved username for super admin - this user has elevated privileges
+SUPER_ADMIN_USERNAME = "admin"
+
 
 class UserProfileCreate(BaseModel):
     """Request model for creating a user profile."""
@@ -68,6 +71,40 @@ class UserProfile(BaseModel):
 
     class Config:
         from_attributes = True
+
+    @property
+    def is_super_admin(self) -> bool:
+        """
+        Check if this user is the special super admin.
+
+        The super admin is identified by the reserved username 'admin'.
+        This user has elevated privileges beyond regular admin-role users.
+        """
+        return self.username == SUPER_ADMIN_USERNAME
+
+    def has_admin_privileges(self) -> bool:
+        """
+        Check if user has admin-level privileges.
+
+        Returns True for both super admin and regular admin-role users.
+        """
+        return self.role == 'admin' or self.is_super_admin
+
+    def dict(self, **kwargs) -> Dict[str, Any]:
+        """
+        Override dict() to include computed properties.
+        """
+        data = super().dict(**kwargs)
+        data['is_super_admin'] = self.is_super_admin
+        return data
+
+    def model_dump(self, **kwargs) -> Dict[str, Any]:
+        """
+        Override model_dump() to include computed properties (Pydantic v2).
+        """
+        data = super().model_dump(**kwargs)
+        data['is_super_admin'] = self.is_super_admin
+        return data
 
 
 class EncryptionManager:
@@ -156,11 +193,22 @@ class UserProfileManager:
             Created user profile
 
         Raises:
-            ValueError: If username or email already exists
+            ValueError: If username or email already exists, or if trying to
+                       create a user with the reserved super admin username
         """
         from passlib.context import CryptContext
 
         pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+        # Prevent creating a user with the reserved super admin username
+        # (unless this is the initial super admin creation)
+        if profile_data.username == SUPER_ADMIN_USERNAME:
+            existing_super_admin = await db.fetchrow(
+                "SELECT id FROM users WHERE username = $1",
+                SUPER_ADMIN_USERNAME
+            )
+            if existing_super_admin:
+                raise ValueError(f"Username '{SUPER_ADMIN_USERNAME}' is reserved for the super admin")
 
         # Check if username or email already exists
         existing = await db.fetchrow(
@@ -428,7 +476,16 @@ class UserProfileManager:
 
         Returns:
             True if deleted, False if user not found
+
+        Raises:
+            ValueError: If attempting to delete the super admin user
         """
+        # Check if this is the super admin user
+        user = await UserProfileManager.get_user_by_id(user_id)
+        if user and user.username == SUPER_ADMIN_USERNAME:
+            logger.warning(f"Attempted to delete protected super admin user: {user_id}")
+            raise ValueError("Cannot delete the super admin user")
+
         result = await db.execute(
             "DELETE FROM users WHERE id = $1",
             user_id
@@ -441,3 +498,27 @@ class UserProfileManager:
             logger.info(f"Deleted user profile: {user_id}")
 
         return deleted
+
+    @staticmethod
+    async def get_super_admin() -> Optional[UserProfile]:
+        """
+        Get the super admin user profile.
+
+        Returns:
+            Super admin user profile or None if not found
+        """
+        return await UserProfileManager.get_user_by_username(SUPER_ADMIN_USERNAME)
+
+    @staticmethod
+    async def is_super_admin(user_id: str) -> bool:
+        """
+        Check if a user ID belongs to the super admin.
+
+        Args:
+            user_id: User UUID to check
+
+        Returns:
+            True if the user is the super admin
+        """
+        user = await UserProfileManager.get_user_by_id(user_id)
+        return user is not None and user.username == SUPER_ADMIN_USERNAME
