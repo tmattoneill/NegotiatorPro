@@ -6,12 +6,15 @@ Provides REST endpoints for negotiation management including:
 - Negotiation updates and deletion
 - Partner management
 - User authorization checks
+
+NOTE: Super admin (username 'admin') cannot create negotiations - this account
+is for system testing only, not for negotiation workflows.
 """
 import logging
 from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, Depends
 
 from ..models.negotiations import (
     NegotiationCreate,
@@ -21,6 +24,7 @@ from ..models.negotiations import (
     NegotiationPartnerAdd,
     NegotiationStatus
 )
+from ..middleware.auth import get_current_user
 from ... import db_operations as db_ops
 
 logger = logging.getLogger(__name__)
@@ -32,22 +36,42 @@ negotiations_router = APIRouter(
 )
 
 
+def check_super_admin_restriction(current_user: Optional[dict], action: str = "perform this action"):
+    """
+    Check if the current user is the super admin and raise an error if so.
+
+    Super admin cannot create/manage negotiations as this account is for testing only.
+    """
+    if current_user and current_user.get('is_super_admin'):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Super admin cannot {action}. This account is for system testing only."
+        )
+
+
 @negotiations_router.post("/", response_model=NegotiationResponse, status_code=status.HTTP_201_CREATED)
-async def create_negotiation(user_id: UUID, negotiation_data: NegotiationCreate):
+async def create_negotiation(
+    user_id: UUID,
+    negotiation_data: NegotiationCreate,
+    current_user: Optional[dict] = Depends(get_current_user)
+):
     """
     Create a new negotiation for a user.
 
     Args:
         user_id: User UUID (from authentication)
         negotiation_data: Negotiation creation data (requires at least one partner)
+        current_user: Optional authenticated user (from JWT token)
 
     Returns:
         Created negotiation
 
     Raises:
         400: If validation fails
+        403: If super admin attempts to create negotiation
         500: If database operation fails
     """
+    check_super_admin_restriction(current_user, "create negotiations")
     try:
         negotiation = await db_ops.create_negotiation(
             user_id=user_id,

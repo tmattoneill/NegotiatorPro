@@ -155,7 +155,13 @@ async def process_chat(
         logger.info(f"Question processed successfully in {processing_time:.2f}s using {model_used}")
 
         # Save messages to database if a conversation is provided (prefer authenticated user)
-        if conversation_id:
+        # NOTE: Super admin does not save conversations - chat is for testing only
+        is_super_admin = current_user and current_user.get('is_super_admin', False)
+
+        if is_super_admin and conversation_id:
+            logger.info("Super admin chat - conversation not persisted (testing mode)")
+
+        if conversation_id and not is_super_admin:
             try:
                 conversation_uuid = UUID(conversation_id)
 
