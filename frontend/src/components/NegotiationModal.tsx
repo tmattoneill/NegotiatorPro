@@ -87,12 +87,12 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={handleClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Create New Negotiation</h2>
+    <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center" onClick={handleClose}>
+      <div className="bg-white rounded-lg w-[90%] max-w-[500px] max-h-[90vh] overflow-auto shadow-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border">
+          <h2 className="text-xl font-semibold text-foreground m-0">Create New Negotiation</h2>
           <button
-            className="modal-close"
+            className="text-[28px] text-gray-500 hover:bg-gray-100 w-8 h-8 rounded flex items-center justify-center disabled:opacity-50"
             onClick={handleClose}
             disabled={isSubmitting}
             aria-label="Close"
@@ -102,23 +102,14 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="modal-body">
+          <div className="px-6 py-5">
             {error && (
-              <div className="error-message" style={{
-                padding: '12px',
-                marginBottom: '16px',
-                background: '#fee',
-                border: '1px solid #fcc',
-                borderRadius: '4px',
-                color: '#c33'
-              }}>
-                {error}
-              </div>
+              <div className="px-3 py-2 mb-4 bg-red-50 border border-red-200 rounded text-[#c33]">{error}</div>
             )}
 
-            <div className="form-group">
-              <label htmlFor="negotiation-title">
-                Negotiation Name <span style={{ color: '#e74c3c' }}>*</span>
+            <div className="mb-4">
+              <label htmlFor="negotiation-title" className="block text-[14px] font-medium text-foreground">
+                Negotiation Name <span className="text-danger">*</span>
               </label>
               <input
                 id="negotiation-title"
@@ -129,20 +120,13 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
                 maxLength={255}
                 disabled={isSubmitting}
                 autoFocus
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  fontSize: '14px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  marginTop: '8px',
-                }}
+                className="w-full px-3 py-2 border border-border rounded text-[14px] mt-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
               />
             </div>
 
-            <div className="form-group" style={{ marginTop: '20px' }}>
-              <label htmlFor="negotiation-description">
-                Description <span style={{ color: '#999', fontWeight: 'normal' }}>(optional)</span>
+            <div className="mb-4">
+              <label htmlFor="negotiation-description" className="block text-[14px] font-medium text-foreground">
+                Description <span className="text-muted-foreground font-normal">(optional)</span>
               </label>
               <textarea
                 id="negotiation-description"
@@ -151,134 +135,30 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
                 placeholder="Brief description of the negotiation context..."
                 rows={4}
                 disabled={isSubmitting}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  fontSize: '14px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  marginTop: '8px',
-                  resize: 'vertical',
-                  fontFamily: 'inherit',
-                }}
+                className="w-full px-3 py-2 border border-border rounded text-[14px] mt-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 resize-y"
               />
             </div>
           </div>
 
-          <div className="modal-footer">
+          <div className="px-6 py-4 border-t border-border flex justify-end">
             <button
               type="button"
               onClick={handleClose}
               disabled={isSubmitting}
-              style={{
-                padding: '10px 20px',
-                fontSize: '14px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                background: '#fff',
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                marginRight: '12px',
-              }}
+              className="px-4 py-2 text-[14px] bg-white border border-border rounded mr-3 disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !title.trim()}
-              style={{
-                padding: '10px 20px',
-                fontSize: '14px',
-                border: 'none',
-                borderRadius: '4px',
-                background: isSubmitting || !title.trim() ? '#ccc' : '#007bff',
-                color: '#fff',
-                cursor: isSubmitting || !title.trim() ? 'not-allowed' : 'pointer',
-              }}
+              className="px-4 py-2 text-[14px] rounded bg-chat-primary text-white disabled:opacity-50"
             >
               {isSubmitting ? 'Creating...' : 'Create Negotiation'}
             </button>
           </div>
         </form>
       </div>
-
-      <style>{`
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-        }
-
-        .modal-content {
-          background: white;
-          border-radius: 8px;
-          width: 90%;
-          max-width: 500px;
-          max-height: 90vh;
-          overflow: auto;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .modal-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 20px 24px;
-          border-bottom: 1px solid #e0e0e0;
-        }
-
-        .modal-header h2 {
-          margin: 0;
-          font-size: 20px;
-          font-weight: 600;
-          color: #333;
-        }
-
-        .modal-close {
-          background: none;
-          border: none;
-          font-size: 28px;
-          color: #999;
-          cursor: pointer;
-          padding: 0;
-          width: 32px;
-          height: 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 4px;
-          transition: background 0.2s;
-        }
-
-        .modal-close:hover {
-          background: #f0f0f0;
-          color: #333;
-        }
-
-        .modal-body {
-          padding: 24px;
-        }
-
-        .form-group label {
-          display: block;
-          font-size: 14px;
-          font-weight: 500;
-          color: #333;
-        }
-
-        .modal-footer {
-          padding: 16px 24px;
-          border-top: 1px solid #e0e0e0;
-          display: flex;
-          justify-content: flex-end;
-        }
-      `}</style>
     </div>
   );
 }

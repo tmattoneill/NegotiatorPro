@@ -41,18 +41,18 @@ export default function PartnerPersonaStep({ onComplete, onBack, onSkip }: Partn
   };
 
   return (
-    <div className="onboarding-step">
-      <div className="step-header">
-        <h2>Add a Partner</h2>
-        <p className="step-description">
+    <div className="space-y-6">
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold text-foreground mb-2">Add a Partner</h2>
+        <p className="text-[15px] text-muted-foreground leading-relaxed">
           Create a profile for someone you'll be negotiating with. You can always add more partners later.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="step-form">
-        <div className="form-group">
-          <label htmlFor="name">
-            Partner Name <span className="required">*</span>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <div className="flex flex-col gap-2">
+          <label htmlFor="name" className="text-[14px] font-medium text-foreground">
+            Partner Name <span className="text-danger">*</span>
           </label>
           <input
             type="text"
@@ -64,14 +64,15 @@ export default function PartnerPersonaStep({ onComplete, onBack, onSkip }: Partn
             autoFocus
             required
             maxLength={255}
+            className="px-3 py-2 text-[14px] border border-border rounded focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none"
           />
-          {errors.name && <span className="error-text">{errors.name}</span>}
-          <small className="field-hint">The person you're negotiating with</small>
+          {errors.name && <span className="text-[13px] text-danger">{errors.name}</span>}
+          <small className="text-[13px] text-muted-foreground -mt-1">The person you're negotiating with</small>
         </div>
 
-        <div className="form-group">
-          <label htmlFor="role_title">
-            Their Role/Title <span className="optional">(optional)</span>
+        <div className="flex flex-col gap-2">
+          <label htmlFor="role_title" className="text-[14px] font-medium text-foreground">
+            Their Role/Title <span className="text-muted-foreground font-normal text-[13px]">(optional)</span>
           </label>
           <input
             type="text"
@@ -81,13 +82,14 @@ export default function PartnerPersonaStep({ onComplete, onBack, onSkip }: Partn
             onChange={handleChange}
             placeholder="e.g., Procurement Manager, Hiring Manager"
             maxLength={255}
+            className="px-3 py-2 text-[14px] border border-border rounded focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none"
           />
-          <small className="field-hint">Their professional role</small>
+          <small className="text-[13px] text-muted-foreground -mt-1">Their professional role</small>
         </div>
 
-        <div className="form-group">
-          <label htmlFor="company">
-            Their Company <span className="optional">(optional)</span>
+        <div className="flex flex-col gap-2">
+          <label htmlFor="company" className="text-[14px] font-medium text-foreground">
+            Their Company <span className="text-muted-foreground font-normal text-[13px]">(optional)</span>
           </label>
           <input
             type="text"
@@ -97,165 +99,24 @@ export default function PartnerPersonaStep({ onComplete, onBack, onSkip }: Partn
             onChange={handleChange}
             placeholder="e.g., BigCo Inc"
             maxLength={255}
+            className="px-3 py-2 text-[14px] border border-border rounded focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none"
           />
-          <small className="field-hint">The organization they represent</small>
+          <small className="text-[13px] text-muted-foreground -mt-1">The organization they represent</small>
         </div>
 
-        <div className="step-actions">
-          <button type="button" className="btn-secondary" onClick={onBack}>
+        <div className="flex items-center justify-end gap-3 mt-2 pt-6 border-t border-border">
+          <button type="button" className="px-4 py-2 rounded border border-border text-muted-foreground bg-white hover:bg-muted" onClick={onBack}>
             Back
           </button>
-          <div style={{ flex: 1 }} />
-          <button type="button" className="btn-text" onClick={onSkip}>
+          <div className="flex-1" />
+          <button type="button" className="px-3 py-2 rounded bg-transparent text-muted-foreground hover:text-foreground" onClick={onSkip}>
             Skip for now
           </button>
-          <button type="submit" className="btn-primary" disabled={!formData.name.trim()}>
+          <button type="submit" className="px-5 py-2.5 rounded-md bg-chat-primary text-white disabled:opacity-50" disabled={!formData.name.trim()}>
             Continue
           </button>
         </div>
       </form>
-
-      <style>{`
-        .onboarding-step {
-          padding: 0;
-        }
-
-        .step-header {
-          margin-bottom: 32px;
-        }
-
-        .step-header h2 {
-          margin: 0 0 12px 0;
-          font-size: 24px;
-          font-weight: 600;
-          color: #2c3e50;
-        }
-
-        .step-description {
-          margin: 0;
-          font-size: 15px;
-          color: #7f8c8d;
-          line-height: 1.5;
-        }
-
-        .step-form {
-          display: flex;
-          flex-direction: column;
-          gap: 24px;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .form-group label {
-          font-size: 14px;
-          font-weight: 500;
-          color: #2c3e50;
-        }
-
-        .form-group input,
-        .form-group textarea {
-          padding: 10px 12px;
-          font-size: 14px;
-          border: 1px solid #dfe6e9;
-          border-radius: 6px;
-          transition: border-color 0.2s;
-          font-family: inherit;
-        }
-
-        .form-group input:focus,
-        .form-group textarea:focus {
-          outline: none;
-          border-color: #3498db;
-        }
-
-        .required {
-          color: #e74c3c;
-        }
-
-        .optional {
-          color: #95a5a6;
-          font-weight: normal;
-          font-size: 13px;
-        }
-
-        .field-hint {
-          font-size: 13px;
-          color: #95a5a6;
-          margin-top: -4px;
-        }
-
-        .error-text {
-          font-size: 13px;
-          color: #e74c3c;
-        }
-
-        .step-actions {
-          display: flex;
-          justify-content: flex-end;
-          align-items: center;
-          gap: 12px;
-          margin-top: 8px;
-          padding-top: 24px;
-          border-top: 1px solid #ecf0f1;
-        }
-
-        .btn-primary {
-          padding: 10px 24px;
-          font-size: 14px;
-          font-weight: 500;
-          background: #3498db;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-          background: #2980b9;
-        }
-
-        .btn-primary:disabled {
-          background: #bdc3c7;
-          cursor: not-allowed;
-        }
-
-        .btn-secondary {
-          padding: 10px 24px;
-          font-size: 14px;
-          font-weight: 500;
-          background: white;
-          color: #7f8c8d;
-          border: 1px solid #dfe6e9;
-          border-radius: 6px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .btn-secondary:hover {
-          border-color: #bdc3c7;
-          background: #f8f9fa;
-        }
-
-        .btn-text {
-          padding: 10px 16px;
-          font-size: 14px;
-          font-weight: 500;
-          background: none;
-          color: #7f8c8d;
-          border: none;
-          cursor: pointer;
-          transition: color 0.2s;
-        }
-
-        .btn-text:hover {
-          color: #2c3e50;
-        }
-      `}</style>
     </div>
   );
 }
