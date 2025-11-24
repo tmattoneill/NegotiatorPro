@@ -28,6 +28,9 @@ venv/
 ENV/
 env/
 .env
+.env.backup
+.env.bak
+.env.old
 
 # Environment Variables
 .env
