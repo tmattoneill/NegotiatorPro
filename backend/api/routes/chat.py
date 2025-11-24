@@ -154,39 +154,59 @@ async def process_chat(
 
         logger.info(f"Question processed successfully in {processing_time:.2f}s using {model_used}")
 
-        # Save messages to database if user is authenticated AND conversation_id is provided
-        if current_user and conversation_id:
+        # Save messages to database if a conversation is provided (prefer authenticated user)
+        if conversation_id:
             try:
                 conversation_uuid = UUID(conversation_id)
-                user_uuid = UUID(current_user['id'])
 
-                # Save user message
-                await db_ops.create_chat_message(
-                    conversation_id=conversation_uuid,
-                    user_id=user_uuid,
-                    role="user",
-                    content=question,
-                    preprocessing_applied=use_preprocessing
-                )
+                # Determine which user owns this conversation.
+                user_uuid = None
 
-                # Save assistant response
-                await db_ops.create_chat_message(
-                    conversation_id=conversation_uuid,
-                    user_id=user_uuid,
-                    role="assistant",
-                    content=answer,
-                    model=model_used,
-                    preprocessing_applied=use_preprocessing
-                )
+                if current_user and current_user.get('id'):
+                    user_uuid = UUID(current_user['id'])
+                else:
+                    # Fallback: derive owner from the conversation → negotiation → user mapping
+                    conversation = await db_ops.get_conversation(conversation_uuid)
+                    if conversation:
+                        negotiation = await db_ops.get_negotiation(conversation['negotiation_id'])
+                        if negotiation:
+                            user_uuid = negotiation['user_id']
 
-                logger.info(f"Messages saved to conversation {conversation_id} for user {current_user['username']}")
-            except ValueError as ve:
+                if user_uuid is None:
+                    logger.warning(
+                        "Could not determine user for conversation %s – messages not persisted",
+                        conversation_id,
+                    )
+                else:
+                    # Save user message
+                    await db_ops.create_chat_message(
+                        conversation_id=conversation_uuid,
+                        user_id=user_uuid,
+                        role="user",
+                        content=question,
+                        preprocessing_applied=use_preprocessing
+                    )
+
+                    # Save assistant response
+                    await db_ops.create_chat_message(
+                        conversation_id=conversation_uuid,
+                        user_id=user_uuid,
+                        role="assistant",
+                        content=answer,
+                        model=model_used,
+                        preprocessing_applied=use_preprocessing
+                    )
+
+                    logger.info(
+                        "Messages saved to conversation %s (user=%s)",
+                        conversation_id,
+                        current_user['username'] if current_user else str(user_uuid)
+                    )
+            except ValueError:
                 logger.warning(f"Invalid conversation_id format: {conversation_id}")
             except Exception as db_error:
                 # Don't fail the request if database save fails
                 logger.error(f"Failed to save messages to database: {db_error}", exc_info=True)
-        elif conversation_id and not current_user:
-            logger.warning(f"Conversation ID provided but user not authenticated - messages not saved")
 
         return ChatResponse(
             answer=answer,

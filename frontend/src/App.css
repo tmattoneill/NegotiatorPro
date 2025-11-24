@@ -452,7 +452,7 @@
   margin: 0 !important;
   padding: 0 !important;
   padding-left: 16px !important;
-  list-style-position: inside !important;
+  list-style-position: outside !important;
 }
 
 .message-content li {
