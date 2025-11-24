@@ -122,35 +122,118 @@ async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] =
     """
     Get current authenticated user from JWT token.
     This is OPTIONAL - returns None if no token is provided.
-    
+
     Args:
         credentials: Optional HTTP Bearer credentials from request
-        
+
     Returns:
         Dictionary with user information, or None if not authenticated
     """
     # If no credentials provided, return None (user not authenticated)
     if credentials is None:
         return None
-    
+
     try:
         payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-        
+
         # Check if token has expired
         exp = payload.get("exp")
         if exp and datetime.utcnow() > datetime.fromtimestamp(exp):
             return None
-        
+
         user_id = payload.get("sub")
         if user_id is None:
             return None
-        
+
         # Return user information from token
         return {
             "id": user_id,
             "username": payload.get("username"),
-            "role": payload.get("role", "user")
+            "role": payload.get("role", "user"),
+            "is_super_admin": payload.get("is_super_admin", False)
         }
     except JWTError:
         # Invalid token, return None instead of raising exception
         return None
+
+
+async def require_auth(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """
+    Require authentication - raises exception if not authenticated.
+
+    Args:
+        credentials: HTTP Bearer credentials from request
+
+    Returns:
+        Dictionary with user information
+
+    Raises:
+        HTTPException: If not authenticated
+    """
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    user = await get_current_user(credentials)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return user
+
+
+async def require_admin(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """
+    Require admin role - raises exception if not an admin.
+
+    Args:
+        credentials: HTTP Bearer credentials from request
+
+    Returns:
+        Dictionary with user information
+
+    Raises:
+        HTTPException: If not authenticated or not an admin
+    """
+    user = await require_auth(credentials)
+
+    if user.get("role") != "admin" and not user.get("is_super_admin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required"
+        )
+
+    return user
+
+
+async def require_super_admin(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """
+    Require super admin - raises exception if not the super admin.
+
+    The super admin is the special 'admin' user with elevated privileges
+    beyond regular admin-role users.
+
+    Args:
+        credentials: HTTP Bearer credentials from request
+
+    Returns:
+        Dictionary with user information
+
+    Raises:
+        HTTPException: If not authenticated or not the super admin
+    """
+    user = await require_auth(credentials)
+
+    if not user.get("is_super_admin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Super admin privileges required"
+        )
+
+    return user

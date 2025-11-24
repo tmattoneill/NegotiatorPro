@@ -12,7 +12,7 @@ from ..middleware.auth import (
     verify_password
 )
 from ...admin_config import AdminConfig
-from ...user_profile import UserProfileManager, UserProfile
+from ...user_profile import UserProfileManager, UserProfile, SUPER_ADMIN_USERNAME
 from ...database import db
 
 logger = logging.getLogger(__name__)
@@ -35,6 +35,7 @@ class UserLoginResponse(BaseModel):
     token_type: str
     expires_in: int
     user: dict
+    is_super_admin: bool = False
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -127,21 +128,30 @@ async def user_login(request: UserLoginRequest):
             request.username
         )
 
-        # Create JWT access token
+        # Determine if this is the super admin
+        is_super_admin = user.username == SUPER_ADMIN_USERNAME
+
+        # Create JWT access token with super admin claim
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
-            data={"sub": user.id, "username": user.username, "role": user.role},
+            data={
+                "sub": user.id,
+                "username": user.username,
+                "role": user.role,
+                "is_super_admin": is_super_admin
+            },
             expires_delta=access_token_expires
         )
 
-        logger.info(f"User login successful: {request.username}")
+        logger.info(f"User login successful: {request.username} (super_admin={is_super_admin})")
 
         # Return token and user profile
         return UserLoginResponse(
             access_token=access_token,
             token_type="bearer",
             expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            user=user.dict()
+            user=user.dict(),
+            is_super_admin=is_super_admin
         )
 
     except HTTPException:
