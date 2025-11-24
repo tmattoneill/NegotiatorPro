@@ -2,22 +2,40 @@
 Persona API Routes
 
 Provides REST endpoints for user and partner persona management.
+
+NOTE: Super admin (username 'admin') cannot create personas - this account
+is for system testing only, not for negotiation workflows.
 """
 import logging
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, Depends
 
 from ..models import (
     UserPersonaCreate, UserPersonaUpdate, UserPersonaResponse,
     PartnerPersonaCreate, PartnerPersonaUpdate, PartnerPersonaResponse,
 )
+from ..middleware.auth import get_current_user
 from ... import db_operations as db_ops
+from ...user_profile import SUPER_ADMIN_USERNAME
 
 logger = logging.getLogger(__name__)
 
 personas_router = APIRouter(prefix="/api/personas", tags=["personas"])
+
+
+def check_super_admin_restriction(current_user: Optional[dict], action: str = "perform this action"):
+    """
+    Check if the current user is the super admin and raise an error if so.
+
+    Super admin cannot create/manage personas as this account is for testing only.
+    """
+    if current_user and current_user.get('is_super_admin'):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Super admin cannot {action}. This account is for system testing only."
+        )
 
 
 # ============================================================================
@@ -25,8 +43,13 @@ personas_router = APIRouter(prefix="/api/personas", tags=["personas"])
 # ============================================================================
 
 @personas_router.post("/user", response_model=UserPersonaResponse, status_code=status.HTTP_201_CREATED)
-async def create_user_persona(user_id: str, data: UserPersonaCreate):
+async def create_user_persona(
+    user_id: str,
+    data: UserPersonaCreate,
+    current_user: Optional[dict] = Depends(get_current_user)
+):
     """Create a new user persona."""
+    check_super_admin_restriction(current_user, "create personas")
     try:
         persona = await db_ops.create_user_persona(
             user_id=UUID(user_id),
@@ -88,8 +111,13 @@ async def delete_user_persona(persona_id: str, user_id: str):
 # ============================================================================
 
 @personas_router.post("/partner", response_model=PartnerPersonaResponse, status_code=status.HTTP_201_CREATED)
-async def create_partner_persona(user_id: str, data: PartnerPersonaCreate):
+async def create_partner_persona(
+    user_id: str,
+    data: PartnerPersonaCreate,
+    current_user: Optional[dict] = Depends(get_current_user)
+):
     """Create a new partner persona."""
+    check_super_admin_restriction(current_user, "create personas")
     try:
         persona = await db_ops.create_partner_persona(
             created_by=UUID(user_id),
