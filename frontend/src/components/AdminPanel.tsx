@@ -5,7 +5,9 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import * as api from '../services/api';
-import './AdminPanel.css';
+import Button from './ui/Button';
+import Badge from './ui/Badge';
+import Input from './ui/Input';
 
 interface User {
   id: string;
@@ -64,8 +66,8 @@ const AdminPanel = () => {
   // Check if user is admin
   if (user?.role !== 'admin') {
     return (
-      <div className="admin-panel">
-        <div className="error-message">
+      <div className="p-8 max-w-[1400px] mx-auto bg-chat-muted min-h-screen">
+        <div className="rounded-md border border-danger/30 bg-danger/10 text-danger px-4 py-3">
           Access Denied: Admin privileges required
         </div>
       </div>
@@ -202,34 +204,34 @@ const AdminPanel = () => {
   };
 
   return (
-    <div className="admin-panel">
-      <div className="admin-header">
-        <h1>🛡️ Admin Panel</h1>
-        <p className="admin-subtitle">System Administration &amp; Management</p>
+    <div className="p-8 max-w-[1400px] mx-auto bg-chat-muted min-h-screen">
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold text-chat-foreground">🛡️ Admin Panel</h1>
+        <p className="text-sm text-chat-muted-foreground">System Administration &amp; Management</p>
       </div>
 
       {/* Tab Navigation */}
-      <div className="admin-tabs">
+      <div className="flex gap-2 mb-6 border-b-2 border-chat-border">
         <button
-          className={`admin-tab ${activeTab === 'users' ? 'active' : ''}`}
+          className={`px-4 py-2 -mb-[2px] border-b-4 ${activeTab === 'users' ? 'border-chat-primary text-chat-primary font-semibold bg-chat-primary/10' : 'border-transparent text-chat-muted-foreground hover:bg-chat-muted hover:text-chat-foreground'}`}
           onClick={() => setActiveTab('users')}
         >
           👥 Users
         </button>
         <button
-          className={`admin-tab ${activeTab === 'negotiations' ? 'active' : ''}`}
+          className={`px-4 py-2 -mb-[2px] border-b-4 ${activeTab === 'negotiations' ? 'border-chat-primary text-chat-primary font-semibold bg-chat-primary/10' : 'border-transparent text-chat-muted-foreground hover:bg-chat-muted hover:text-chat-foreground'}`}
           onClick={() => setActiveTab('negotiations')}
         >
           📋 Negotiations
         </button>
         <button
-          className={`admin-tab ${activeTab === 'usage' ? 'active' : ''}`}
+          className={`px-4 py-2 -mb-[2px] border-b-4 ${activeTab === 'usage' ? 'border-chat-primary text-chat-primary font-semibold bg-chat-primary/10' : 'border-transparent text-chat-muted-foreground hover:bg-chat-muted hover:text-chat-foreground'}`}
           onClick={() => setActiveTab('usage')}
         >
           📊 Usage Stats
         </button>
         <button
-          className={`admin-tab ${activeTab === 'database' ? 'active' : ''}`}
+          className={`px-4 py-2 -mb-[2px] border-b-4 ${activeTab === 'database' ? 'border-chat-primary text-chat-primary font-semibold bg-chat-primary/10' : 'border-transparent text-chat-muted-foreground hover:bg-chat-muted hover:text-chat-foreground'}`}
           onClick={() => setActiveTab('database')}
         >
           🗄️ Database
@@ -238,67 +240,59 @@ const AdminPanel = () => {
 
       {/* Error Message */}
       {error && (
-        <div className="admin-error">
-          ⚠️ {error}
-        </div>
+        <div className="px-4 py-3 rounded-md border border-danger/30 bg-danger/10 text-danger mb-4">⚠️ {error}</div>
       )}
 
       {/* Loading Indicator */}
       {loading && (
-        <div className="admin-loading">
-          Loading...
-        </div>
+        <div className="p-8 text-center text-chat-muted-foreground">Loading...</div>
       )}
 
       {/* Tab Content */}
-      <div className="admin-content">
+      <div className="bg-chat-card rounded-lg p-6 md:p-8 shadow-card">
         {/* Users Tab */}
         {activeTab === 'users' && (
-          <div className="admin-users">
-            <h2>User Management</h2>
-            <p className="admin-note">Total users: {users.length}</p>
+          <div>
+            <h2 className="text-xl font-semibold text-chat-foreground">User Management</h2>
+            <p className="text-sm text-chat-muted-foreground mb-4">Total users: {users.length}</p>
 
-            <div className="users-table-container">
-              <table className="admin-table">
-                <thead>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-separate border-spacing-0">
+                <thead className="bg-chat-sidebar text-white">
                   <tr>
-                    <th>Username</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Created</th>
-                    <th>Last Login</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+                    <th className="p-3">Username</th>
+                    <th className="p-3">Email</th>
+                    <th className="p-3">Role</th>
+                    <th className="p-3">Created</th>
+                    <th className="p-3">Last Login</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map((u) => (
-                    <tr key={u.id} className={selectedUserId === u.id ? 'selected' : ''}>
-                      <td>{u.username}</td>
-                      <td>{u.email}</td>
-                      <td>
-                        <span className={`role-badge role-${u.role}`}>
-                          {u.role}
-                        </span>
+                    <tr key={u.id} className={`${selectedUserId === u.id ? 'bg-chat-primary/10' : ''} hover:bg-chat-muted`}> 
+                      <td className="p-3">{u.username}</td>
+                      <td className="p-3">{u.email}</td>
+                      <td className="p-3">
+                        <Badge variant="outline" className="uppercase text-[11px]">{u.role}</Badge>
                       </td>
-                      <td>{formatDate(u.created_at)}</td>
-                      <td>{formatDate(u.last_login)}</td>
-                      <td>
-                        <span className={`status-badge ${u.is_active ? 'active' : 'inactive'}`}>
-                          {u.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td>
-                        {u.role !== 'admin' ? (
-                          <button
-                            className="admin-btn-danger"
-                            onClick={() => handleDeleteUser(u.id, u.username)}
-                            disabled={loading}
-                          >
-                            Delete
-                          </button>
+                      <td className="p-3">{formatDate(u.created_at)}</td>
+                      <td className="p-3">{formatDate(u.last_login)}</td>
+                      <td className="p-3">
+                        {u.is_active ? (
+                          <Badge variant="success">Active</Badge>
                         ) : (
-                          <span className="admin-note">Protected</span>
+                          <Badge variant="muted">Inactive</Badge>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        {u.role !== 'admin' ? (
+                          <Button variant="danger" size="sm" onClick={() => handleDeleteUser(u.id, u.username)} disabled={loading}>
+                            Delete
+                          </Button>
+                        ) : (
+                          <span className="text-sm text-chat-muted-foreground">Protected</span>
                         )}
                       </td>
                     </tr>
@@ -311,14 +305,15 @@ const AdminPanel = () => {
 
         {/* Negotiations Tab */}
         {activeTab === 'negotiations' && (
-          <div className="admin-negotiations">
-            <h2>Negotiation Management</h2>
-            <div className="admin-filters">
-              <label>
+          <div>
+            <h2 className="text-xl font-semibold text-chat-foreground">Negotiation Management</h2>
+            <div className="flex items-center gap-4 my-4 p-4 bg-chat-muted rounded">
+              <label className="font-medium flex items-center gap-2">
                 Filter by user:
                 <select
                   value={negotiationFilter}
                   onChange={(e) => setNegotiationFilter(e.target.value)}
+                  className="px-3 py-2 text-sm border border-chat-border rounded outline-none focus:ring-2 focus:ring-chat-primary/20 focus:border-chat-primary"
                 >
                   <option value="all">All Users</option>
                   {users.map((u) => (
@@ -328,43 +323,35 @@ const AdminPanel = () => {
                   ))}
                 </select>
               </label>
-              <p className="admin-note">
+              <p className="text-sm text-chat-muted-foreground">
                 Showing {filteredNegotiations.length} of {negotiations.length} negotiations
               </p>
             </div>
 
-            <div className="negotiations-table-container">
-              <table className="admin-table">
-                <thead>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-separate border-spacing-0">
+                <thead className="bg-chat-sidebar text-white">
                   <tr>
-                    <th>Title</th>
-                    <th>User</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th>Updated</th>
-                    <th>Actions</th>
+                    <th className="p-3">Title</th>
+                    <th className="p-3">User</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3">Created</th>
+                    <th className="p-3">Updated</th>
+                    <th className="p-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredNegotiations.map((n) => (
-                    <tr key={n.id}>
-                      <td>{n.title}</td>
-                      <td>{n.username}</td>
-                      <td>
-                        <span className={`status-badge status-${n.status}`}>
-                          {n.status}
-                        </span>
+                    <tr key={n.id} className="hover:bg-chat-muted">
+                      <td className="p-3">{n.title}</td>
+                      <td className="p-3">{n.username}</td>
+                      <td className="p-3">
+                        <Badge variant={n.status === 'active' || n.status === 'won' ? 'success' : 'muted'}>{n.status}</Badge>
                       </td>
-                      <td>{formatDate(n.created_at)}</td>
-                      <td>{formatDate(n.updated_at)}</td>
-                      <td>
-                        <button
-                          className="admin-btn-danger"
-                          onClick={() => handleDeleteNegotiation(n.id, n.title)}
-                          disabled={loading}
-                        >
-                          Delete
-                        </button>
+                      <td className="p-3">{formatDate(n.created_at)}</td>
+                      <td className="p-3">{formatDate(n.updated_at)}</td>
+                      <td className="p-3">
+                        <Button variant="danger" size="sm" onClick={() => handleDeleteNegotiation(n.id, n.title)} disabled={loading}>Delete</Button>
                       </td>
                     </tr>
                   ))}
@@ -376,61 +363,61 @@ const AdminPanel = () => {
 
         {/* Usage Stats Tab */}
         {activeTab === 'usage' && (
-          <div className="admin-usage">
-            <h2>Usage Statistics</h2>
-            <p className="admin-note">Token usage and costs across all users</p>
+          <div>
+            <h2 className="text-xl font-semibold text-chat-foreground">Usage Statistics</h2>
+            <p className="text-sm text-chat-muted-foreground">Token usage and costs across all users</p>
 
-            <div className="usage-table-container">
-              <table className="admin-table">
+            <div className="overflow-x-auto mt-4">
+              <table className="w-full text-left border-separate border-spacing-0">
                 <thead>
                   <tr>
-                    <th>User</th>
-                    <th>Requests</th>
-                    <th>Total Tokens</th>
-                    <th>Total Cost</th>
-                    <th>Models Used</th>
-                    <th>Last Activity</th>
+                    <th className="p-3">User</th>
+                    <th className="p-3">Requests</th>
+                    <th className="p-3">Total Tokens</th>
+                    <th className="p-3">Total Cost</th>
+                    <th className="p-3">Models Used</th>
+                    <th className="p-3">Last Activity</th>
                   </tr>
                 </thead>
                 <tbody>
                   {usageStats.map((stat) => (
-                    <tr key={stat.user_id}>
-                      <td>{stat.username}</td>
-                      <td>{stat.total_requests.toLocaleString()}</td>
-                      <td>{stat.total_tokens.toLocaleString()}</td>
-                      <td>{formatCurrency(stat.total_cost)}</td>
-                      <td>
-                        <div className="models-list">
+                    <tr key={stat.user_id} className="hover:bg-chat-muted">
+                      <td className="p-3">{stat.username}</td>
+                      <td className="p-3">{stat.total_requests.toLocaleString()}</td>
+                      <td className="p-3">{stat.total_tokens.toLocaleString()}</td>
+                      <td className="p-3">{formatCurrency(stat.total_cost)}</td>
+                      <td className="p-3">
+                        <div className="text-sm text-chat-muted-foreground">
                           {stat.models_used.length > 0
                             ? stat.models_used.join(', ')
                             : 'None'}
                         </div>
                       </td>
-                      <td>{formatDate(stat.last_activity)}</td>
+                      <td className="p-3">{formatDate(stat.last_activity)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
 
               {/* Summary Statistics */}
-              <div className="usage-summary">
-                <h3>Summary</h3>
-                <div className="summary-grid">
-                  <div className="summary-item">
-                    <span className="summary-label">Total Requests:</span>
-                    <span className="summary-value">
+              <div className="mt-8 p-6 bg-chat-muted rounded-lg">
+                <h3 className="text-lg font-semibold mb-4">Summary</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="rounded border border-chat-border p-4 bg-white">
+                    <span className="block text-sm text-chat-muted-foreground">Total Requests:</span>
+                    <span className="text-xl font-semibold">
                       {usageStats.reduce((sum, s) => sum + s.total_requests, 0).toLocaleString()}
                     </span>
                   </div>
-                  <div className="summary-item">
-                    <span className="summary-label">Total Tokens:</span>
-                    <span className="summary-value">
+                  <div className="rounded border border-chat-border p-4 bg-white">
+                    <span className="block text-sm text-chat-muted-foreground">Total Tokens:</span>
+                    <span className="text-xl font-semibold">
                       {usageStats.reduce((sum, s) => sum + s.total_tokens, 0).toLocaleString()}
                     </span>
                   </div>
-                  <div className="summary-item">
-                    <span className="summary-label">Total Cost:</span>
-                    <span className="summary-value">
+                  <div className="rounded border border-chat-border p-4 bg-white">
+                    <span className="block text-sm text-chat-muted-foreground">Total Cost:</span>
+                    <span className="text-xl font-semibold">
                       {formatCurrency(usageStats.reduce((sum, s) => sum + s.total_cost, 0))}
                     </span>
                   </div>
@@ -442,53 +429,50 @@ const AdminPanel = () => {
 
         {/* Database Tab */}
         {activeTab === 'database' && (
-          <div className="admin-database">
-            <h2>Database Management</h2>
+          <div>
+            <h2 className="text-xl font-semibold text-chat-foreground">Database Management</h2>
 
-            <div className="database-actions">
-              <div className="danger-zone">
-                <h3>⚠️ Danger Zone</h3>
-                <p className="warning-text">
+            <div className="mt-4">
+              <div className="rounded-lg border border-danger/30 bg-danger/5 p-6">
+                <h3 className="text-lg font-semibold mb-2">⚠️ Danger Zone</h3>
+                <p className="text-sm text-chat-muted-foreground mb-4">
                   The following action will permanently delete ALL user data except admin accounts.
                   This cannot be undone!
                 </p>
 
                 {!confirmReset ? (
-                  <button
-                    className="admin-btn-danger-large"
-                    onClick={() => setConfirmReset(true)}
-                  >
+                  <Button variant="danger" size="lg" onClick={() => setConfirmReset(true)}>
                     Reset Database
-                  </button>
+                  </Button>
                 ) : (
-                  <div className="reset-confirmation">
-                    <p className="confirm-prompt">
+                  <div className="mt-3">
+                    <p className="text-sm mb-2">
                       Type <strong>RESET DATABASE</strong> to confirm:
                     </p>
-                    <input
+                    <Input
                       type="text"
-                      className="confirm-input"
                       value={resetConfirmText}
                       onChange={(e) => setResetConfirmText(e.target.value)}
                       placeholder="RESET DATABASE"
+                      className="max-w-sm"
                     />
-                    <div className="confirm-buttons">
-                      <button
-                        className="admin-btn-danger-large"
+                    <div className="flex gap-3 mt-3">
+                      <Button
+                        variant="danger"
                         onClick={handleResetDatabase}
                         disabled={loading || resetConfirmText !== 'RESET DATABASE'}
                       >
                         Confirm Reset
-                      </button>
-                      <button
-                        className="admin-btn-secondary"
+                      </Button>
+                      <Button
+                        variant="outline"
                         onClick={() => {
                           setConfirmReset(false);
                           setResetConfirmText('');
                         }}
                       >
                         Cancel
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}

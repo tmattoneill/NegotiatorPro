@@ -12,7 +12,8 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://172.18.0.3:8000',
+        // Use Compose service name for stable resolution inside Docker network
+        target: 'http://backend:8000',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path,

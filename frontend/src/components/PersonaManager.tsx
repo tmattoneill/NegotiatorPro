@@ -44,10 +44,7 @@ export default function PersonaManager() {
     setShowForm(true);
   };
 
-  const handleEdit = (persona: UserPersona | PartnerPersona) => {
-    setEditingPersona(persona);
-    setShowForm(true);
-  };
+  // Removed unused handleEdit to satisfy strict TS
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this persona?')) return;
@@ -71,32 +68,32 @@ export default function PersonaManager() {
   const personas = activeTab === 'user' ? userPersonas : partnerPersonas;
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-chat-muted p-6">
       <div className="max-w-3xl mx-auto mb-4">
         <button onClick={() => navigate('/')} className="text-chat-primary text-sm mb-4 inline-flex items-center gap-2">
           <i className="fa-light fa-arrow-left"></i> Back
         </button>
-        <h1 className="text-2xl font-semibold text-foreground mb-1">Persona Manager</h1>
-        <p className="text-sm text-muted-foreground">Manage your negotiation identities and partner profiles</p>
+        <h1 className="text-2xl font-semibold text-chat-foreground mb-1">Persona Manager</h1>
+        <p className="text-sm text-chat-muted-foreground">Manage your negotiation identities and partner profiles</p>
       </div>
 
       <div className="max-w-3xl mx-auto flex gap-2 mb-2">
         <button
-          className={`px-4 py-2 -mb-[2px] border-b-4 ${activeTab === 'user' ? 'border-chat-primary text-chat-primary font-semibold bg-chat-primary/10' : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+          className={`px-4 py-2 -mb-[2px] border-b-4 ${activeTab === 'user' ? 'border-chat-primary text-chat-primary font-semibold bg-chat-primary/10' : 'border-transparent text-chat-muted-foreground hover:bg-chat-muted hover:text-chat-foreground'}`}
           onClick={() => setActiveTab('user')}
         >
           <i className="fa-light fa-user mr-1"></i> My Personas
         </button>
         <button
-          className={`px-4 py-2 -mb-[2px] border-b-4 ${activeTab === 'partner' ? 'border-chat-primary text-chat-primary font-semibold bg-chat-primary/10' : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+          className={`px-4 py-2 -mb-[2px] border-b-4 ${activeTab === 'partner' ? 'border-chat-primary text-chat-primary font-semibold bg-chat-primary/10' : 'border-transparent text-chat-muted-foreground hover:bg-chat-muted hover:text-chat-foreground'}`}
           onClick={() => setActiveTab('partner')}
         >
           <i className="fa-light fa-users mr-1"></i> Partner Personas
         </button>
       </div>
 
-      <div className="max-w-3xl mx-auto bg-card px-5 py-4 border-b border-border rounded-t">
-        <p className="text-sm text-muted-foreground">
+      <div className="max-w-3xl mx-auto bg-chat-card px-5 py-4 border-b border-chat-border rounded-t">
+        <p className="text-sm text-chat-muted-foreground">
           {activeTab === 'user'
             ? 'Your negotiation identities are private to your account.'
             : 'Partner profiles you negotiate with. Mark as shared to make available to all users.'}
@@ -104,24 +101,24 @@ export default function PersonaManager() {
       </div>
 
       {error && (
-        <div className="max-w-3xl mx-auto mt-2 px-4 py-3 rounded bg-red-50 border border-red-200 text-[#c00] flex items-center justify-between">
+        <div className="max-w-3xl mx-auto mt-2 px-4 py-3 rounded bg-danger/10 border border-danger/30 text-danger flex items-center justify-between">
           <span>{error}</span>
           <button onClick={clearError} className="text-[#c00] text-lg">×</button>
         </div>
       )}
 
-      <div className="max-w-3xl mx-auto bg-card px-5 py-4 flex justify-end border-x border-border">
+      <div className="max-w-3xl mx-auto bg-chat-card px-5 py-4 flex justify-end border-x border-chat-border">
         <Button onClick={handleCreateNew} size="md" variant="primary">
           <i className="fa-light fa-plus mr-2"></i>
           Create {activeTab === 'user' ? 'User' : 'Partner'} Persona
         </Button>
       </div>
 
-      <div className="max-w-3xl mx-auto bg-card px-5 py-4 border border-border border-t-0 rounded-b min-h-[300px]">
+      <div className="max-w-3xl mx-auto bg-chat-card px-5 py-4 border border-chat-border border-t-0 rounded-b min-h-[300px]">
         {isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">Loading...</div>
+          <div className="text-center py-12 text-chat-muted-foreground">Loading...</div>
         ) : personas.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
+          <div className="text-center py-12 text-chat-muted-foreground">
             <i className="fa-light fa-user-slash text-4xl mb-3 opacity-50"></i>
             <p>No {activeTab === 'user' ? 'user' : 'partner'} personas yet.</p>
             <p className="text-sm opacity-70">Click "Create" to add your first one.</p>
@@ -158,51 +155,51 @@ function PersonaCard({ persona, type, onEdit, onDelete }: PersonaCardProps) {
   const partnerPersona = persona as PartnerPersona;
 
   return (
-    <div className="border border-border rounded-lg p-5 mb-4">
+    <div className="border border-chat-border rounded-lg p-5 mb-4">
       <div className="flex items-start justify-between mb-3">
         <div>
-          <h3 className="text-lg font-semibold text-foreground m-0">{persona.name}</h3>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h3 className="text-lg font-semibold text-chat-foreground m-0">{persona.name}</h3>
+          <p className="text-sm text-chat-muted-foreground mt-1">
             {isUserPersona
               ? `${userPersona.role_title || 'No title'} ${userPersona.organization ? `at ${userPersona.organization}` : ''}`
               : `${partnerPersona.role_title || 'No title'} ${partnerPersona.company ? `at ${partnerPersona.company}` : ''}`}
           </p>
         </div>
         <div className="flex gap-2">
-          {isUserPersona && userPersona.is_default && <Badge variant="primary">Default</Badge>}
+          {isUserPersona && userPersona.is_default && <Badge variant="success">Default</Badge>}
           {!isUserPersona && partnerPersona.is_shared && <Badge variant="success">Shared</Badge>}
         </div>
       </div>
 
       {persona.communication_style && (
         <div className="mb-3">
-          <label className="text-sm font-semibold text-muted-foreground">Communication Style</label>
-          <p className="text-sm text-foreground">{persona.communication_style}</p>
+          <label className="text-sm font-semibold text-chat-muted-foreground">Communication Style</label>
+          <p className="text-sm text-chat-foreground">{persona.communication_style}</p>
         </div>
       )}
 
       {isUserPersona && userPersona.negotiation_strengths && (
         <div className="mb-3">
-          <label className="text-sm font-semibold text-muted-foreground">Strengths</label>
-          <p className="text-sm text-foreground">{userPersona.negotiation_strengths}</p>
+          <label className="text-sm font-semibold text-chat-muted-foreground">Strengths</label>
+          <p className="text-sm text-chat-foreground">{userPersona.negotiation_strengths}</p>
         </div>
       )}
 
       {!isUserPersona && partnerPersona.known_interests && (
         <div className="mb-3">
-          <label className="text-sm font-semibold text-muted-foreground">Known Interests</label>
-          <p className="text-sm text-foreground">{partnerPersona.known_interests}</p>
+          <label className="text-sm font-semibold text-chat-muted-foreground">Known Interests</label>
+          <p className="text-sm text-chat-foreground">{partnerPersona.known_interests}</p>
         </div>
       )}
 
       {!isUserPersona && partnerPersona.batna_estimate && (
         <div className="mb-3">
-          <label className="text-sm font-semibold text-muted-foreground">BATNA Estimate</label>
-          <p className="text-sm text-foreground">{partnerPersona.batna_estimate}</p>
+          <label className="text-sm font-semibold text-chat-muted-foreground">BATNA Estimate</label>
+          <p className="text-sm text-chat-foreground">{partnerPersona.batna_estimate}</p>
         </div>
       )}
 
-      <div className="flex gap-2 mt-4 pt-4 border-t border-border">
+      <div className="flex gap-2 mt-4 pt-4 border-t border-chat-border">
         <Button variant="outline" size="sm" onClick={onEdit}><i className="fa-light fa-pen mr-1"></i> Edit</Button>
         <Button variant="danger" size="sm" onClick={onDelete}><i className="fa-light fa-trash mr-1"></i> Delete</Button>
       </div>
@@ -235,8 +232,8 @@ function PersonaForm({ type, persona, onSubmit, onCancel }: PersonaFormProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center">
-      <div className="bg-white rounded-xl w-[90%] max-w-[600px] max-h-[90vh] overflow-auto">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border">
+      <div className="bg-chat-card border border-chat-border rounded-xl w-[90%] max-w-[600px] max-h-[90vh] overflow-auto">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-chat-border">
           <h2 className="text-lg font-semibold">{persona ? 'Edit' : 'Create'} {isUserPersona ? 'User' : 'Partner'} Persona</h2>
           <button onClick={onCancel} className="text-2xl text-gray-600">×</button>
         </div>
@@ -249,7 +246,7 @@ function PersonaForm({ type, persona, onSubmit, onCancel }: PersonaFormProps) {
               onChange={(e) => updateField('name', e.target.value)}
               required
               placeholder={isUserPersona ? 'e.g., Sales Director' : 'e.g., John Smith'}
-              className="w-full px-3 py-2 border border-border rounded text-[14px] mt-1 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+              className="w-full px-3 py-2 border border-chat-border rounded text-[14px] mt-1 outline-none focus:border-chat-primary focus:ring-2 focus:ring-chat-primary/10"
             />
           </div>
           <div>
@@ -259,7 +256,7 @@ function PersonaForm({ type, persona, onSubmit, onCancel }: PersonaFormProps) {
               value={(formData as any).role_title || ''}
               onChange={(e) => updateField('role_title', e.target.value)}
               placeholder="e.g., VP of Procurement"
-              className="w-full px-3 py-2 border border-border rounded text-[14px] mt-1 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+              className="w-full px-3 py-2 border border-chat-border rounded text-[14px] mt-1 outline-none focus:border-chat-primary focus:ring-2 focus:ring-chat-primary/10"
             />
           </div>
           <div>
@@ -269,7 +266,7 @@ function PersonaForm({ type, persona, onSubmit, onCancel }: PersonaFormProps) {
               value={(isUserPersona ? (formData as any).organization : (formData as any).company) || ''}
               onChange={(e) => updateField(isUserPersona ? 'organization' : 'company', e.target.value)}
               placeholder="e.g., Acme Corp"
-              className="w-full px-3 py-2 border border-border rounded text-[14px] mt-1 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+              className="w-full px-3 py-2 border border-chat-border rounded text-[14px] mt-1 outline-none focus:border-chat-primary focus:ring-2 focus:ring-chat-primary/10"
             />
           </div>
           <div>
@@ -278,7 +275,7 @@ function PersonaForm({ type, persona, onSubmit, onCancel }: PersonaFormProps) {
               value={(formData as any).communication_style || ''}
               onChange={(e) => updateField('communication_style', e.target.value)}
               placeholder={isUserPersona ? 'How do you prefer to communicate in negotiations?' : 'How does this person typically communicate?'}
-              className="w-full px-3 py-2 border border-border rounded text-[14px] mt-1 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 min-h-[80px] resize-y"
+              className="w-full px-3 py-2 border border-chat-border rounded text-[14px] mt-1 outline-none focus:border-chat-primary focus:ring-2 focus:ring-chat-primary/10 min-h-[80px] resize-y"
             />
           </div>
           {isUserPersona ? (
@@ -288,7 +285,7 @@ function PersonaForm({ type, persona, onSubmit, onCancel }: PersonaFormProps) {
                 value={(formData as any).negotiation_strengths || ''}
                 onChange={(e) => updateField('negotiation_strengths', e.target.value)}
                 placeholder="What are your key strengths as a negotiator?"
-                className="w-full px-3 py-2 border border-border rounded text-[14px] mt-1 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 min-h-[80px] resize-y"
+                className="w-full px-3 py-2 border border-chat-border rounded text-[14px] mt-1 outline-none focus:border-chat-primary focus:ring-2 focus:ring-chat-primary/10 min-h-[80px] resize-y"
               />
             </div>
           ) : (
@@ -299,7 +296,7 @@ function PersonaForm({ type, persona, onSubmit, onCancel }: PersonaFormProps) {
                   value={(formData as any).known_interests || ''}
                   onChange={(e) => updateField('known_interests', e.target.value)}
                   placeholder="What are their priorities and interests?"
-                  className="w-full px-3 py-2 border border-border rounded text-[14px] mt-1 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 min-h-[80px] resize-y"
+                  className="w-full px-3 py-2 border border-chat-border rounded text-[14px] mt-1 outline-none focus:border-chat-primary focus:ring-2 focus:ring-chat-primary/10 min-h-[80px] resize-y"
                 />
               </div>
               <div>
@@ -308,7 +305,7 @@ function PersonaForm({ type, persona, onSubmit, onCancel }: PersonaFormProps) {
                   value={(formData as any).batna_estimate || ''}
                   onChange={(e) => updateField('batna_estimate', e.target.value)}
                   placeholder="What's their Best Alternative to Negotiated Agreement?"
-                  className="w-full px-3 py-2 border border-border rounded text-[14px] mt-1 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 min-h-[80px] resize-y"
+                  className="w-full px-3 py-2 border border-chat-border rounded text-[14px] mt-1 outline-none focus:border-chat-primary focus:ring-2 focus:ring-chat-primary/10 min-h-[80px] resize-y"
                 />
               </div>
             </>
@@ -332,4 +329,3 @@ function PersonaForm({ type, persona, onSubmit, onCancel }: PersonaFormProps) {
     </div>
   );
 }
-

@@ -245,6 +245,7 @@ export default function ChatInput({ onSend, isLoading }: ChatInputProps) {
             placeholder={isDragging ? "Drop files here..." : "Ask a negotiation question... (Ctrl+V to paste images)"}
             disabled={isLoading}
             rows={2}
+            className=""
           />
           <button
             type="submit"

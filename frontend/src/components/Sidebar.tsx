@@ -202,33 +202,32 @@ export default function Sidebar() {
           </button>
         </div>
         {negotiations.length > 0 ? (
-          <select
-            value={currentNegotiation?.id || ''}
-            onChange={(e) => {
-              const selectedId = e.target.value;
-              console.log('Negotiation dropdown changed to:', selectedId);
-              console.log('Available negotiations:', negotiations);
-              setCurrentNegotiation(selectedId);
-              console.log('After setCurrentNegotiation, currentNegotiationId should be:', selectedId);
-            }}
-            style={{
-              width: '100%',
-              padding: '8px 10px',
-              background: 'rgba(0, 0, 0, 0.3)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '6px',
-              color: '#fff',
-              fontSize: '13px',
-              cursor: 'pointer',
-            }}
-          >
-            <option value="">Select a negotiation...</option>
-            {negotiations.map((neg) => (
-              <option key={neg.id} value={neg.id}>
-                {neg.title || neg.name || 'Untitled Negotiation'}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              value={currentNegotiation?.id || ''}
+              onChange={(e) => {
+                const selectedId = e.target.value;
+                console.log('Negotiation dropdown changed to:', selectedId);
+                console.log('Available negotiations:', negotiations);
+                setCurrentNegotiation(selectedId);
+                console.log('After setCurrentNegotiation, currentNegotiationId should be:', selectedId);
+              }}
+              className="np-select w-full appearance-none bg-none px-3 py-2 bg-black/30 border border-white/20 rounded-md text-white text-[13px] pr-8 cursor-pointer"
+            >
+              <option value="">Select a negotiation...</option>
+              {negotiations.map((neg) => (
+                <option key={neg.id} value={neg.id}>
+                  {neg.title || neg.name || 'Untitled Negotiation'}
+                </option>
+              ))}
+            </select>
+            {/* Chevron indicator */}
+            <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-white/70">
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+              </svg>
+            </span>
+          </div>
         ) : (
           <div style={{ fontSize: '13px', color: '#fff', opacity: 0.7, fontStyle: 'italic', lineHeight: '1.4' }}>
             <div style={{ marginBottom: '4px' }}>

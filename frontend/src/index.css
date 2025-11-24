@@ -1,22 +1,184 @@
-/**
- * Global styles
- */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* Design system tokens (HSL) */
+:root {
+  /* App surfaces */
+  --chat-bg: 0 0% 100%;
+  --chat-foreground: 220 16% 14%;
+  --chat-muted: 220 14% 96%;
+  --chat-muted-foreground: 215 14% 45%;
+  --chat-border: 215 20% 88%;
+  --chat-card: 0 0% 100%;
+
+  /* Brand */
+  --chat-primary: 204 70% 53%;
+  --chat-primary-hover: 204 70% 45%;
+
+  /* Sidebar */
+  --chat-sidebar: 0 0% 10%;
+
+  /* Messages */
+  --message-user-bg: var(--chat-primary);
+  --message-user-text: 0 0% 100%;
+  --message-assistant-bg: 210 16% 96%;
+  --message-assistant-text: 220 16% 14%;
+
+  /* Code blocks */
+  --code-bg: 222 13% 18%;
+  --code-text: 210 40% 96%;
+  --code-border: 222 13% 28%;
+  --code-header: 222 13% 22%;
+
+  /* Status */
+  --success: 142 72% 29%;
+  --success-foreground: 142 84% 96%;
+  --danger: 0 84% 60%;
+  --danger-foreground: 0 86% 97%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 48 96% 10%;
 }
 
-body {
-  font-family: "neue-haas-grotesk-text", -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+.dark {
+  --chat-bg: 222 13% 10%;
+  --chat-foreground: 210 20% 96%;
+  --chat-muted: 223 10% 15%;
+  --chat-muted-foreground: 220 10% 65%;
+  --chat-border: 222 10% 20%;
+  --chat-card: 222 13% 12%;
+
+  --message-user-bg: var(--chat-primary);
+  --message-user-text: 0 0% 100%;
+  --message-assistant-bg: 223 10% 15%;
+  --message-assistant-text: 210 20% 96%;
+
+  --code-bg: 222 13% 12%;
+  --code-text: 210 40% 96%;
+  --code-border: 222 13% 22%;
+  --code-header: 222 13% 16%;
 }
 
-#root {
-  height: 100vh;
-  width: 100vw;
+/* Global base */
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-chat-bg text-chat-foreground antialiased;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+      "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  }
 }
+
+/* Component class mappings to Tailwind (for legacy JSX classNames) */
+@layer components {
+  /* App layout */
+  .app-container { @apply flex h-screen overflow-hidden bg-chat-muted; }
+
+  /* Sidebar */
+  .sidebar { @apply w-[300px] min-w-[300px] max-w-[300px] shrink-0 bg-chat-sidebar text-white flex flex-col border-r border-chat-border; }
+  .sidebar-header { @apply px-5 py-6 border-b border-chat-border bg-chat-sidebar; }
+  .sidebar-header h1 { @apply m-0 mb-2 text-2xl font-semibold text-white; }
+  .sidebar-header p { @apply m-0 text-xs text-chat-muted-foreground; }
+  .sidebar-separator { @apply border-t border-white/10 my-2 mx-4; }
+  .new-session-btn { @apply m-4 px-5 py-3 bg-chat-primary text-white rounded-lg text-sm font-medium transition-colors hover:bg-chat-primary-hover active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed; }
+  .sessions-list { @apply flex-1 overflow-y-auto py-2; }
+  .session-item { @apply px-5 py-3 mx-3 my-1 rounded-md cursor-pointer transition-colors border-l-4 border-transparent hover:bg-white/5 flex items-center justify-between relative; }
+  .session-item.active { @apply bg-chat-primary/20 border-l-chat-primary; }
+  .delete-session-btn { @apply text-danger opacity-60 hover:opacity-100 hover:bg-danger/10 rounded p-1.5 ml-2 inline-flex items-center justify-center transition; }
+
+  /* Chat Container */
+  .chat-container { @apply flex-1 min-w-0 flex flex-col bg-white overflow-hidden; }
+  .chat-header { @apply px-8 py-5 bg-white border-b border-chat-border flex items-center justify-between; }
+  .provider-model-display { @apply text-sm text-gray-600 font-medium; }
+  .messages-container { @apply flex-1 overflow-y-auto px-8 py-6 bg-chat-muted; }
+  .welcome-message { @apply flex items-center justify-center h-full text-center text-chat-muted-foreground; }
+
+  /* Messages */
+  .message { @apply mb-6 animate-fade-in flex flex-col; }
+  .message-header-row { @apply flex items-center justify-between mb-1.5 gap-2; }
+  .message-header { @apply text-[12px] font-semibold uppercase tracking-wide text-gray-500; }
+  .message-timestamp { @apply text-xs text-gray-400; }
+  .header-expand-btn { @apply inline-flex items-center justify-center rounded p-1 text-chat-muted-foreground hover:text-chat-primary hover:bg-chat-primary/10; }
+  .message-content { @apply relative px-5 py-4 rounded-xl; }
+  .message.user .message-content { @apply bg-message-user-bg text-message-user-text rounded-br-sm ml-auto max-w-[75%] md:w-3/4; }
+  .message.assistant .message-content { @apply bg-message-assistant-bg text-message-assistant-text border border-chat-border mr-auto max-w-[75%] md:w-3/4; }
+  .message.user .message-header-row { @apply justify-end; }
+  .message-meta { @apply mt-2 flex items-center gap-4 text-xs text-chat-muted-foreground; }
+  .message-meta-label { @apply font-semibold; }
+  .message-meta-value { @apply opacity-80; }
+  /* message-actions wrapper was removed; copy button container handles its own absolute positioning */
+
+  /* Copy button */
+  .copy-button-container { @apply absolute top-2 right-2 opacity-0 transition-opacity; }
+  .message:hover .copy-button-container { @apply opacity-100; }
+  .copy-button { @apply bg-transparent border-0 p-1 text-chat-muted-foreground hover:text-chat-primary hover:bg-chat-primary/10 rounded transition-colors inline-flex items-center justify-center; }
+  .copy-dropdown { @apply absolute top-full right-0 mt-2 bg-white border border-chat-border rounded-lg shadow-lg p-1 z-50 min-w-[160px]; }
+  .copy-dropdown-item { @apply w-full text-left flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-chat-muted text-chat-foreground; }
+
+  /* Typing indicator */
+  .typing-indicator { @apply flex items-center gap-1 px-5 py-4; }
+  .typing-indicator span { @apply inline-block w-2 h-2 rounded-full bg-chat-muted-foreground animate-pulse; }
+
+  /* Input */
+  .input-container { @apply p-4 border-t border-chat-border bg-white; }
+  .input-wrapper { @apply flex gap-3 items-end rounded-md border border-chat-border bg-white p-3; }
+  .input-wrapper textarea { @apply flex-1 min-h-[44px] rounded-md border border-chat-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-chat-primary focus:border-chat-primary; }
+  .input-wrapper.dragging { @apply ring-2 ring-chat-primary/40; }
+  .attachment-button { @apply inline-flex items-center justify-center rounded-md border border-chat-border bg-transparent text-chat-foreground hover:bg-chat-muted h-10 w-10 disabled:opacity-50; }
+  .send-button { @apply inline-flex items-center gap-2 rounded-md bg-chat-primary text-white px-4 py-2 text-sm disabled:opacity-50; }
+  .loading-spinner-small { @apply inline-block w-4 h-4 mr-2 align-middle rounded-full border-2 border-chat-muted border-t-chat-primary animate-spin; }
+
+  /* Code blocks */
+  .code-block-wrapper { @apply my-3 rounded-lg bg-code-bg border border-code-border overflow-hidden; }
+  .code-block-header { @apply flex items-center justify-between px-3 py-2.5 bg-code-header border-b border-code-border; }
+  .code-language-info { @apply flex items-center gap-2; }
+  .code-language-badge { @apply px-2.5 py-0.5 bg-chat-primary text-white text-[10px] font-semibold uppercase rounded; }
+  .code-line-count { @apply text-[10px] text-code-text/70; }
+  .code-actions { @apply flex items-center gap-2; }
+  .code-theme-selector { @apply bg-transparent text-code-text text-xs border border-code-border rounded px-2 py-1; }
+  .code-action-button { @apply inline-flex items-center gap-1 bg-transparent border border-code-border text-code-text hover:bg-code-bg/60 rounded px-2 py-1 text-xs; }
+  .code-copy-btn span { @apply ml-1; }
+  .code-block-content { @apply bg-code-bg; }
+  .code-collapse-indicator { @apply bg-code-header border-t border-code-border px-3 py-2 flex justify-center; }
+  .code-expand-button { @apply text-xs text-code-text hover:underline; }
+  .inline-code { @apply bg-code-header text-code-text rounded px-1.5 py-0.5 text-[0.85em]; }
+
+  /* File preview */
+  .file-preview-container { @apply my-3 grid grid-cols-1 sm:grid-cols-2 gap-3; }
+  .file-preview-item { @apply relative flex items-center gap-3 border border-chat-border rounded p-2 bg-white; }
+  .file-preview-item.error { @apply border-danger/40 bg-danger/5; }
+  .file-preview-thumbnail { @apply w-16 h-16 rounded overflow-hidden bg-chat-muted flex items-center justify-center; }
+  .file-preview-thumbnail img { @apply object-cover w-full h-full; }
+  .file-icon-placeholder { @apply text-chat-muted-foreground; }
+  .file-progress-overlay { @apply absolute inset-0 bg-black/20 flex items-center justify-center; }
+  .file-complete-overlay { @apply absolute inset-0 bg-white/40 flex items-center justify-center; }
+  .file-metadata { @apply flex-1 min-w-0; }
+  .file-type-badge { @apply inline-block text-[10px] font-medium bg-chat-muted text-chat-foreground rounded px-2 py-0.5 mr-2; }
+  .file-name { @apply text-sm font-medium text-chat-foreground truncate; }
+  .file-size { @apply text-xs text-chat-muted-foreground; }
+  .compressed-badge { @apply ml-2 text-[10px] uppercase text-success; }
+  .file-error { @apply mt-1 text-xs text-danger; }
+  .file-remove-button { @apply absolute top-1 right-1 inline-flex items-center justify-center h-6 w-6 rounded bg-danger text-white; }
+
+  /* Auth screens (Login/CreateProfile) */
+  .create-profile-container { @apply min-h-screen bg-chat-muted flex items-center justify-center p-6; }
+  .create-profile-card { @apply w-full max-w-xl bg-chat-card border border-chat-border rounded-xl p-8 shadow-card; }
+  .create-profile-card h1 { @apply text-2xl font-semibold text-chat-foreground; }
+  .subtitle { @apply text-chat-muted-foreground mb-6; }
+  .form-section { @apply mt-6; }
+  .form-section h2 { @apply text-lg font-semibold text-chat-foreground mb-2; }
+  .form-section h2 .optional { @apply text-sm font-normal text-chat-muted-foreground; }
+  .form-row { @apply grid grid-cols-1 sm:grid-cols-2 gap-4; }
+  .form-group { @apply flex flex-col gap-1.5 mb-4; }
+  .form-group label { @apply text-sm font-medium text-chat-foreground; }
+  .form-group small { @apply text-xs text-chat-muted-foreground; }
+  .form-group input { @apply block w-full rounded-md border border-chat-border bg-white text-chat-foreground placeholder:text-chat-muted-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-chat-primary focus:border-chat-primary; }
+  .error { @apply text-xs text-danger; }
+  .error-banner { @apply rounded-md border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger mb-4; }
+  .submit-button { @apply inline-flex items-center justify-center rounded-md bg-chat-primary text-white px-5 py-2.5 text-sm font-medium hover:bg-chat-primary-hover disabled:opacity-50; }
+  .toggle-button { @apply inline-flex items-center rounded border border-chat-border text-sm text-chat-foreground hover:bg-chat-muted px-3 py-1.5 mb-3; }
+}
+  /* Reset native select arrow for custom chevron overlays */
+  .np-select { -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: none; }

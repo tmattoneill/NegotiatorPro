@@ -1,22 +1,25 @@
-import React from 'react';
+import type { HTMLAttributes, PropsWithChildren } from 'react'
+import { cn } from './cn'
 
-type Variant = 'default' | 'success' | 'warning' | 'danger' | 'neutral' | 'primary';
+type Variant = 'default' | 'success' | 'danger' | 'muted' | 'outline'
 
-interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: Variant;
+interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
+  variant?: Variant
 }
 
-const variantClasses: Record<Variant, string> = {
-  default: 'bg-muted text-foreground',
-  primary: 'bg-chat-primary text-white',
-  success: 'bg-success text-white',
-  warning: 'bg-warning text-white',
-  danger: 'bg-danger text-white',
-  neutral: 'bg-gray-400 text-white',
-};
-
-export default function Badge({ variant = 'default', className = '', ...props }: BadgeProps) {
-  const base = 'inline-flex items-center px-2 py-0.5 rounded-full text-[12px] font-medium';
-  return <span className={`${base} ${variantClasses[variant]} ${className}`} {...props} />;
+export default function Badge({ variant = 'default', className, children, ...props }: PropsWithChildren<BadgeProps>) {
+  const base = 'inline-flex items-center rounded px-2 py-0.5 text-xs font-medium'
+  const variants: Record<Variant, string> = {
+    default: 'bg-chat-muted text-chat-foreground',
+    success: 'bg-success/10 text-success border border-success/30',
+    danger: 'bg-danger/10 text-danger border border-danger/30',
+    muted: 'bg-chat-muted text-chat-muted-foreground',
+    outline: 'border border-chat-border text-chat-foreground',
+  }
+  return (
+    <span className={cn(base, variants[variant], className)} {...props}>
+      {children}
+    </span>
+  )
 }
 

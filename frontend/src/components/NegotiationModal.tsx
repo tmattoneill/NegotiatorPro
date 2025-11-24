@@ -88,9 +88,9 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
 
   return (
     <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center" onClick={handleClose}>
-      <div className="bg-white rounded-lg w-[90%] max-w-[500px] max-h-[90vh] overflow-auto shadow-lg" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border">
-          <h2 className="text-xl font-semibold text-foreground m-0">Create New Negotiation</h2>
+      <div className="bg-chat-card border border-chat-border rounded-lg w-[90%] max-w-[500px] max-h-[90vh] overflow-auto shadow-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-chat-border">
+          <h2 className="text-xl font-semibold text-chat-foreground m-0">Create New Negotiation</h2>
           <button
             className="text-[28px] text-gray-500 hover:bg-gray-100 w-8 h-8 rounded flex items-center justify-center disabled:opacity-50"
             onClick={handleClose}
@@ -104,11 +104,11 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
         <form onSubmit={handleSubmit}>
           <div className="px-6 py-5">
             {error && (
-              <div className="px-3 py-2 mb-4 bg-red-50 border border-red-200 rounded text-[#c33]">{error}</div>
+              <div className="px-3 py-2 mb-4 rounded border border-danger/30 bg-danger/10 text-danger">{error}</div>
             )}
 
             <div className="mb-4">
-              <label htmlFor="negotiation-title" className="block text-[14px] font-medium text-foreground">
+              <label htmlFor="negotiation-title" className="block text-[14px] font-medium text-chat-foreground">
                 Negotiation Name <span className="text-danger">*</span>
               </label>
               <input
@@ -120,13 +120,13 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
                 maxLength={255}
                 disabled={isSubmitting}
                 autoFocus
-                className="w-full px-3 py-2 border border-border rounded text-[14px] mt-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+                className="w-full px-3 py-2 border border-chat-border rounded text-[14px] mt-2 outline-none focus:border-chat-primary focus:ring-2 focus:ring-chat-primary/10"
               />
             </div>
 
             <div className="mb-4">
-              <label htmlFor="negotiation-description" className="block text-[14px] font-medium text-foreground">
-                Description <span className="text-muted-foreground font-normal">(optional)</span>
+              <label htmlFor="negotiation-description" className="block text-[14px] font-medium text-chat-foreground">
+                Description <span className="text-chat-muted-foreground font-normal">(optional)</span>
               </label>
               <textarea
                 id="negotiation-description"
@@ -135,17 +135,17 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
                 placeholder="Brief description of the negotiation context..."
                 rows={4}
                 disabled={isSubmitting}
-                className="w-full px-3 py-2 border border-border rounded text-[14px] mt-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 resize-y"
+                className="w-full px-3 py-2 border border-chat-border rounded text-[14px] mt-2 outline-none focus:border-chat-primary focus:ring-2 focus:ring-chat-primary/10 resize-y"
               />
             </div>
           </div>
 
-          <div className="px-6 py-4 border-t border-border flex justify-end">
+          <div className="px-6 py-4 border-t border-chat-border flex justify-end">
             <button
               type="button"
               onClick={handleClose}
               disabled={isSubmitting}
-              className="px-4 py-2 text-[14px] bg-white border border-border rounded mr-3 disabled:opacity-50"
+              className="px-4 py-2 text-[14px] bg-chat-card border border-chat-border rounded mr-3 disabled:opacity-50"
             >
               Cancel
             </button>

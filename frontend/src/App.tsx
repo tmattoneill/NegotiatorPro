@@ -13,7 +13,6 @@ import ChatContainer from './components/ChatContainer';
 import SystemPromptEditor from './components/SystemPromptEditor';
 import AdminPanel from './components/AdminPanel';
 import OnboardingWizard from './components/OnboardingWizard';
-import './App.css';
 
 function App() {
   const navigate = useNavigate();

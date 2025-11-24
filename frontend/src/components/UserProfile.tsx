@@ -10,6 +10,10 @@ import { useAuthStore } from '../store/authStore';
 import { usePersonaStore } from '../store/personaStore';
 import api from '../services/api';
 import type { UserPersona, UserPersonaCreate } from '../types/personas';
+import Button from './ui/Button';
+import Input from './ui/Input';
+import Textarea from './ui/Textarea';
+import Badge from './ui/Badge';
 
 export default function UserProfile() {
   const navigate = useNavigate();
@@ -191,138 +195,59 @@ export default function UserProfile() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#efefef',
-      padding: '40px 20px',
-    }}>
-      <div style={{
-        maxWidth: '800px',
-        margin: '0 auto',
-      }}>
+    <div className="min-h-screen bg-chat-muted py-10 px-5">
+      <div className="max-w-3xl mx-auto">
         {/* Header */}
-        <div style={{
-          marginBottom: '32px',
-        }}>
+        <div className="mb-8">
           <button
             onClick={() => navigate('/')}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#3498db',
-              fontSize: '14px',
-              cursor: 'pointer',
-              marginBottom: '16px',
-              padding: '0',
-            }}
+            className="text-chat-primary text-sm hover:underline mb-4 inline-flex"
           >
             ← Back to Chat
           </button>
-          <h1 style={{
-            fontSize: '32px',
-            fontWeight: '600',
-            color: '#191919',
-            margin: '0 0 8px 0',
-          }}>
+          <h1 className="text-3xl font-semibold text-chat-foreground mb-2">
             User Profile
           </h1>
-          <p style={{
-            fontSize: '16px',
-            color: '#9fadbd',
-            margin: '0',
-          }}>
+          <p className="text-base text-chat-muted-foreground">
             Manage your account settings and API keys
           </p>
         </div>
 
         {/* Profile Card */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '8px',
-          padding: '32px',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-        }}>
+        <div className="bg-chat-card border border-chat-border rounded-lg p-8 shadow-card">
           {/* Account Information */}
-          <div style={{ marginBottom: '32px' }}>
-            <h2 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#191919',
-              marginBottom: '16px',
-            }}>
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-chat-foreground mb-4">
               Account Information
             </h2>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '150px 1fr',
-              gap: '12px',
-              fontSize: '14px',
-              marginBottom: '20px',
-            }}>
-              <div style={{ color: '#9fadbd' }}>Username:</div>
-              <div style={{ color: '#191919', fontWeight: '500' }}>{user.username}</div>
+            <div className="grid [grid-template-columns:150px_1fr] gap-3 text-sm mb-5">
+              <div className="text-chat-muted-foreground">Username:</div>
+              <div className="text-chat-foreground font-medium">{user.username}</div>
 
-              <div style={{ color: '#9fadbd' }}>Role:</div>
-              <div style={{ color: '#191919', fontWeight: '500' }}>{user.role}</div>
+              <div className="text-chat-muted-foreground">Role:</div>
+              <div className="text-chat-foreground font-medium">{user.role}</div>
             </div>
 
             {/* API Keys Status */}
-            <div style={{ marginTop: '20px' }}>
-              <h3 style={{
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#191919',
-                marginBottom: '12px',
-              }}>
+            <div className="mt-5">
+              <h3 className="text-sm font-semibold text-chat-foreground mb-3">
                 API Keys Status
               </h3>
-              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 14px',
-                  borderRadius: '6px',
-                  background: user.has_openai_key ? '#f0fdf4' : '#f8f9fa',
-                  border: user.has_openai_key ? '1px solid #86efac' : '1px solid #e0e0e0',
-                }}>
-                  <div style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    background: user.has_openai_key ? '#22c55e' : '#9fadbd',
-                  }}></div>
-                  <span style={{
-                    fontSize: '13px',
-                    fontWeight: '500',
-                    color: user.has_openai_key ? '#166534' : '#9fadbd',
-                  }}>
-                    OpenAI
-                  </span>
+              <div className="flex gap-4 flex-wrap">
+                <div className={
+                  'inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm ' +
+                  (user.has_openai_key ? 'border-success/30 bg-success/10' : 'border-chat-border bg-transparent')
+                }>
+                  <span className={user.has_openai_key ? 'h-2 w-2 rounded-full bg-success inline-block' : 'h-2 w-2 rounded-full bg-chat-muted-foreground inline-block'} />
+                  <span className={user.has_openai_key ? 'font-medium text-success' : 'font-medium text-chat-muted-foreground'}>OpenAI</span>
                 </div>
 
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 14px',
-                  borderRadius: '6px',
-                  background: user.has_anthropic_key ? '#f0fdf4' : '#f8f9fa',
-                  border: user.has_anthropic_key ? '1px solid #86efac' : '1px solid #e0e0e0',
-                }}>
-                  <div style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    background: user.has_anthropic_key ? '#22c55e' : '#9fadbd',
-                  }}></div>
-                  <span style={{
-                    fontSize: '13px',
-                    fontWeight: '500',
-                    color: user.has_anthropic_key ? '#166534' : '#9fadbd',
-                  }}>
-                    Anthropic
-                  </span>
+                <div className={
+                  'inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm ' +
+                  (user.has_anthropic_key ? 'border-success/30 bg-success/10' : 'border-chat-border bg-transparent')
+                }>
+                  <span className={user.has_anthropic_key ? 'h-2 w-2 rounded-full bg-success inline-block' : 'h-2 w-2 rounded-full bg-chat-muted-foreground inline-block'} />
+                  <span className={user.has_anthropic_key ? 'font-medium text-success' : 'font-medium text-chat-muted-foreground'}>Anthropic</span>
                 </div>
               </div>
             </div>
@@ -330,121 +255,47 @@ export default function UserProfile() {
 
           {/* Edit Form */}
           <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: '32px' }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '16px',
-              }}>
-                <h2 style={{
-                  fontSize: '18px',
-                  fontWeight: '600',
-                  color: '#191919',
-                  margin: '0',
-                }}>
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-chat-foreground m-0">
                   Profile Details
                 </h2>
                 {!isEditing && (
-                  <button
-                    type="button"
-                    onClick={() => setIsEditing(true)}
-                    style={{
-                      background: '#3498db',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '6px',
-                      padding: '8px 16px',
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                      fontWeight: '500',
-                    }}
-                  >
+                  <Button type="button" size="sm" onClick={() => setIsEditing(true)}>
                     Edit Profile
-                  </button>
+                  </Button>
                 )}
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="flex flex-col gap-4">
                 <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#191919',
-                    marginBottom: '6px',
-                  }}>
-                    First Name
-                  </label>
-                  <input
+                  <label className="block text-sm font-medium text-chat-foreground mb-1.5">First Name</label>
+                  <Input
                     type="text"
                     value={formData.first_name}
                     onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                     disabled={!isEditing}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      fontSize: '14px',
-                      border: '1px solid #9fadbd',
-                      borderRadius: '6px',
-                      background: isEditing ? '#ffffff' : '#efefef',
-                      color: '#191919',
-                    }}
                   />
                 </div>
 
                 <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#191919',
-                    marginBottom: '6px',
-                  }}>
-                    Last Name
-                  </label>
-                  <input
+                  <label className="block text-sm font-medium text-chat-foreground mb-1.5">Last Name</label>
+                  <Input
                     type="text"
                     value={formData.last_name}
                     onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                     disabled={!isEditing}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      fontSize: '14px',
-                      border: '1px solid #9fadbd',
-                      borderRadius: '6px',
-                      background: isEditing ? '#ffffff' : '#efefef',
-                      color: '#191919',
-                    }}
                   />
                 </div>
 
                 <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#191919',
-                    marginBottom: '6px',
-                  }}>
-                    Email
-                  </label>
-                  <input
+                  <label className="block text-sm font-medium text-chat-foreground mb-1.5">Email</label>
+                  <Input
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     disabled={!isEditing}
                     required
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      fontSize: '14px',
-                      border: '1px solid #9fadbd',
-                      borderRadius: '6px',
-                      background: isEditing ? '#ffffff' : '#efefef',
-                      color: '#191919',
-                    }}
                   />
                 </div>
               </div>
@@ -452,37 +303,22 @@ export default function UserProfile() {
 
             {/* API Keys Section */}
             {isEditing && (
-              <div style={{ marginBottom: '24px' }}>
-                <h2 style={{
-                  fontSize: '18px',
-                  fontWeight: '600',
-                  color: '#191919',
-                  marginBottom: '8px',
-                }}>
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold text-chat-foreground mb-2">
                   API Keys
                 </h2>
-                <p style={{
-                  fontSize: '13px',
-                  color: '#9fadbd',
-                  marginBottom: '16px',
-                }}>
+                <p className="text-xs text-chat-muted-foreground mb-4">
                   Leave blank to keep existing keys unchanged
                 </p>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="flex flex-col gap-4">
                   {/* OpenAI API Key */}
                   <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#191919',
-                      marginBottom: '6px',
-                    }}>
+                    <label className="block text-sm font-medium text-chat-foreground mb-1.5">
                       OpenAI API Key
                     </label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <input
+                    <div className="flex gap-2">
+                      <Input
                         type="password"
                         value={formData.openai_api_key}
                         onChange={(e) => {
@@ -490,46 +326,16 @@ export default function UserProfile() {
                           setOpenAITestResult(null);
                         }}
                         placeholder="sk-..."
-                        style={{
-                          flex: 1,
-                          padding: '10px 12px',
-                          fontSize: '14px',
-                          border: '1px solid #9fadbd',
-                          borderRadius: '6px',
-                          background: '#ffffff',
-                          color: '#191919',
-                        }}
+                        className="flex-1"
                       />
-                      <button
-                        type="button"
-                        onClick={() => handleTestAPIKey('openai')}
-                        disabled={testingOpenAI || !formData.openai_api_key}
-                        style={{
-                          padding: '10px 16px',
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          color: '#ffffff',
-                          background: testingOpenAI ? '#9fadbd' : '#3498db',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: testingOpenAI || !formData.openai_api_key ? 'not-allowed' : 'pointer',
-                          opacity: testingOpenAI || !formData.openai_api_key ? 0.6 : 1,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                      <Button type="button" onClick={() => handleTestAPIKey('openai')} disabled={testingOpenAI || !formData.openai_api_key}>
                         {testingOpenAI ? 'Testing...' : 'Test Key'}
-                      </button>
+                      </Button>
                     </div>
                     {openAITestResult && (
-                      <div style={{
-                        marginTop: '8px',
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        fontSize: '13px',
-                        background: openAITestResult.valid ? '#f0fdf4' : '#fff5f5',
-                        border: openAITestResult.valid ? '1px solid #86efac' : '1px solid #fc8181',
-                        color: openAITestResult.valid ? '#166534' : '#c53030',
-                      }}>
+                      <div className={openAITestResult.valid
+                        ? 'mt-2 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-xs text-success'
+                        : 'mt-2 rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger'}>
                         {openAITestResult.message}
                       </div>
                     )}
@@ -537,17 +343,11 @@ export default function UserProfile() {
 
                   {/* Anthropic API Key */}
                   <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#191919',
-                      marginBottom: '6px',
-                    }}>
+                    <label className="block text-sm font-medium text-chat-foreground mb-1.5">
                       Anthropic API Key
                     </label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <input
+                    <div className="flex gap-2">
+                      <Input
                         type="password"
                         value={formData.anthropic_api_key}
                         onChange={(e) => {
@@ -555,46 +355,16 @@ export default function UserProfile() {
                           setAnthropicTestResult(null);
                         }}
                         placeholder="sk-ant-..."
-                        style={{
-                          flex: 1,
-                          padding: '10px 12px',
-                          fontSize: '14px',
-                          border: '1px solid #9fadbd',
-                          borderRadius: '6px',
-                          background: '#ffffff',
-                          color: '#191919',
-                        }}
+                        className="flex-1"
                       />
-                      <button
-                        type="button"
-                        onClick={() => handleTestAPIKey('anthropic')}
-                        disabled={testingAnthropic || !formData.anthropic_api_key}
-                        style={{
-                          padding: '10px 16px',
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          color: '#ffffff',
-                          background: testingAnthropic ? '#9fadbd' : '#3498db',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: testingAnthropic || !formData.anthropic_api_key ? 'not-allowed' : 'pointer',
-                          opacity: testingAnthropic || !formData.anthropic_api_key ? 0.6 : 1,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                      <Button type="button" onClick={() => handleTestAPIKey('anthropic')} disabled={testingAnthropic || !formData.anthropic_api_key}>
                         {testingAnthropic ? 'Testing...' : 'Test Key'}
-                      </button>
+                      </Button>
                     </div>
                     {anthropicTestResult && (
-                      <div style={{
-                        marginTop: '8px',
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        fontSize: '13px',
-                        background: anthropicTestResult.valid ? '#f0fdf4' : '#fff5f5',
-                        border: anthropicTestResult.valid ? '1px solid #86efac' : '1px solid #fc8181',
-                        color: anthropicTestResult.valid ? '#166534' : '#c53030',
-                      }}>
+                      <div className={anthropicTestResult.valid
+                        ? 'mt-2 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-xs text-success'
+                        : 'mt-2 rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger'}>
                         {anthropicTestResult.message}
                       </div>
                     )}
@@ -605,46 +375,26 @@ export default function UserProfile() {
 
             {/* Messages */}
             {error && (
-              <div style={{
-                padding: '12px 16px',
-                background: '#fff5f5',
-                border: '1px solid #fc8181',
-                borderRadius: '6px',
-                color: '#c53030',
-                fontSize: '14px',
-                marginBottom: '16px',
-              }}>
+              <div className="mb-4 rounded-md border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
                 {error}
               </div>
             )}
 
             {success && (
-              <div style={{
-                padding: '12px 16px',
-                background: '#f0fdf4',
-                border: '1px solid #86efac',
-                borderRadius: '6px',
-                color: '#166534',
-                fontSize: '14px',
-                marginBottom: '16px',
-              }}>
+              <div className="mb-4 rounded-md border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">
                 {success}
               </div>
             )}
 
             {/* Action Buttons */}
             {isEditing && (
-              <div style={{
-                display: 'flex',
-                gap: '12px',
-                justifyContent: 'flex-end',
-              }}>
-                <button
+              <div className="flex gap-3 justify-end">
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => {
                     setIsEditing(false);
                     setError('');
-                    // Reset form
                     setFormData({
                       first_name: user.first_name || '',
                       last_name: user.last_name || '',
@@ -653,168 +403,77 @@ export default function UserProfile() {
                       anthropic_api_key: '',
                     });
                   }}
-                  style={{
-                    background: '#efefef',
-                    color: '#191919',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '10px 20px',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    fontWeight: '500',
-                  }}
                 >
                   Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  style={{
-                    background: '#b68947',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '10px 20px',
-                    fontSize: '14px',
-                    cursor: isSaving ? 'not-allowed' : 'pointer',
-                    fontWeight: '500',
-                    opacity: isSaving ? 0.6 : 1,
-                  }}
-                >
+                </Button>
+                <Button type="submit" disabled={isSaving} variant="primary">
                   {isSaving ? 'Saving...' : 'Save Changes'}
-                </button>
+                </Button>
               </div>
             )}
           </form>
         </div>
 
         {/* My Personas Section */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '8px',
-          padding: '32px',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-          marginTop: '24px',
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '16px',
-          }}>
+        <div className="bg-chat-card border border-chat-border rounded-lg p-8 shadow-card mt-6">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#191919',
-                margin: '0 0 4px 0',
-              }}>
+              <h2 className="text-lg font-semibold text-chat-foreground mb-1">
                 My Personas
               </h2>
-              <p style={{ fontSize: '13px', color: '#9fadbd', margin: 0 }}>
+              <p className="text-xs text-chat-muted-foreground m-0">
                 Your negotiation identities - the roles you play
               </p>
             </div>
-            <button
+            <Button
               onClick={() => {
                 setEditingPersona(null);
                 setPersonaForm({ name: '', role_title: '', organization: '', communication_style: '', negotiation_strengths: '', notes: '', is_default: false });
                 setShowPersonaForm(true);
               }}
-              style={{
-                background: '#3498db',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '6px',
-                padding: '8px 16px',
-                fontSize: '14px',
-                cursor: 'pointer',
-                fontWeight: '500',
-              }}
             >
               + Add Persona
-            </button>
+            </Button>
           </div>
 
           {userPersonas.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: '32px',
-              color: '#9fadbd',
-            }}>
-              <p>No personas yet. Create one to get started.</p>
+            <div className="text-center p-8 text-chat-muted-foreground">
+              <p className="m-0">No personas yet. Create one to get started.</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="flex flex-col gap-3">
               {userPersonas.map((persona) => (
                 <div
                   key={persona.id}
-                  style={{
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '8px',
-                    padding: '16px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                  }}
+                  className="border border-chat-border rounded-lg p-4 flex justify-between items-start"
                 >
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '16px', fontWeight: '600', color: '#191919' }}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base font-semibold text-chat-foreground">
                         {persona.name}
                       </span>
                       {persona.is_default && (
-                        <span style={{
-                          background: '#3498db',
-                          color: '#fff',
-                          padding: '2px 8px',
-                          borderRadius: '10px',
-                          fontSize: '11px',
-                          fontWeight: '500',
-                        }}>
-                          Default
-                        </span>
+                        <Badge variant="success" className="text-[10px] py-0.5 px-2">Default</Badge>
                       )}
                     </div>
                     {persona.role_title && (
-                      <p style={{ fontSize: '13px', color: '#666', margin: '0 0 4px 0' }}>
+                      <p className="text-sm text-chat-foreground/70 mb-1">
                         {persona.role_title}{persona.organization ? ` at ${persona.organization}` : ''}
                       </p>
                     )}
                     {persona.communication_style && (
-                      <p style={{ fontSize: '12px', color: '#9fadbd', margin: 0 }}>
+                      <p className="text-xs text-chat-muted-foreground m-0">
                         {persona.communication_style}
                       </p>
                     )}
                   </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => handleEditPersona(persona)}
-                      style={{
-                        background: '#f5f5f5',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        padding: '6px 12px',
-                        fontSize: '13px',
-                        cursor: 'pointer',
-                      }}
-                    >
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => handleEditPersona(persona)}>
                       Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeletePersona(persona.id)}
-                      style={{
-                        background: '#fff',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        padding: '6px 12px',
-                        fontSize: '13px',
-                        cursor: 'pointer',
-                        color: '#c00',
-                      }}
-                    >
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-danger border-danger/40" onClick={() => handleDeletePersona(persona.id)}>
                       Delete
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -824,94 +483,65 @@ export default function UserProfile() {
 
         {/* Persona Form Modal */}
         {showPersonaForm && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-          }}>
-            <div style={{
-              background: '#fff',
-              borderRadius: '12px',
-              width: '90%',
-              maxWidth: '500px',
-              maxHeight: '90vh',
-              overflow: 'auto',
-            }}>
-              <div style={{
-                padding: '20px 24px',
-                borderBottom: '1px solid #eee',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}>
-                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+          <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center">
+            <div className="bg-chat-card border border-chat-border rounded-xl w-[90%] max-w-[500px] max-h-[90vh] overflow-auto shadow-card">
+              <div className="px-6 py-4 border-b border-chat-border flex items-center justify-between">
+                <h3 className="m-0 text-lg font-semibold">
                   {editingPersona ? 'Edit Persona' : 'Create Persona'}
                 </h3>
                 <button
                   onClick={() => { setShowPersonaForm(false); setEditingPersona(null); }}
-                  style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#666' }}
+                  className="text-chat-muted-foreground text-2xl leading-none"
                 >
                   ×
                 </button>
               </div>
-              <div style={{ padding: '24px' }}>
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>Persona Name *</label>
-                  <input
+              <div className="p-6">
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1.5">Persona Name *</label>
+                  <Input
                     type="text"
                     value={personaForm.name}
                     onChange={(e) => setPersonaForm({ ...personaForm, name: e.target.value })}
                     placeholder="e.g., Sales Director"
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
                   />
                 </div>
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>Role / Title</label>
-                  <input
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1.5">Role / Title</label>
+                  <Input
                     type="text"
                     value={personaForm.role_title || ''}
                     onChange={(e) => setPersonaForm({ ...personaForm, role_title: e.target.value })}
                     placeholder="e.g., VP of Sales"
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
                   />
                 </div>
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>Organization</label>
-                  <input
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1.5">Organization</label>
+                  <Input
                     type="text"
                     value={personaForm.organization || ''}
                     onChange={(e) => setPersonaForm({ ...personaForm, organization: e.target.value })}
                     placeholder="e.g., Acme Corp"
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
                   />
                 </div>
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>Communication Style</label>
-                  <textarea
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1.5">Communication Style</label>
+                  <Textarea
                     value={personaForm.communication_style || ''}
                     onChange={(e) => setPersonaForm({ ...personaForm, communication_style: e.target.value })}
                     placeholder="How do you prefer to communicate?"
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', minHeight: '60px', resize: 'vertical', boxSizing: 'border-box' }}
                   />
                 </div>
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>Negotiation Strengths</label>
-                  <textarea
+                <div className="mb-5">
+                  <label className="block text-sm font-medium mb-1.5">Negotiation Strengths</label>
+                  <Textarea
                     value={personaForm.negotiation_strengths || ''}
                     onChange={(e) => setPersonaForm({ ...personaForm, negotiation_strengths: e.target.value })}
                     placeholder="What are your key strengths?"
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', minHeight: '60px', resize: 'vertical', boxSizing: 'border-box' }}
                   />
                 </div>
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' }}>
+                <div className="mb-5">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
                     <input
                       type="checkbox"
                       checked={personaForm.is_default}
@@ -920,29 +550,13 @@ export default function UserProfile() {
                     Set as default persona
                   </label>
                 </div>
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => { setShowPersonaForm(false); setEditingPersona(null); }}
-                    style={{ padding: '10px 20px', background: '#f5f5f5', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}
-                  >
+                <div className="flex gap-3 justify-end">
+                  <Button variant="outline" onClick={() => { setShowPersonaForm(false); setEditingPersona(null); }}>
                     Cancel
-                  </button>
-                  <button
-                    onClick={handleSavePersona}
-                    disabled={!personaForm.name}
-                    style={{
-                      padding: '10px 20px',
-                      background: personaForm.name ? '#3498db' : '#ccc',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: personaForm.name ? 'pointer' : 'not-allowed',
-                    }}
-                  >
+                  </Button>
+                  <Button onClick={handleSavePersona} disabled={!personaForm.name}>
                     {editingPersona ? 'Save Changes' : 'Create Persona'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
