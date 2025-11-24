@@ -13,6 +13,7 @@ interface User {
   role: string;
   has_openai_key?: boolean;
   has_anthropic_key?: boolean;
+  is_super_admin?: boolean;
 }
 
 interface AuthState {
