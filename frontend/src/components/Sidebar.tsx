@@ -36,17 +36,18 @@ export default function Sidebar() {
   const [editingTitle, setEditingTitle] = useState('');
   const { currentView, setView } = useAdminStore();
 
-  // Check if user is admin
+  // Check if user is admin or super admin
   const isAdmin = user?.role === 'admin';
+  const isSuperAdmin = user?.is_super_admin === true;
 
-  // Fetch personas and negotiations on mount
+  // Fetch personas and negotiations on mount (skip for super admin)
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && !isSuperAdmin) {
       fetchUserPersonas(user.id);
       fetchPartnerPersonas(user.id);
       loadNegotiations(user.id);
     }
-  }, [user?.id]);
+  }, [user?.id, isSuperAdmin]);
 
   // Load conversations when negotiation changes
   useEffect(() => {
@@ -125,117 +126,121 @@ export default function Sidebar() {
         <p>AI negotiation guidance</p>
       </div>
 
-      {/* Active Personas Display */}
-      <div style={{
-        padding: '12px 16px',
-        background: 'rgba(255, 255, 255, 0.05)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-      }}>
-        <div style={{ marginBottom: '10px' }}>
-          <div style={{ fontSize: '10px', color: '#9fadbd', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
-            You
-          </div>
-          <div style={{ fontSize: '13px', color: '#fff', fontWeight: 500 }}>
-            {activeUserPersona ? (
-              <>
-                <i className="fa-light fa-user" style={{ marginRight: '6px', opacity: 0.7 }}></i>
-                {activeUserPersona.name}
-                {activeUserPersona.role_title && (
-                  <span style={{ opacity: 0.6, fontWeight: 400 }}> · {activeUserPersona.role_title}</span>
-                )}
-              </>
-            ) : (
-              <span style={{ opacity: 0.5, fontStyle: 'italic' }}>No persona set</span>
-            )}
-          </div>
-        </div>
-        <div>
-          <div style={{ fontSize: '10px', color: '#9fadbd', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
-            Partner
-          </div>
-          <div style={{ fontSize: '13px', color: '#fff', fontWeight: 500 }}>
-            {activePartnerPersona ? (
-              <>
-                <i className="fa-light fa-handshake" style={{ marginRight: '6px', opacity: 0.7 }}></i>
-                {activePartnerPersona.name}
-                {activePartnerPersona.company && (
-                  <span style={{ opacity: 0.6, fontWeight: 400 }}> · {activePartnerPersona.company}</span>
-                )}
-              </>
-            ) : (
-              <span style={{ opacity: 0.5, fontStyle: 'italic' }}>Select a negotiation</span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Negotiation Selector */}
-      <div style={{
-        padding: '12px 16px',
-        background: 'rgba(255, 255, 255, 0.05)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-      }}>
+      {/* Active Personas Display - hidden for super admin */}
+      {!isSuperAdmin && (
         <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '8px'
+          padding: '12px 16px',
+          background: 'rgba(255, 255, 255, 0.05)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
         }}>
-          <div style={{ fontSize: '10px', color: '#9fadbd', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            Active Negotiation
-          </div>
-          <button
-            onClick={() => setShowNegotiationModal(true)}
-            style={{
-              padding: '4px 8px',
-              background: 'rgba(182, 137, 71, 0.2)',
-              border: '1px solid rgba(182, 137, 71, 0.5)',
-              borderRadius: '4px',
-              color: '#b68947',
-              fontSize: '11px',
-              cursor: 'pointer',
-              fontWeight: 500,
-            }}
-            title="Create new negotiation"
-          >
-            + New
-          </button>
-        </div>
-        {negotiations.length > 0 ? (
-          <div className="relative">
-            <select
-              value={currentNegotiation?.id || ''}
-              onChange={(e) => {
-                const selectedId = e.target.value;
-                console.log('Negotiation dropdown changed to:', selectedId);
-                console.log('Available negotiations:', negotiations);
-                setCurrentNegotiation(selectedId);
-                console.log('After setCurrentNegotiation, currentNegotiationId should be:', selectedId);
-              }}
-              className="np-select w-full appearance-none bg-none px-3 py-2 bg-black/30 border border-white/20 rounded-md text-white text-[13px] pr-8 cursor-pointer"
-            >
-              <option value="">Select a negotiation...</option>
-              {negotiations.map((neg) => (
-                <option key={neg.id} value={neg.id}>
-                  {neg.title || neg.name || 'Untitled Negotiation'}
-                </option>
-              ))}
-            </select>
-            {/* Chevron indicator */}
-            <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-white/70">
-              <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-              </svg>
-            </span>
-          </div>
-        ) : (
-          <div style={{ fontSize: '13px', color: '#fff', opacity: 0.7, fontStyle: 'italic', lineHeight: '1.4' }}>
-            <div style={{ marginBottom: '4px' }}>
-              Welcome! Click "+ New" above to start your first negotiation.
+          <div style={{ marginBottom: '10px' }}>
+            <div style={{ fontSize: '10px', color: '#9fadbd', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
+              You
+            </div>
+            <div style={{ fontSize: '13px', color: '#fff', fontWeight: 500 }}>
+              {activeUserPersona ? (
+                <>
+                  <i className="fa-light fa-user" style={{ marginRight: '6px', opacity: 0.7 }}></i>
+                  {activeUserPersona.name}
+                  {activeUserPersona.role_title && (
+                    <span style={{ opacity: 0.6, fontWeight: 400 }}> · {activeUserPersona.role_title}</span>
+                  )}
+                </>
+              ) : (
+                <span style={{ opacity: 0.5, fontStyle: 'italic' }}>No persona set</span>
+              )}
             </div>
           </div>
-        )}
-      </div>
+          <div>
+            <div style={{ fontSize: '10px', color: '#9fadbd', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
+              Partner
+            </div>
+            <div style={{ fontSize: '13px', color: '#fff', fontWeight: 500 }}>
+              {activePartnerPersona ? (
+                <>
+                  <i className="fa-light fa-handshake" style={{ marginRight: '6px', opacity: 0.7 }}></i>
+                  {activePartnerPersona.name}
+                  {activePartnerPersona.company && (
+                    <span style={{ opacity: 0.6, fontWeight: 400 }}> · {activePartnerPersona.company}</span>
+                  )}
+                </>
+              ) : (
+                <span style={{ opacity: 0.5, fontStyle: 'italic' }}>Select a negotiation</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Negotiation Selector - hidden for super admin */}
+      {!isSuperAdmin && (
+        <div style={{
+          padding: '12px 16px',
+          background: 'rgba(255, 255, 255, 0.05)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '8px'
+          }}>
+            <div style={{ fontSize: '10px', color: '#9fadbd', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Active Negotiation
+            </div>
+            <button
+              onClick={() => setShowNegotiationModal(true)}
+              style={{
+                padding: '4px 8px',
+                background: 'rgba(182, 137, 71, 0.2)',
+                border: '1px solid rgba(182, 137, 71, 0.5)',
+                borderRadius: '4px',
+                color: '#b68947',
+                fontSize: '11px',
+                cursor: 'pointer',
+                fontWeight: 500,
+              }}
+              title="Create new negotiation"
+            >
+              + New
+            </button>
+          </div>
+          {negotiations.length > 0 ? (
+            <div className="relative">
+              <select
+                value={currentNegotiation?.id || ''}
+                onChange={(e) => {
+                  const selectedId = e.target.value;
+                  console.log('Negotiation dropdown changed to:', selectedId);
+                  console.log('Available negotiations:', negotiations);
+                  setCurrentNegotiation(selectedId);
+                  console.log('After setCurrentNegotiation, currentNegotiationId should be:', selectedId);
+                }}
+                className="np-select w-full appearance-none bg-none px-3 py-2 bg-black/30 border border-white/20 rounded-md text-white text-[13px] pr-8 cursor-pointer"
+              >
+                <option value="">Select a negotiation...</option>
+                {negotiations.map((neg) => (
+                  <option key={neg.id} value={neg.id}>
+                    {neg.title || neg.name || 'Untitled Negotiation'}
+                  </option>
+                ))}
+              </select>
+              {/* Chevron indicator */}
+              <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-white/70">
+                <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                </svg>
+              </span>
+            </div>
+          ) : (
+            <div style={{ fontSize: '13px', color: '#fff', opacity: 0.7, fontStyle: 'italic', lineHeight: '1.4' }}>
+              <div style={{ marginBottom: '4px' }}>
+                Welcome! Click "+ New" above to start your first negotiation.
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Model Selector - shows models from selected provider */}
       <div style={{ padding: '16px 16px 0 16px' }}>
@@ -245,110 +250,135 @@ export default function Sidebar() {
       {/* Separator */}
       <div className="sidebar-separator"></div>
 
-      <button
-        className="new-session-btn"
-        onClick={() => currentNegotiation?.id && user?.id && createNewSession(currentNegotiation.id, user.id)}
-        disabled={!currentNegotiation?.id || !user?.id}
-        title={!currentNegotiation?.id ? 'Loading...' : 'Start a new conversation'}
-      >
-        + New Conversation
-      </button>
-
-      <div className="sessions-list">
-        <h3 style={{ fontSize: '12px', color: '#6c757d', padding: '8px 16px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          Chat Sessions
-        </h3>
-        {sessions.map((session) => (
-          <div
-            key={session.id}
-            className={`session-item ${session.id === currentSessionId ? 'active' : ''}`}
-            onClick={() => editingSessionId !== session.id && switchSession(session.id, user?.id)}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}
+      {/* Conversations section - hidden for super admin */}
+      {!isSuperAdmin && (
+        <>
+          <button
+            className="new-session-btn"
+            onClick={() => currentNegotiation?.id && user?.id && createNewSession(currentNegotiation.id, user.id)}
+            disabled={!currentNegotiation?.id || !user?.id}
+            title={!currentNegotiation?.id ? 'Loading...' : 'Start a new conversation'}
           >
-            <div style={{ flex: 1, minWidth: 0 }}>
-              {editingSessionId === session.id ? (
-                <input
-                  type="text"
-                  value={editingTitle}
-                  onChange={(e) => setEditingTitle(e.target.value.slice(0, 64))}
-                  onBlur={() => handleRenameSubmit(session.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleRenameSubmit(session.id);
-                    } else if (e.key === 'Escape') {
-                      cancelEditing();
-                    }
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  autoFocus
-                  maxLength={64}
-                  style={{
-                    width: '100%',
-                    fontSize: '14px',
-                    fontWeight: 500,
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                    borderRadius: '4px',
-                    padding: '4px 8px',
-                    color: '#fff',
-                    outline: 'none',
-                  }}
-                />
-              ) : (
-                <>
-                  <div
-                    style={{ fontSize: '14px', fontWeight: 500, marginBottom: '4px', cursor: 'pointer' }}
-                    onClick={(e) => startEditing(e, session.id, session.title || 'New Conversation')}
-                    title="Click to rename"
-                  >
-                    {session.title || 'New Conversation'}
-                  </div>
-                  <div style={{ fontSize: '11px', opacity: 0.7 }}>
-                    {session.messageCount} messages • {new Date(session.createdAt).toLocaleDateString()}
-                  </div>
-                </>
-              )}
-            </div>
-            {editingSessionId !== session.id && (
-              <button
-                onClick={(e) => handleDeleteClick(e, session.id)}
-                className="delete-session-btn"
-                title="Delete conversation"
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#ff6b6b',
-                  cursor: 'pointer',
-                  padding: '6px',
-                  marginLeft: '8px',
-                  borderRadius: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: 0.6,
-                  transition: 'opacity 0.2s, background 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = '1';
-                  e.currentTarget.style.background = 'rgba(255, 107, 107, 0.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = '0.6';
-                  e.currentTarget.style.background = 'transparent';
-                }}
+            + New Conversation
+          </button>
+
+          <div className="sessions-list">
+            <h3 style={{ fontSize: '12px', color: '#6c757d', padding: '8px 16px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Chat Sessions
+            </h3>
+            {sessions.map((session) => (
+              <div
+                key={session.id}
+                className={`session-item ${session.id === currentSessionId ? 'active' : ''}`}
+                onClick={() => editingSessionId !== session.id && switchSession(session.id, user?.id)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}
               >
-                <i className="fa-light fa-trash" style={{ fontSize: '14px' }}></i>
-              </button>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {editingSessionId === session.id ? (
+                    <input
+                      type="text"
+                      value={editingTitle}
+                      onChange={(e) => setEditingTitle(e.target.value.slice(0, 64))}
+                      onBlur={() => handleRenameSubmit(session.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleRenameSubmit(session.id);
+                        } else if (e.key === 'Escape') {
+                          cancelEditing();
+                        }
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      autoFocus
+                      maxLength={64}
+                      style={{
+                        width: '100%',
+                        fontSize: '14px',
+                        fontWeight: 500,
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        borderRadius: '4px',
+                        padding: '4px 8px',
+                        color: '#fff',
+                        outline: 'none',
+                      }}
+                    />
+                  ) : (
+                    <>
+                      <div
+                        style={{ fontSize: '14px', fontWeight: 500, marginBottom: '4px', cursor: 'pointer' }}
+                        onClick={(e) => startEditing(e, session.id, session.title || 'New Conversation')}
+                        title="Click to rename"
+                      >
+                        {session.title || 'New Conversation'}
+                      </div>
+                      <div style={{ fontSize: '11px', opacity: 0.7 }}>
+                        {session.messageCount} messages • {new Date(session.createdAt).toLocaleDateString()}
+                      </div>
+                    </>
+                  )}
+                </div>
+                {editingSessionId !== session.id && (
+                  <button
+                    onClick={(e) => handleDeleteClick(e, session.id)}
+                    className="delete-session-btn"
+                    title="Delete conversation"
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#ff6b6b',
+                      cursor: 'pointer',
+                      padding: '6px',
+                      marginLeft: '8px',
+                      borderRadius: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      opacity: 0.6,
+                      transition: 'opacity 0.2s, background 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                      e.currentTarget.style.background = 'rgba(255, 107, 107, 0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = '0.6';
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <i className="fa-light fa-trash" style={{ fontSize: '14px' }}></i>
+                  </button>
+                )}
+              </div>
+            ))}
+
+            {sessions.length === 0 && (
+              <div style={{ padding: '16px', textAlign: 'center', color: '#6c757d', fontSize: '13px' }}>
+                No chat sessions yet. Click "New Conversation" to start.
+              </div>
             )}
           </div>
-        ))}
+        </>
+      )}
 
-        {sessions.length === 0 && (
-          <div style={{ padding: '16px', textAlign: 'center', color: '#6c757d', fontSize: '13px' }}>
-            No chat sessions yet. Click "New Conversation" to start.
+      {/* Super Admin Testing Mode Notice */}
+      {isSuperAdmin && (
+        <div style={{
+          padding: '16px',
+          margin: '16px',
+          background: 'rgba(182, 137, 71, 0.1)',
+          border: '1px solid rgba(182, 137, 71, 0.3)',
+          borderRadius: '8px',
+          textAlign: 'center',
+        }}>
+          <div style={{ fontSize: '11px', color: '#b68947', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+            <i className="fa-light fa-flask" style={{ marginRight: '6px' }}></i>
+            Testing Mode
           </div>
-        )}
-      </div>
+          <div style={{ fontSize: '12px', color: '#9fadbd', lineHeight: '1.4' }}>
+            Chat with models to test. Conversations are not saved.
+          </div>
+        </div>
+      )}
 
       {/* Admin Section - only visible to admin users */}
       {isAdmin && (

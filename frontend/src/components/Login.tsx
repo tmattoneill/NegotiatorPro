@@ -64,8 +64,12 @@ function Login() {
       // Store JWT token in localStorage
       localStorage.setItem('token', response.data.access_token);
 
-      // Store user data in auth store
-      login(response.data.user);
+      // Store user data in auth store (include is_super_admin from response)
+      const userData = {
+        ...response.data.user,
+        is_super_admin: response.data.is_super_admin || response.data.user.is_super_admin || false,
+      };
+      login(userData);
 
       // Redirect to main app
       navigate('/');
