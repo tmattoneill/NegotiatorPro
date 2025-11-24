@@ -1,14 +1,13 @@
 /**
- * PersonaManager - Manage User and Partner Personas
- *
- * User Personas: Private to the user account
- * Partner Personas: Can be shared across users
+ * PersonaManager - Manage User and Partner Personas (Tailwind)
  */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePersonaStore } from '../store/personaStore';
 import { useAuthStore } from '../store/authStore';
 import type { UserPersona, PartnerPersona, UserPersonaCreate, PartnerPersonaCreate } from '../types/personas';
+import Badge from './ui/Badge';
+import Button from './ui/Button';
 
 type TabType = 'user' | 'partner';
 
@@ -52,27 +51,17 @@ export default function PersonaManager() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this persona?')) return;
-
-    if (activeTab === 'user') {
-      await deleteUserPersona(userId, id);
-    } else {
-      await deletePartnerPersona(userId, id);
-    }
+    if (activeTab === 'user') await deleteUserPersona(userId, id);
+    else await deletePartnerPersona(userId, id);
   };
 
   const handleFormSubmit = async (data: UserPersonaCreate | PartnerPersonaCreate) => {
     if (activeTab === 'user') {
-      if (editingPersona) {
-        await updateUserPersona(userId, editingPersona.id, data as Partial<UserPersonaCreate>);
-      } else {
-        await createUserPersona(userId, data as UserPersonaCreate);
-      }
+      if (editingPersona) await updateUserPersona(userId, editingPersona.id, data as Partial<UserPersonaCreate>);
+      else await createUserPersona(userId, data as UserPersonaCreate);
     } else {
-      if (editingPersona) {
-        await updatePartnerPersona(userId, editingPersona.id, data as Partial<PartnerPersonaCreate>);
-      } else {
-        await createPartnerPersona(userId, data as PartnerPersonaCreate);
-      }
+      if (editingPersona) await updatePartnerPersona(userId, editingPersona.id, data as Partial<PartnerPersonaCreate>);
+      else await createPartnerPersona(userId, data as PartnerPersonaCreate);
     }
     setShowForm(false);
     setEditingPersona(null);
@@ -82,84 +71,68 @@ export default function PersonaManager() {
   const personas = activeTab === 'user' ? userPersonas : partnerPersonas;
 
   return (
-    <div style={styles.container}>
-      {/* Header */}
-      <div style={styles.header}>
-        <button onClick={() => navigate('/')} style={styles.backButton}>
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-3xl mx-auto mb-4">
+        <button onClick={() => navigate('/')} className="text-chat-primary text-sm mb-4 inline-flex items-center gap-2">
           <i className="fa-light fa-arrow-left"></i> Back
         </button>
-        <h1 style={styles.title}>Persona Manager</h1>
-        <p style={styles.subtitle}>
-          Manage your negotiation identities and partner profiles
+        <h1 className="text-2xl font-semibold text-foreground mb-1">Persona Manager</h1>
+        <p className="text-sm text-muted-foreground">Manage your negotiation identities and partner profiles</p>
+      </div>
+
+      <div className="max-w-3xl mx-auto flex gap-2 mb-2">
+        <button
+          className={`px-4 py-2 -mb-[2px] border-b-4 ${activeTab === 'user' ? 'border-chat-primary text-chat-primary font-semibold bg-chat-primary/10' : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+          onClick={() => setActiveTab('user')}
+        >
+          <i className="fa-light fa-user mr-1"></i> My Personas
+        </button>
+        <button
+          className={`px-4 py-2 -mb-[2px] border-b-4 ${activeTab === 'partner' ? 'border-chat-primary text-chat-primary font-semibold bg-chat-primary/10' : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+          onClick={() => setActiveTab('partner')}
+        >
+          <i className="fa-light fa-users mr-1"></i> Partner Personas
+        </button>
+      </div>
+
+      <div className="max-w-3xl mx-auto bg-card px-5 py-4 border-b border-border rounded-t">
+        <p className="text-sm text-muted-foreground">
+          {activeTab === 'user'
+            ? 'Your negotiation identities are private to your account.'
+            : 'Partner profiles you negotiate with. Mark as shared to make available to all users.'}
         </p>
       </div>
 
-      {/* Tabs */}
-      <div style={styles.tabs}>
-        <button
-          style={{ ...styles.tab, ...(activeTab === 'user' ? styles.tabActive : {}) }}
-          onClick={() => setActiveTab('user')}
-        >
-          <i className="fa-light fa-user"></i> My Personas
-        </button>
-        <button
-          style={{ ...styles.tab, ...(activeTab === 'partner' ? styles.tabActive : {}) }}
-          onClick={() => setActiveTab('partner')}
-        >
-          <i className="fa-light fa-users"></i> Partner Personas
-        </button>
-      </div>
-
-      {/* Tab Description */}
-      <div style={styles.tabDescription}>
-        {activeTab === 'user' ? (
-          <p>Your negotiation identities - the roles you play in negotiations. These are private to your account.</p>
-        ) : (
-          <p>Profiles of people you negotiate with. Mark as "shared" to make available to all users.</p>
-        )}
-      </div>
-
-      {/* Error Display */}
       {error && (
-        <div style={styles.error}>
-          {error}
-          <button onClick={clearError} style={styles.errorClose}>×</button>
+        <div className="max-w-3xl mx-auto mt-2 px-4 py-3 rounded bg-red-50 border border-red-200 text-[#c00] flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={clearError} className="text-[#c00] text-lg">×</button>
         </div>
       )}
 
-      {/* Action Bar */}
-      <div style={styles.actionBar}>
-        <button onClick={handleCreateNew} style={styles.createButton}>
-          <i className="fa-light fa-plus"></i> Create {activeTab === 'user' ? 'User' : 'Partner'} Persona
-        </button>
+      <div className="max-w-3xl mx-auto bg-card px-5 py-4 flex justify-end border-x border-border">
+        <Button onClick={handleCreateNew} size="md" variant="primary">
+          <i className="fa-light fa-plus mr-2"></i>
+          Create {activeTab === 'user' ? 'User' : 'Partner'} Persona
+        </Button>
       </div>
 
-      {/* Persona List */}
-      <div style={styles.list}>
+      <div className="max-w-3xl mx-auto bg-card px-5 py-4 border border-border border-t-0 rounded-b min-h-[300px]">
         {isLoading ? (
-          <div style={styles.loading}>Loading...</div>
+          <div className="text-center py-12 text-muted-foreground">Loading...</div>
         ) : personas.length === 0 ? (
-          <div style={styles.empty}>
-            <i className="fa-light fa-user-slash" style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }}></i>
+          <div className="text-center py-12 text-muted-foreground">
+            <i className="fa-light fa-user-slash text-4xl mb-3 opacity-50"></i>
             <p>No {activeTab === 'user' ? 'user' : 'partner'} personas yet.</p>
-            <p style={{ fontSize: '13px', opacity: 0.7 }}>
-              Click "Create" to add your first one.
-            </p>
+            <p className="text-sm opacity-70">Click "Create" to add your first one.</p>
           </div>
         ) : (
-          personas.map((persona) => (
-            <PersonaCard
-              key={persona.id}
-              persona={persona}
-              type={activeTab}
-              onEdit={() => handleEdit(persona)}
-              onDelete={() => handleDelete(persona.id)}
-            />
+          personas.map((p) => (
+            <PersonaCard key={p.id} persona={p} type={activeTab} onEdit={() => setEditingPersona(p)} onDelete={() => handleDelete(p.id)} />
           ))
         )}
       </div>
 
-      {/* Form Modal */}
       {showForm && (
         <PersonaForm
           type={activeTab}
@@ -172,7 +145,6 @@ export default function PersonaManager() {
   );
 }
 
-// Persona Card Component
 interface PersonaCardProps {
   persona: UserPersona | PartnerPersona;
   type: TabType;
@@ -186,68 +158,58 @@ function PersonaCard({ persona, type, onEdit, onDelete }: PersonaCardProps) {
   const partnerPersona = persona as PartnerPersona;
 
   return (
-    <div style={styles.card}>
-      <div style={styles.cardHeader}>
+    <div className="border border-border rounded-lg p-5 mb-4">
+      <div className="flex items-start justify-between mb-3">
         <div>
-          <h3 style={styles.cardTitle}>{persona.name}</h3>
-          <p style={styles.cardSubtitle}>
+          <h3 className="text-lg font-semibold text-foreground m-0">{persona.name}</h3>
+          <p className="text-sm text-muted-foreground mt-1">
             {isUserPersona
               ? `${userPersona.role_title || 'No title'} ${userPersona.organization ? `at ${userPersona.organization}` : ''}`
-              : `${partnerPersona.role_title || 'No title'} ${partnerPersona.company ? `at ${partnerPersona.company}` : ''}`
-            }
+              : `${partnerPersona.role_title || 'No title'} ${partnerPersona.company ? `at ${partnerPersona.company}` : ''}`}
           </p>
         </div>
-        <div style={styles.cardBadges}>
-          {isUserPersona && userPersona.is_default && (
-            <span style={styles.badgeDefault}>Default</span>
-          )}
-          {!isUserPersona && partnerPersona.is_shared && (
-            <span style={styles.badgeShared}>Shared</span>
-          )}
+        <div className="flex gap-2">
+          {isUserPersona && userPersona.is_default && <Badge variant="primary">Default</Badge>}
+          {!isUserPersona && partnerPersona.is_shared && <Badge variant="success">Shared</Badge>}
         </div>
       </div>
 
       {persona.communication_style && (
-        <div style={styles.cardField}>
-          <label>Communication Style</label>
-          <p>{persona.communication_style}</p>
+        <div className="mb-3">
+          <label className="text-sm font-semibold text-muted-foreground">Communication Style</label>
+          <p className="text-sm text-foreground">{persona.communication_style}</p>
         </div>
       )}
 
       {isUserPersona && userPersona.negotiation_strengths && (
-        <div style={styles.cardField}>
-          <label>Strengths</label>
-          <p>{userPersona.negotiation_strengths}</p>
+        <div className="mb-3">
+          <label className="text-sm font-semibold text-muted-foreground">Strengths</label>
+          <p className="text-sm text-foreground">{userPersona.negotiation_strengths}</p>
         </div>
       )}
 
       {!isUserPersona && partnerPersona.known_interests && (
-        <div style={styles.cardField}>
-          <label>Known Interests</label>
-          <p>{partnerPersona.known_interests}</p>
+        <div className="mb-3">
+          <label className="text-sm font-semibold text-muted-foreground">Known Interests</label>
+          <p className="text-sm text-foreground">{partnerPersona.known_interests}</p>
         </div>
       )}
 
       {!isUserPersona && partnerPersona.batna_estimate && (
-        <div style={styles.cardField}>
-          <label>BATNA Estimate</label>
-          <p>{partnerPersona.batna_estimate}</p>
+        <div className="mb-3">
+          <label className="text-sm font-semibold text-muted-foreground">BATNA Estimate</label>
+          <p className="text-sm text-foreground">{partnerPersona.batna_estimate}</p>
         </div>
       )}
 
-      <div style={styles.cardActions}>
-        <button onClick={onEdit} style={styles.editButton}>
-          <i className="fa-light fa-pen"></i> Edit
-        </button>
-        <button onClick={onDelete} style={styles.deleteButton}>
-          <i className="fa-light fa-trash"></i> Delete
-        </button>
+      <div className="flex gap-2 mt-4 pt-4 border-t border-border">
+        <Button variant="outline" size="sm" onClick={onEdit}><i className="fa-light fa-pen mr-1"></i> Edit</Button>
+        <Button variant="danger" size="sm" onClick={onDelete}><i className="fa-light fa-trash mr-1"></i> Delete</Button>
       </div>
     </div>
   );
 }
 
-// Persona Form Component
 interface PersonaFormProps {
   type: TabType;
   persona: UserPersona | PartnerPersona | null;
@@ -258,9 +220,7 @@ interface PersonaFormProps {
 function PersonaForm({ type, persona, onSubmit, onCancel }: PersonaFormProps) {
   const isUserPersona = type === 'user';
   const [formData, setFormData] = useState(() => {
-    if (persona) {
-      return { ...persona };
-    }
+    if (persona) return { ...persona };
     return isUserPersona
       ? { name: '', role_title: '', organization: '', communication_style: '', negotiation_strengths: '', notes: '', is_default: false }
       : { name: '', role_title: '', company: '', communication_style: '', known_interests: '', batna_estimate: '', relationship_notes: '', is_shared: false };
@@ -271,130 +231,101 @@ function PersonaForm({ type, persona, onSubmit, onCancel }: PersonaFormProps) {
     onSubmit(formData as UserPersonaCreate | PartnerPersonaCreate);
   };
 
-  const updateField = (field: string, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  const updateField = (field: string, value: string | boolean) => setFormData((prev: any) => ({ ...prev, [field]: value }));
 
   return (
-    <div style={styles.modalOverlay}>
-      <div style={styles.modal}>
-        <div style={styles.modalHeader}>
-          <h2>{persona ? 'Edit' : 'Create'} {isUserPersona ? 'User' : 'Partner'} Persona</h2>
-          <button onClick={onCancel} style={styles.modalClose}>×</button>
+    <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center">
+      <div className="bg-white rounded-xl w-[90%] max-w-[600px] max-h-[90vh] overflow-auto">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border">
+          <h2 className="text-lg font-semibold">{persona ? 'Edit' : 'Create'} {isUserPersona ? 'User' : 'Partner'} Persona</h2>
+          <button onClick={onCancel} className="text-2xl text-gray-600">×</button>
         </div>
-
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.formGroup}>
-            <label>Name *</label>
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          <div>
+            <label className="block text-[14px] font-medium">Name *</label>
             <input
               type="text"
-              value={formData.name}
+              value={(formData as any).name}
               onChange={(e) => updateField('name', e.target.value)}
               required
-              placeholder={isUserPersona ? "e.g., Sales Director" : "e.g., John Smith"}
-              style={styles.input}
+              placeholder={isUserPersona ? 'e.g., Sales Director' : 'e.g., John Smith'}
+              className="w-full px-3 py-2 border border-border rounded text-[14px] mt-1 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
             />
           </div>
-
-          <div style={styles.formGroup}>
-            <label>Role / Title</label>
+          <div>
+            <label className="block text-[14px] font-medium">Role / Title</label>
             <input
               type="text"
-              value={formData.role_title || ''}
+              value={(formData as any).role_title || ''}
               onChange={(e) => updateField('role_title', e.target.value)}
               placeholder="e.g., VP of Procurement"
-              style={styles.input}
+              className="w-full px-3 py-2 border border-border rounded text-[14px] mt-1 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
             />
           </div>
-
-          <div style={styles.formGroup}>
-            <label>{isUserPersona ? 'Organization' : 'Company'}</label>
+          <div>
+            <label className="block text-[14px] font-medium">{isUserPersona ? 'Organization' : 'Company'}</label>
             <input
               type="text"
               value={(isUserPersona ? (formData as any).organization : (formData as any).company) || ''}
               onChange={(e) => updateField(isUserPersona ? 'organization' : 'company', e.target.value)}
               placeholder="e.g., Acme Corp"
-              style={styles.input}
+              className="w-full px-3 py-2 border border-border rounded text-[14px] mt-1 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
             />
           </div>
-
-          <div style={styles.formGroup}>
-            <label>Communication Style</label>
+          <div>
+            <label className="block text-[14px] font-medium">Communication Style</label>
             <textarea
-              value={formData.communication_style || ''}
+              value={(formData as any).communication_style || ''}
               onChange={(e) => updateField('communication_style', e.target.value)}
-              placeholder={isUserPersona
-                ? "How do you prefer to communicate in negotiations?"
-                : "How does this person typically communicate?"
-              }
-              style={styles.textarea}
+              placeholder={isUserPersona ? 'How do you prefer to communicate in negotiations?' : 'How does this person typically communicate?'}
+              className="w-full px-3 py-2 border border-border rounded text-[14px] mt-1 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 min-h-[80px] resize-y"
             />
           </div>
-
           {isUserPersona ? (
-            <div style={styles.formGroup}>
-              <label>Negotiation Strengths</label>
+            <div>
+              <label className="block text-[14px] font-medium">Negotiation Strengths</label>
               <textarea
                 value={(formData as any).negotiation_strengths || ''}
                 onChange={(e) => updateField('negotiation_strengths', e.target.value)}
                 placeholder="What are your key strengths as a negotiator?"
-                style={styles.textarea}
+                className="w-full px-3 py-2 border border-border rounded text-[14px] mt-1 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 min-h-[80px] resize-y"
               />
             </div>
           ) : (
             <>
-              <div style={styles.formGroup}>
-                <label>Known Interests</label>
+              <div>
+                <label className="block text-[14px] font-medium">Known Interests</label>
                 <textarea
                   value={(formData as any).known_interests || ''}
                   onChange={(e) => updateField('known_interests', e.target.value)}
                   placeholder="What are their priorities and interests?"
-                  style={styles.textarea}
+                  className="w-full px-3 py-2 border border-border rounded text-[14px] mt-1 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 min-h-[80px] resize-y"
                 />
               </div>
-              <div style={styles.formGroup}>
-                <label>BATNA Estimate</label>
+              <div>
+                <label className="block text-[14px] font-medium">BATNA Estimate</label>
                 <textarea
                   value={(formData as any).batna_estimate || ''}
                   onChange={(e) => updateField('batna_estimate', e.target.value)}
                   placeholder="What's their Best Alternative to Negotiated Agreement?"
-                  style={styles.textarea}
+                  className="w-full px-3 py-2 border border-border rounded text-[14px] mt-1 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 min-h-[80px] resize-y"
                 />
               </div>
             </>
           )}
-
-          <div style={styles.formGroup}>
-            <label>Notes</label>
-            <textarea
-              value={(isUserPersona ? (formData as any).notes : (formData as any).relationship_notes) || ''}
-              onChange={(e) => updateField(isUserPersona ? 'notes' : 'relationship_notes', e.target.value)}
-              placeholder="Any additional notes..."
-              style={styles.textarea}
-            />
-          </div>
-
-          <div style={styles.formCheckbox}>
-            <label>
+          <div>
+            <label className="inline-flex items-center gap-2 text-[14px] cursor-pointer">
               <input
                 type="checkbox"
                 checked={isUserPersona ? (formData as any).is_default : (formData as any).is_shared}
                 onChange={(e) => updateField(isUserPersona ? 'is_default' : 'is_shared', e.target.checked)}
               />
-              {isUserPersona
-                ? ' Set as default persona'
-                : ' Share with all users'
-              }
+              {isUserPersona ? ' Set as default persona' : ' Share with all users'}
             </label>
           </div>
-
-          <div style={styles.formActions}>
-            <button type="button" onClick={onCancel} style={styles.cancelButton}>
-              Cancel
-            </button>
-            <button type="submit" style={styles.submitButton}>
-              {persona ? 'Save Changes' : 'Create Persona'}
-            </button>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" type="button" onClick={onCancel}>Cancel</Button>
+            <Button type="submit">{persona ? 'Save Changes' : 'Create Persona'}</Button>
           </div>
         </form>
       </div>
@@ -402,291 +333,3 @@ function PersonaForm({ type, persona, onSubmit, onCancel }: PersonaFormProps) {
   );
 }
 
-// Styles
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    minHeight: '100vh',
-    background: '#efefef',
-    padding: '24px',
-  },
-  header: {
-    maxWidth: '900px',
-    margin: '0 auto 24px',
-  },
-  backButton: {
-    background: 'none',
-    border: 'none',
-    color: '#3498db',
-    fontSize: '14px',
-    cursor: 'pointer',
-    marginBottom: '16px',
-    padding: 0,
-  },
-  title: {
-    fontSize: '28px',
-    fontWeight: 600,
-    color: '#191919',
-    margin: '0 0 8px',
-  },
-  subtitle: {
-    fontSize: '14px',
-    color: '#9fadbd',
-    margin: 0,
-  },
-  tabs: {
-    maxWidth: '900px',
-    margin: '0 auto',
-    display: 'flex',
-    gap: '8px',
-    marginBottom: '8px',
-  },
-  tab: {
-    padding: '12px 24px',
-    background: '#fff',
-    border: '1px solid #ddd',
-    borderBottom: 'none',
-    borderRadius: '8px 8px 0 0',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: 500,
-    color: '#666',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  tabActive: {
-    background: '#fff',
-    color: '#191919',
-    borderColor: '#3498db',
-    borderBottomColor: '#fff',
-  },
-  tabDescription: {
-    maxWidth: '900px',
-    margin: '0 auto',
-    background: '#fff',
-    padding: '16px 20px',
-    borderRadius: '0 8px 0 0',
-    fontSize: '13px',
-    color: '#666',
-    borderBottom: '1px solid #eee',
-  },
-  actionBar: {
-    maxWidth: '900px',
-    margin: '0 auto',
-    background: '#fff',
-    padding: '16px 20px',
-    display: 'flex',
-    justifyContent: 'flex-end',
-  },
-  createButton: {
-    padding: '10px 20px',
-    background: '#3498db',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontWeight: 500,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  list: {
-    maxWidth: '900px',
-    margin: '0 auto',
-    background: '#fff',
-    padding: '20px',
-    borderRadius: '0 0 8px 8px',
-    minHeight: '300px',
-  },
-  loading: {
-    textAlign: 'center',
-    padding: '48px',
-    color: '#666',
-  },
-  empty: {
-    textAlign: 'center',
-    padding: '48px',
-    color: '#666',
-  },
-  error: {
-    maxWidth: '900px',
-    margin: '0 auto 16px',
-    background: '#fee',
-    color: '#c00',
-    padding: '12px 16px',
-    borderRadius: '6px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  errorClose: {
-    background: 'none',
-    border: 'none',
-    fontSize: '20px',
-    cursor: 'pointer',
-    color: '#c00',
-  },
-  card: {
-    border: '1px solid #eee',
-    borderRadius: '8px',
-    padding: '20px',
-    marginBottom: '16px',
-  },
-  cardHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: '12px',
-  },
-  cardTitle: {
-    fontSize: '18px',
-    fontWeight: 600,
-    color: '#191919',
-    margin: 0,
-  },
-  cardSubtitle: {
-    fontSize: '13px',
-    color: '#666',
-    margin: '4px 0 0',
-  },
-  cardBadges: {
-    display: 'flex',
-    gap: '8px',
-  },
-  badgeDefault: {
-    background: '#3498db',
-    color: '#fff',
-    padding: '4px 10px',
-    borderRadius: '12px',
-    fontSize: '11px',
-    fontWeight: 500,
-  },
-  badgeShared: {
-    background: '#27ae60',
-    color: '#fff',
-    padding: '4px 10px',
-    borderRadius: '12px',
-    fontSize: '11px',
-    fontWeight: 500,
-  },
-  cardField: {
-    marginBottom: '12px',
-  },
-  cardActions: {
-    display: 'flex',
-    gap: '8px',
-    marginTop: '16px',
-    paddingTop: '16px',
-    borderTop: '1px solid #eee',
-  },
-  editButton: {
-    padding: '8px 16px',
-    background: '#f5f5f5',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    fontSize: '13px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-  },
-  deleteButton: {
-    padding: '8px 16px',
-    background: '#fff',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    fontSize: '13px',
-    cursor: 'pointer',
-    color: '#c00',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-  },
-  modalOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0, 0, 0, 0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 9999,
-  },
-  modal: {
-    background: '#fff',
-    borderRadius: '12px',
-    width: '90%',
-    maxWidth: '600px',
-    maxHeight: '90vh',
-    overflow: 'auto',
-  },
-  modalHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '20px 24px',
-    borderBottom: '1px solid #eee',
-  },
-  modalClose: {
-    background: 'none',
-    border: 'none',
-    fontSize: '24px',
-    cursor: 'pointer',
-    color: '#666',
-  },
-  form: {
-    padding: '24px',
-  },
-  formGroup: {
-    marginBottom: '20px',
-  },
-  input: {
-    width: '100%',
-    padding: '10px 12px',
-    border: '1px solid #ddd',
-    borderRadius: '6px',
-    fontSize: '14px',
-    marginTop: '6px',
-    boxSizing: 'border-box',
-  },
-  textarea: {
-    width: '100%',
-    padding: '10px 12px',
-    border: '1px solid #ddd',
-    borderRadius: '6px',
-    fontSize: '14px',
-    marginTop: '6px',
-    minHeight: '80px',
-    resize: 'vertical',
-    boxSizing: 'border-box',
-  },
-  formCheckbox: {
-    marginBottom: '24px',
-  },
-  formActions: {
-    display: 'flex',
-    gap: '12px',
-    justifyContent: 'flex-end',
-  },
-  cancelButton: {
-    padding: '10px 20px',
-    background: '#f5f5f5',
-    border: '1px solid #ddd',
-    borderRadius: '6px',
-    fontSize: '14px',
-    cursor: 'pointer',
-  },
-  submitButton: {
-    padding: '10px 20px',
-    background: '#3498db',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontWeight: 500,
-    cursor: 'pointer',
-  },
-};
