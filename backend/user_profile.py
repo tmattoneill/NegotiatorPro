@@ -35,6 +35,8 @@ class UserProfileCreate(BaseModel):
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
     role: str = Field(default="user")
+    preferred_provider: Optional[str] = Field(None, max_length=50)
+    preferred_model: Optional[str] = Field(None, max_length=100)
 
     @validator('role')
     def validate_role(cls, v):
@@ -52,6 +54,8 @@ class UserProfileUpdate(BaseModel):
     email: Optional[EmailStr] = None
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
+    preferred_provider: Optional[str] = Field(None, max_length=50)
+    preferred_model: Optional[str] = Field(None, max_length=100)
 
 
 class UserProfile(BaseModel):
@@ -68,6 +72,8 @@ class UserProfile(BaseModel):
     profile_updated_at: Optional[datetime] = None
     has_openai_key: bool = False
     has_anthropic_key: bool = False
+    preferred_provider: Optional[str] = None
+    preferred_model: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -236,13 +242,15 @@ class UserProfileManager:
         query = """
             INSERT INTO users (
                 id, username, email, password_hash, first_name, last_name,
-                openai_api_key, anthropic_api_key, role, profile_updated_at
+                openai_api_key, anthropic_api_key, role, profile_updated_at,
+                preferred_provider, preferred_model
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, $10, $11)
             RETURNING id, username, email, first_name, last_name, role,
                       created_at, last_login, is_active, profile_updated_at,
                       (openai_api_key IS NOT NULL) as has_openai_key,
-                      (anthropic_api_key IS NOT NULL) as has_anthropic_key
+                      (anthropic_api_key IS NOT NULL) as has_anthropic_key,
+                      preferred_provider, preferred_model
         """
 
         user_id = str(uuid.uuid4())
@@ -257,7 +265,9 @@ class UserProfileManager:
             profile_data.last_name,
             openai_key_encrypted,
             anthropic_key_encrypted,
-            profile_data.role
+            profile_data.role,
+            profile_data.preferred_provider,
+            profile_data.preferred_model
         )
 
         logger.info(f"Created user profile: {profile_data.username}")
@@ -282,7 +292,8 @@ class UserProfileManager:
             SELECT id, username, email, first_name, last_name, role,
                    created_at, last_login, is_active, profile_updated_at,
                    (openai_api_key IS NOT NULL) as has_openai_key,
-                   (anthropic_api_key IS NOT NULL) as has_anthropic_key
+                   (anthropic_api_key IS NOT NULL) as has_anthropic_key,
+                   preferred_provider, preferred_model
             FROM users
             WHERE id = $1
         """
@@ -312,7 +323,8 @@ class UserProfileManager:
             SELECT id, username, email, first_name, last_name, role,
                    created_at, last_login, is_active, profile_updated_at,
                    (openai_api_key IS NOT NULL) as has_openai_key,
-                   (anthropic_api_key IS NOT NULL) as has_anthropic_key
+                   (anthropic_api_key IS NOT NULL) as has_anthropic_key,
+                   preferred_provider, preferred_model
             FROM users
             WHERE username = $1
         """
@@ -342,7 +354,8 @@ class UserProfileManager:
             SELECT id, username, email, first_name, last_name, role,
                    created_at, last_login, is_active, profile_updated_at,
                    (openai_api_key IS NOT NULL) as has_openai_key,
-                   (anthropic_api_key IS NOT NULL) as has_anthropic_key
+                   (anthropic_api_key IS NOT NULL) as has_anthropic_key,
+                   preferred_provider, preferred_model
             FROM users
             WHERE email = $1
         """
@@ -401,6 +414,16 @@ class UserProfileManager:
             params.append(encrypted_key)
             param_index += 1
 
+        if update_data.preferred_provider is not None:
+            updates.append(f"preferred_provider = ${param_index}")
+            params.append(update_data.preferred_provider)
+            param_index += 1
+
+        if update_data.preferred_model is not None:
+            updates.append(f"preferred_model = ${param_index}")
+            params.append(update_data.preferred_model)
+            param_index += 1
+
         if not updates:
             # No fields to update
             return await UserProfileManager.get_user_by_id(user_id)
@@ -415,7 +438,8 @@ class UserProfileManager:
             RETURNING id, username, email, first_name, last_name, role,
                       created_at, last_login, is_active, profile_updated_at,
                       (openai_api_key IS NOT NULL) as has_openai_key,
-                      (anthropic_api_key IS NOT NULL) as has_anthropic_key
+                      (anthropic_api_key IS NOT NULL) as has_anthropic_key,
+                      preferred_provider, preferred_model
         """
 
         row = await db.fetchrow(query, *params)

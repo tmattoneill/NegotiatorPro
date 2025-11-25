@@ -14,6 +14,8 @@ export interface UserPersona {
   negotiation_strengths?: string;
   notes?: string;
   is_default: boolean;
+  preferred_provider?: string | null;
+  preferred_model?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -26,6 +28,8 @@ export interface UserPersonaCreate {
   negotiation_strengths?: string;
   notes?: string;
   is_default?: boolean;
+  preferred_provider?: string | null;
+  preferred_model?: string | null;
 }
 
 export interface UserPersonaUpdate {
@@ -36,6 +40,8 @@ export interface UserPersonaUpdate {
   negotiation_strengths?: string;
   notes?: string;
   is_default?: boolean;
+  preferred_provider?: string | null;
+  preferred_model?: string | null;
 }
 
 export interface PartnerPersona {

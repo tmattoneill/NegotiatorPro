@@ -9,6 +9,7 @@ import type { UserPersona, PartnerPersona, UserPersonaCreate, PartnerPersonaCrea
 import Badge from './ui/Badge';
 import Button from './ui/Button';
 import { FaArrowLeft, FaRegUser, FaUsers, FaPlus, FaUserSlash, FaPen, FaTrash } from 'react-icons/fa';
+import ProviderSelector from './ProviderSelector';
 
 type TabType = 'user' | 'partner';
 
@@ -220,7 +221,7 @@ function PersonaForm({ type, persona, onSubmit, onCancel }: PersonaFormProps) {
   const [formData, setFormData] = useState(() => {
     if (persona) return { ...persona };
     return isUserPersona
-      ? { name: '', role_title: '', organization: '', communication_style: '', negotiation_strengths: '', notes: '', is_default: false }
+      ? { name: '', role_title: '', organization: '', communication_style: '', negotiation_strengths: '', notes: '', is_default: false, preferred_provider: null as string | null, preferred_model: null as string | null }
       : { name: '', role_title: '', company: '', communication_style: '', known_interests: '', batna_estimate: '', relationship_notes: '', is_shared: false };
   });
 
@@ -229,7 +230,7 @@ function PersonaForm({ type, persona, onSubmit, onCancel }: PersonaFormProps) {
     onSubmit(formData as UserPersonaCreate | PartnerPersonaCreate);
   };
 
-  const updateField = (field: string, value: string | boolean) => setFormData((prev: any) => ({ ...prev, [field]: value }));
+  const updateField = (field: string, value: string | boolean | null) => setFormData((prev: any) => ({ ...prev, [field]: value }));
 
   return (
     <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center">
@@ -280,15 +281,35 @@ function PersonaForm({ type, persona, onSubmit, onCancel }: PersonaFormProps) {
             />
           </div>
           {isUserPersona ? (
-            <div>
-              <label className="block text-[14px] font-medium">Negotiation Strengths</label>
-              <textarea
-                value={(formData as any).negotiation_strengths || ''}
-                onChange={(e) => updateField('negotiation_strengths', e.target.value)}
-                placeholder="What are your key strengths as a negotiator?"
-                className="w-full px-3 py-2 border border-chat-border rounded text-[14px] mt-1 outline-none focus:border-chat-primary focus:ring-2 focus:ring-chat-primary/10 min-h-[80px] resize-y"
-              />
-            </div>
+            <>
+              <div>
+                <label className="block text-[14px] font-medium">Negotiation Strengths</label>
+                <textarea
+                  value={(formData as any).negotiation_strengths || ''}
+                  onChange={(e) => updateField('negotiation_strengths', e.target.value)}
+                  placeholder="What are your key strengths as a negotiator?"
+                  className="w-full px-3 py-2 border border-chat-border rounded text-[14px] mt-1 outline-none focus:border-chat-primary focus:ring-2 focus:ring-chat-primary/10 min-h-[80px] resize-y"
+                />
+              </div>
+              <div>
+                <label className="block text-[14px] font-medium mb-2">
+                  AI Provider <span className="text-chat-muted-foreground font-normal">(optional)</span>
+                </label>
+                <p className="text-xs text-chat-muted-foreground mb-3">
+                  Override the default AI provider when using this persona.
+                </p>
+                <ProviderSelector
+                  selectedProvider={(formData as any).preferred_provider || null}
+                  selectedModel={(formData as any).preferred_model || null}
+                  onProviderChange={(provider) => updateField('preferred_provider', provider)}
+                  onModelChange={(model) => updateField('preferred_model', model)}
+                  providerLabel=""
+                  modelLabel=""
+                  showUseDefault={true}
+                  compact={true}
+                />
+              </div>
+            </>
           ) : (
             <>
               <div>

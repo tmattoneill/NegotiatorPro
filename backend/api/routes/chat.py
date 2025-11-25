@@ -3,7 +3,7 @@ import logging
 import time
 import base64
 from uuid import UUID
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from fastapi import APIRouter, HTTPException, status, File, UploadFile, Form, Depends
 
 from ..models.requests import ChatRequest
@@ -11,6 +11,7 @@ from ..models.responses import ChatResponse
 from ...rag_engine import EnhancedNegotiationRAG
 from ... import db_operations as db_ops
 from ..middleware.auth import get_current_user
+from ...user_profile import UserProfileManager
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,62 @@ def get_rag_system():
         rag_system.setup_system()
         logger.info("RAG system initialized successfully")
     return rag_system
+
+
+async def resolve_provider_preferences(
+    request_provider: Optional[str],
+    request_model: Optional[str],
+    conversation_id: Optional[str],
+    user_id: Optional[str]
+) -> Tuple[Optional[str], Optional[str], str]:
+    """
+    Resolve provider/model preferences from multiple levels.
+
+    Priority order:
+    1. Request-level override (provider/model from API request)
+    2. Negotiation-level setting (from negotiation.settings)
+    3. User-level default preference (from user profile)
+    4. System default (None - let RAG system decide)
+
+    Returns:
+        Tuple of (provider, model, source) where source indicates where the preference came from.
+    """
+    # Level 1: Request-level override takes highest priority
+    if request_provider and request_model:
+        return request_provider, request_model, "request_override"
+
+    # Level 2: Check negotiation settings if conversation_id provided
+    if conversation_id:
+        try:
+            conv_uuid = UUID(conversation_id)
+            conversation = await db_ops.get_conversation(conv_uuid)
+            if conversation:
+                negotiation = await db_ops.get_negotiation(conversation['negotiation_id'])
+                if negotiation and negotiation.get('settings'):
+                    settings = negotiation['settings']
+                    neg_provider = settings.get('provider')
+                    neg_model = settings.get('model')
+                    if neg_provider and neg_model:
+                        logger.info(f"Using negotiation-level provider preference: {neg_provider}/{neg_model}")
+                        return neg_provider, neg_model, "negotiation_settings"
+        except (ValueError, Exception) as e:
+            logger.warning(f"Could not resolve negotiation settings: {e}")
+
+    # Level 3: Check user profile preferences
+    if user_id:
+        try:
+            user_profile = await UserProfileManager.get_user_by_id(user_id)
+            if user_profile:
+                user_provider = user_profile.preferred_provider
+                user_model = user_profile.preferred_model
+                if user_provider and user_model:
+                    logger.info(f"Using user-level provider preference: {user_provider}/{user_model}")
+                    return user_provider, user_model, "user_default"
+        except Exception as e:
+            logger.warning(f"Could not resolve user preferences: {e}")
+
+    # Level 4: No preferences set - use system default
+    return None, None, "system_default"
 
 
 async def process_uploaded_files(files: List[UploadFile]) -> str:
@@ -110,8 +167,18 @@ async def process_chat(
 
         logger.info(f"Processing question: {question[:50]}...")
         logger.info(f"Premium model: {use_premium_model}, Preprocessing: {use_preprocessing}")
-        if provider and model:
-            logger.info(f"Model override: {provider}/{model}")
+
+        # Resolve provider preferences from multiple levels
+        user_id = current_user.get('id') if current_user else None
+        resolved_provider, resolved_model, preference_source = await resolve_provider_preferences(
+            request_provider=provider,
+            request_model=model,
+            conversation_id=conversation_id,
+            user_id=user_id
+        )
+
+        if resolved_provider and resolved_model:
+            logger.info(f"Model override ({preference_source}): {resolved_provider}/{resolved_model}")
         if files:
             logger.info(f"Files uploaded: {len(files)}")
 
@@ -130,21 +197,21 @@ async def process_chat(
             enhanced_question = f"Context about my negotiation partner: {partner_info}\n\n{enhanced_question}"
 
         # Process question using existing RAG system
-        # Pass provider/model overrides if specified
+        # Pass resolved provider/model overrides
         answer = rag.get_advice(
             question=enhanced_question,
             use_premium_model=use_premium_model,
             use_preprocessing=use_preprocessing,
-            override_backend=provider,
-            override_model=model
+            override_backend=resolved_provider,
+            override_model=resolved_model
         )
 
         processing_time = time.time() - start_time
 
         # Determine which model was used
-        if provider and model:
-            # User specified explicit override
-            model_used = f"{provider}/{model}"
+        if resolved_provider and resolved_model:
+            # Provider/model was resolved from preferences
+            model_used = f"{resolved_provider}/{resolved_model}"
         elif use_premium_model:
             model_config = rag.backend_manager.get_active_model_config("premium")
             model_used = f"{model_config.get('backend', 'unknown')}/{model_config.get('model', 'unknown')}"

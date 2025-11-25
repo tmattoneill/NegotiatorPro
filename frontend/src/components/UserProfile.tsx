@@ -14,6 +14,7 @@ import Button from './ui/Button';
 import Input from './ui/Input';
 import Textarea from './ui/Textarea';
 import Badge from './ui/Badge';
+import ProviderSelector from './ProviderSelector';
 
 export default function UserProfile() {
   const navigate = useNavigate();
@@ -39,7 +40,7 @@ export default function UserProfile() {
   const [showPersonaForm, setShowPersonaForm] = useState(false);
   const [editingPersona, setEditingPersona] = useState<UserPersona | null>(null);
   const [personaForm, setPersonaForm] = useState<UserPersonaCreate>({
-    name: '', role_title: '', organization: '', communication_style: '', negotiation_strengths: '', notes: '', is_default: false
+    name: '', role_title: '', organization: '', communication_style: '', negotiation_strengths: '', notes: '', is_default: false, preferred_provider: null, preferred_model: null
   });
 
   const [formData, setFormData] = useState({
@@ -48,6 +49,8 @@ export default function UserProfile() {
     email: '',
     openai_api_key: '',
     anthropic_api_key: '',
+    preferred_provider: null as string | null,
+    preferred_model: null as string | null,
   });
 
   useEffect(() => {
@@ -58,6 +61,8 @@ export default function UserProfile() {
         email: user.email || '',
         openai_api_key: '',
         anthropic_api_key: '',
+        preferred_provider: (user as any).preferred_provider || null,
+        preferred_model: (user as any).preferred_model || null,
       });
       fetchUserPersonas(user.id);
     }
@@ -73,7 +78,9 @@ export default function UserProfile() {
       communication_style: persona.communication_style || '',
       negotiation_strengths: persona.negotiation_strengths || '',
       notes: persona.notes || '',
-      is_default: persona.is_default
+      is_default: persona.is_default,
+      preferred_provider: persona.preferred_provider || null,
+      preferred_model: persona.preferred_model || null
     });
     setShowPersonaForm(true);
   };
@@ -88,7 +95,7 @@ export default function UserProfile() {
       }
       setShowPersonaForm(false);
       setEditingPersona(null);
-      setPersonaForm({ name: '', role_title: '', organization: '', communication_style: '', negotiation_strengths: '', notes: '', is_default: false });
+      setPersonaForm({ name: '', role_title: '', organization: '', communication_style: '', negotiation_strengths: '', notes: '', is_default: false, preferred_provider: null, preferred_model: null });
     } catch (err) {
       console.error('Failed to save persona:', err);
     }
@@ -168,6 +175,10 @@ export default function UserProfile() {
       if (formData.anthropic_api_key) {
         updateData.anthropic_api_key = formData.anthropic_api_key;
       }
+
+      // Include provider preferences
+      updateData.preferred_provider = formData.preferred_provider;
+      updateData.preferred_model = formData.preferred_model;
 
       const response = await api.put(`/users/${user?.id}`, updateData);
 
@@ -373,6 +384,28 @@ export default function UserProfile() {
               </div>
             )}
 
+            {/* Default Provider Preferences Section */}
+            {isEditing && (
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold text-chat-foreground mb-2">
+                  Default AI Provider
+                </h2>
+                <p className="text-xs text-chat-muted-foreground mb-4">
+                  Set your preferred AI provider and model. This will be used as the default for all your negotiations.
+                </p>
+
+                <ProviderSelector
+                  selectedProvider={formData.preferred_provider}
+                  selectedModel={formData.preferred_model}
+                  onProviderChange={(provider) => setFormData({ ...formData, preferred_provider: provider })}
+                  onModelChange={(model) => setFormData({ ...formData, preferred_model: model })}
+                  providerLabel="Default Provider"
+                  modelLabel="Default Model"
+                  showUseDefault={true}
+                />
+              </div>
+            )}
+
             {/* Messages */}
             {error && (
               <div className="mb-4 rounded-md border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
@@ -401,6 +434,8 @@ export default function UserProfile() {
                       email: user.email || '',
                       openai_api_key: '',
                       anthropic_api_key: '',
+                      preferred_provider: (user as any).preferred_provider || null,
+                      preferred_model: (user as any).preferred_model || null,
                     });
                   }}
                 >
@@ -428,7 +463,7 @@ export default function UserProfile() {
             <Button
               onClick={() => {
                 setEditingPersona(null);
-                setPersonaForm({ name: '', role_title: '', organization: '', communication_style: '', negotiation_strengths: '', notes: '', is_default: false });
+                setPersonaForm({ name: '', role_title: '', organization: '', communication_style: '', negotiation_strengths: '', notes: '', is_default: false, preferred_provider: null, preferred_model: null });
                 setShowPersonaForm(true);
               }}
             >
@@ -538,6 +573,24 @@ export default function UserProfile() {
                     value={personaForm.negotiation_strengths || ''}
                     onChange={(e) => setPersonaForm({ ...personaForm, negotiation_strengths: e.target.value })}
                     placeholder="What are your key strengths?"
+                  />
+                </div>
+                <div className="mb-5">
+                  <label className="block text-sm font-medium mb-2">
+                    AI Provider <span className="text-chat-muted-foreground font-normal">(optional)</span>
+                  </label>
+                  <p className="text-xs text-chat-muted-foreground mb-3">
+                    Override the default AI provider when using this persona.
+                  </p>
+                  <ProviderSelector
+                    selectedProvider={personaForm.preferred_provider || null}
+                    selectedModel={personaForm.preferred_model || null}
+                    onProviderChange={(provider) => setPersonaForm({ ...personaForm, preferred_provider: provider })}
+                    onModelChange={(model) => setPersonaForm({ ...personaForm, preferred_model: model })}
+                    providerLabel=""
+                    modelLabel=""
+                    showUseDefault={true}
+                    compact={true}
                   />
                 </div>
                 <div className="mb-5">

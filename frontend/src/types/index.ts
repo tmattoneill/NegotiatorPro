@@ -54,3 +54,35 @@ export interface BackendInfo {
 export interface ModelsResponse {
   [backendId: string]: BackendInfo;
 }
+
+// Provider availability response from /api/models/available-for-user
+export interface ProviderInfo {
+  name: string;
+  available: boolean;
+  models: ModelInfo[];
+  is_fallback?: boolean;
+  requires_key?: boolean;
+  error?: string;
+}
+
+export interface AvailableProvidersResponse {
+  providers: {
+    [providerId: string]: ProviderInfo;
+  };
+  user_api_keys: {
+    has_openai: boolean;
+    has_anthropic: boolean;
+  };
+  system_api_keys: {
+    has_openai: boolean;
+    has_anthropic: boolean;
+    has_runpod: boolean;
+  };
+  ollama_local_available: boolean;
+}
+
+// Provider selection preference
+export interface ProviderPreference {
+  provider: string | null;
+  model: string | null;
+}
