@@ -2,7 +2,7 @@
  * API service layer for communicating with FastAPI backend
  */
 import axios from 'axios';
-import type { ChatRequest, ChatResponse, LoginRequest, LoginResponse, ModelsResponse } from '../types';
+import type { ChatRequest, ChatResponse, LoginRequest, LoginResponse, ModelsResponse, AvailableProvidersResponse } from '../types';
 import type {
   UserPersona, UserPersonaCreate, UserPersonaUpdate,
   PartnerPersona, PartnerPersonaCreate, PartnerPersonaUpdate
@@ -108,6 +108,16 @@ export const checkHealth = async (): Promise<{ status: string }> => {
  */
 export const fetchAvailableModels = async (): Promise<ModelsResponse> => {
   const response = await api.get<ModelsResponse>('/models');
+  return response.data;
+};
+
+/**
+ * Fetch available providers filtered by user's API keys
+ * Only returns providers the user can actually use
+ */
+export const fetchAvailableProviders = async (userId?: string): Promise<AvailableProvidersResponse> => {
+  const params = userId ? `?user_id=${userId}` : '';
+  const response = await api.get<AvailableProvidersResponse>(`/models/available-for-user${params}`);
   return response.data;
 };
 

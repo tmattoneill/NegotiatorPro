@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useNegotiationStore } from '../store/negotiationStore';
 import { usePersonaStore } from '../store/personaStore';
+import ProviderSelector from './ProviderSelector';
 
 interface NegotiationModalProps {
   isOpen: boolean;
@@ -14,6 +15,8 @@ interface NegotiationModalProps {
 export default function NegotiationModal({ isOpen, onClose }: NegotiationModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -57,12 +60,18 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
         title: title.trim(),
         description: description.trim() || undefined,
         partner_persona_ids: partnerIds,
+        settings: selectedProvider ? {
+          provider: selectedProvider,
+          model: selectedModel,
+        } : undefined,
       });
 
       if (result) {
         // Success - close modal and reset form
         setTitle('');
         setDescription('');
+        setSelectedProvider(null);
+        setSelectedModel(null);
         onClose();
       } else {
         setError('Failed to create negotiation');
@@ -79,6 +88,8 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
     if (!isSubmitting) {
       setTitle('');
       setDescription('');
+      setSelectedProvider(null);
+      setSelectedModel(null);
       setError('');
       onClose();
     }
@@ -136,6 +147,26 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
                 rows={4}
                 disabled={isSubmitting}
                 className="w-full px-3 py-2 border border-chat-border rounded text-[14px] mt-2 outline-none focus:border-chat-primary focus:ring-2 focus:ring-chat-primary/10 resize-y"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-[14px] font-medium text-chat-foreground mb-2">
+                AI Provider <span className="text-chat-muted-foreground font-normal">(optional)</span>
+              </label>
+              <p className="text-xs text-chat-muted-foreground mb-3">
+                Override the default provider for this negotiation, or leave as default.
+              </p>
+              <ProviderSelector
+                selectedProvider={selectedProvider}
+                selectedModel={selectedModel}
+                onProviderChange={setSelectedProvider}
+                onModelChange={setSelectedModel}
+                providerLabel=""
+                modelLabel=""
+                showUseDefault={true}
+                compact={true}
+                disabled={isSubmitting}
               />
             </div>
           </div>
