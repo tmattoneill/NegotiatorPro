@@ -92,10 +92,13 @@ sources/*.pdf
 sources/*.docx
 sources/*.txt
 sources/*.doc
-sources/
+!sources/.gitkeep
 
 # Uploaded Documents
 uploads/
+
+# Node Modules
+node_modules/
 
 # Runtime Data Directory - All persistent data lives here
 # This includes database, vectorstore, uploads, sources, and config files
