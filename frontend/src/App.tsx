@@ -70,6 +70,12 @@ function App() {
         return;
       }
 
+      // SUPER ADMIN: Skip onboarding entirely - this account is for testing only
+      if (user.is_super_admin) {
+        setIsCheckingOnboarding(false);
+        return;
+      }
+
       // DEFENSIVE FIX: Clear any stale localStorage on fresh login
       // This handles cases where user refreshed page before logout cleanup ran
       const storedData = localStorage.getItem('negotiation-storage');
