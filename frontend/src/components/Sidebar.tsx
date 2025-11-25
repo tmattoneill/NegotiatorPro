@@ -11,6 +11,7 @@ import SettingsModal from './SettingsModal';
 import ModelSelector from './ModelSelector';
 import NegotiationModal from './NegotiationModal';
 import { useAdminStore } from '../store/adminStore';
+import { FaRegUser, FaHandshake, FaFlask, FaShieldAlt, FaTerminal, FaCog, FaSignOutAlt, FaTrash } from 'react-icons/fa';
 
 export default function Sidebar() {
   const navigate = useNavigate();
@@ -140,7 +141,7 @@ export default function Sidebar() {
             <div style={{ fontSize: '13px', color: '#fff', fontWeight: 500 }}>
               {activeUserPersona ? (
                 <>
-                  <i className="fa-light fa-user" style={{ marginRight: '6px', opacity: 0.7 }}></i>
+                  <FaRegUser style={{ marginRight: '6px', opacity: 0.7, display: 'inline' }} />
                   {activeUserPersona.name}
                   {activeUserPersona.role_title && (
                     <span style={{ opacity: 0.6, fontWeight: 400 }}> · {activeUserPersona.role_title}</span>
@@ -158,7 +159,7 @@ export default function Sidebar() {
             <div style={{ fontSize: '13px', color: '#fff', fontWeight: 500 }}>
               {activePartnerPersona ? (
                 <>
-                  <i className="fa-light fa-handshake" style={{ marginRight: '6px', opacity: 0.7 }}></i>
+                  <FaHandshake style={{ marginRight: '6px', opacity: 0.7, display: 'inline' }} />
                   {activePartnerPersona.name}
                   {activePartnerPersona.company && (
                     <span style={{ opacity: 0.6, fontWeight: 400 }}> · {activePartnerPersona.company}</span>
@@ -345,7 +346,7 @@ export default function Sidebar() {
                       e.currentTarget.style.background = 'transparent';
                     }}
                   >
-                    <i className="fa-light fa-trash" style={{ fontSize: '14px' }}></i>
+                    <FaTrash style={{ fontSize: '14px' }} />
                   </button>
                 )}
               </div>
@@ -370,8 +371,8 @@ export default function Sidebar() {
           borderRadius: '8px',
           textAlign: 'center',
         }}>
-          <div style={{ fontSize: '11px', color: '#b68947', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-            <i className="fa-light fa-flask" style={{ marginRight: '6px' }}></i>
+          <div style={{ fontSize: '11px', color: '#b68947', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
+            <FaFlask style={{ marginRight: '6px' }} />
             Testing Mode
           </div>
           <div style={{ fontSize: '12px', color: '#9fadbd', lineHeight: '1.4' }}>
@@ -396,7 +397,7 @@ export default function Sidebar() {
             alignItems: 'center',
             gap: '6px',
           }}>
-            <i className="fa-light fa-shield-halved"></i>
+            <FaShieldAlt />
             Admin
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -428,7 +429,7 @@ export default function Sidebar() {
                 }
               }}
             >
-              <i className="fa-light fa-shield-halved" style={{ opacity: 0.7 }}></i>
+              <FaShieldAlt style={{ opacity: 0.7 }} />
               Admin Panel
             </button>
             <button
@@ -459,7 +460,7 @@ export default function Sidebar() {
                 }
               }}
             >
-              <i className="fa-light fa-terminal" style={{ opacity: 0.7 }}></i>
+              <FaTerminal style={{ opacity: 0.7 }} />
               System Prompt
             </button>
           </div>
@@ -507,7 +508,7 @@ export default function Sidebar() {
               e.currentTarget.style.transform = 'scale(1)';
             }}
           >
-            <i className="fa-light fa-user"></i>
+            <FaRegUser />
           </button>
 
           {/* Settings Icon */}
@@ -537,7 +538,7 @@ export default function Sidebar() {
               e.currentTarget.style.transform = 'scale(1)';
             }}
           >
-            <i className="fa-light fa-gear"></i>
+            <FaCog />
           </button>
 
           {/* Logout Icon */}
@@ -567,7 +568,7 @@ export default function Sidebar() {
               e.currentTarget.style.transform = 'scale(1)';
             }}
           >
-            <i className="fa-light fa-right-from-bracket"></i>
+            <FaSignOutAlt />
           </button>
         </div>
       </div>
@@ -698,7 +699,7 @@ export default function Sidebar() {
               alignItems: 'center',
               gap: '10px',
             }}>
-              <i className="fa-light fa-trash" style={{ color: '#ff6b6b' }}></i>
+              <FaTrash style={{ color: '#ff6b6b' }} />
               Delete Conversation?
             </h2>
             <p style={{

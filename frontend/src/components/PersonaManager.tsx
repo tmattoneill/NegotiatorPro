@@ -8,6 +8,7 @@ import { useAuthStore } from '../store/authStore';
 import type { UserPersona, PartnerPersona, UserPersonaCreate, PartnerPersonaCreate } from '../types/personas';
 import Badge from './ui/Badge';
 import Button from './ui/Button';
+import { FaArrowLeft, FaRegUser, FaUsers, FaPlus, FaUserSlash, FaPen, FaTrash } from 'react-icons/fa';
 
 type TabType = 'user' | 'partner';
 
@@ -71,7 +72,7 @@ export default function PersonaManager() {
     <div className="min-h-screen bg-chat-muted p-6">
       <div className="max-w-3xl mx-auto mb-4">
         <button onClick={() => navigate('/app')} className="text-chat-primary text-sm mb-4 inline-flex items-center gap-2">
-          <i className="fa-light fa-arrow-left"></i> Back
+          <FaArrowLeft /> Back
         </button>
         <h1 className="text-2xl font-semibold text-chat-foreground mb-1">Persona Manager</h1>
         <p className="text-sm text-chat-muted-foreground">Manage your negotiation identities and partner profiles</p>
@@ -79,16 +80,16 @@ export default function PersonaManager() {
 
       <div className="max-w-3xl mx-auto flex gap-2 mb-2">
         <button
-          className={`px-4 py-2 -mb-[2px] border-b-4 ${activeTab === 'user' ? 'border-chat-primary text-chat-primary font-semibold bg-chat-primary/10' : 'border-transparent text-chat-muted-foreground hover:bg-chat-muted hover:text-chat-foreground'}`}
+          className={`px-4 py-2 -mb-[2px] border-b-4 inline-flex items-center gap-1 ${activeTab === 'user' ? 'border-chat-primary text-chat-primary font-semibold bg-chat-primary/10' : 'border-transparent text-chat-muted-foreground hover:bg-chat-muted hover:text-chat-foreground'}`}
           onClick={() => setActiveTab('user')}
         >
-          <i className="fa-light fa-user mr-1"></i> My Personas
+          <FaRegUser /> My Personas
         </button>
         <button
-          className={`px-4 py-2 -mb-[2px] border-b-4 ${activeTab === 'partner' ? 'border-chat-primary text-chat-primary font-semibold bg-chat-primary/10' : 'border-transparent text-chat-muted-foreground hover:bg-chat-muted hover:text-chat-foreground'}`}
+          className={`px-4 py-2 -mb-[2px] border-b-4 inline-flex items-center gap-1 ${activeTab === 'partner' ? 'border-chat-primary text-chat-primary font-semibold bg-chat-primary/10' : 'border-transparent text-chat-muted-foreground hover:bg-chat-muted hover:text-chat-foreground'}`}
           onClick={() => setActiveTab('partner')}
         >
-          <i className="fa-light fa-users mr-1"></i> Partner Personas
+          <FaUsers /> Partner Personas
         </button>
       </div>
 
@@ -109,7 +110,7 @@ export default function PersonaManager() {
 
       <div className="max-w-3xl mx-auto bg-chat-card px-5 py-4 flex justify-end border-x border-chat-border">
         <Button onClick={handleCreateNew} size="md" variant="primary">
-          <i className="fa-light fa-plus mr-2"></i>
+          <FaPlus className="mr-2" />
           Create {activeTab === 'user' ? 'User' : 'Partner'} Persona
         </Button>
       </div>
@@ -119,7 +120,7 @@ export default function PersonaManager() {
           <div className="text-center py-12 text-chat-muted-foreground">Loading...</div>
         ) : personas.length === 0 ? (
           <div className="text-center py-12 text-chat-muted-foreground">
-            <i className="fa-light fa-user-slash text-4xl mb-3 opacity-50"></i>
+            <FaUserSlash className="text-4xl mb-3 opacity-50 mx-auto" />
             <p>No {activeTab === 'user' ? 'user' : 'partner'} personas yet.</p>
             <p className="text-sm opacity-70">Click "Create" to add your first one.</p>
           </div>
@@ -200,8 +201,8 @@ function PersonaCard({ persona, type, onEdit, onDelete }: PersonaCardProps) {
       )}
 
       <div className="flex gap-2 mt-4 pt-4 border-t border-chat-border">
-        <Button variant="outline" size="sm" onClick={onEdit}><i className="fa-light fa-pen mr-1"></i> Edit</Button>
-        <Button variant="danger" size="sm" onClick={onDelete}><i className="fa-light fa-trash mr-1"></i> Delete</Button>
+        <Button variant="outline" size="sm" onClick={onEdit}><FaPen className="mr-1" /> Edit</Button>
+        <Button variant="danger" size="sm" onClick={onDelete}><FaTrash className="mr-1" /> Delete</Button>
       </div>
     </div>
   );
