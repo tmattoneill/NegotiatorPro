@@ -26,6 +26,7 @@ from .text_preprocessor import TextPreprocessor
 from .prompt_manager import PromptManager
 from .llm_backend_config import backend_manager
 from .config_loader import config
+from .runpod_llm import ChatRunPod, is_runpod_available
 
 logger = logging.getLogger(__name__)
 
@@ -380,6 +381,56 @@ class EnhancedNegotiationRAG:
             logger.error(f"Error retrieving context: {e}")
             return "Error retrieving context from knowledge base."
 
+    def _create_llm_with_fallback(self, backend: str, model: str, model_type: str) -> Any:
+        """
+        Create an LLM instance with cascading fallback support.
+
+        Fallback order:
+        1. Configured backend/model
+        2. OpenAI (if OPENAI_API_KEY available)
+        3. RunPod basic model (if RUNPOD_API_KEY available)
+
+        Args:
+            backend: The backend ID to use
+            model: The model ID to use
+            model_type: Either "default" or "premium" (for logging)
+
+        Returns:
+            An LLM instance
+        """
+        # Try configured backend first
+        try:
+            llm = self.model_config.create_llm(backend, model)
+            logger.info(f"{model_type.capitalize()} LLM initialized: {backend}/{model}")
+            return llm
+        except Exception as e:
+            logger.warning(f"Error creating {model_type} LLM ({backend}/{model}): {e}")
+
+        # Fallback to OpenAI if API key is available
+        if os.getenv("OPENAI_API_KEY"):
+            try:
+                fallback_model = "chat_mini" if model_type == "default" else "rag_reasoning"
+                fallback_cfg = get_model_kwargs(fallback_model)
+                logger.warning(f"Falling back to OpenAI {fallback_cfg['model']}")
+                return ChatOpenAI(**fallback_cfg)
+            except Exception as e:
+                logger.warning(f"OpenAI fallback failed: {e}")
+
+        # Ultimate fallback to RunPod basic model
+        if is_runpod_available():
+            try:
+                logger.warning("Falling back to RunPod basic model")
+                return ChatRunPod()
+            except Exception as e:
+                logger.error(f"RunPod fallback failed: {e}")
+
+        # If all fallbacks fail, raise an error
+        raise RuntimeError(
+            f"Failed to create {model_type} LLM. No backends available. "
+            "Please configure at least one of: OPENAI_API_KEY, ANTHROPIC_API_KEY, "
+            "OLLAMA_BASE_URL, or RUNPOD_API_KEY"
+        )
+
     def setup_llms(self):
         """Setup LLM instances for both models using backend manager"""
         logger.info("Setting up LLM instances...")
@@ -396,24 +447,9 @@ class EnhancedNegotiationRAG:
         logger.info(f"Default model: {default_backend}/{default_model}")
         logger.info(f"Premium model: {premium_backend}/{premium_model}")
 
-        # Create LLM instances using the model config
-        try:
-            self.default_llm = self.model_config.create_llm(default_backend, default_model)
-            logger.info(f"Default LLM initialized: {default_backend}/{default_model}")
-        except Exception as e:
-            logger.error(f"Error creating default LLM: {e}")
-            fallback_cfg = get_model_kwargs("chat_mini")
-            logger.warning(f"Falling back to OpenAI {fallback_cfg['model']}")
-            self.default_llm = ChatOpenAI(**fallback_cfg)
-
-        try:
-            self.premium_llm = self.model_config.create_llm(premium_backend, premium_model)
-            logger.info(f"Premium LLM initialized: {premium_backend}/{premium_model}")
-        except Exception as e:
-            logger.error(f"Error creating premium LLM: {e}")
-            fallback_cfg = get_model_kwargs("rag_reasoning")
-            logger.warning(f"Falling back to OpenAI {fallback_cfg['model']}")
-            self.premium_llm = ChatOpenAI(**fallback_cfg)
+        # Create LLM instances with fallback support
+        self.default_llm = self._create_llm_with_fallback(default_backend, default_model, "default")
+        self.premium_llm = self._create_llm_with_fallback(premium_backend, premium_model, "premium")
 
     def setup_system(self):
         """Initialize the RAG system"""
