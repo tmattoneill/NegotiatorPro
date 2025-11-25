@@ -200,7 +200,7 @@ export default function UserProfile() {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/app')}
             className="text-chat-primary text-sm hover:underline mb-4 inline-flex"
           >
             ← Back to Chat

@@ -70,7 +70,7 @@ export default function PersonaManager() {
   return (
     <div className="min-h-screen bg-chat-muted p-6">
       <div className="max-w-3xl mx-auto mb-4">
-        <button onClick={() => navigate('/')} className="text-chat-primary text-sm mb-4 inline-flex items-center gap-2">
+        <button onClick={() => navigate('/app')} className="text-chat-primary text-sm mb-4 inline-flex items-center gap-2">
           <i className="fa-light fa-arrow-left"></i> Back
         </button>
         <h1 className="text-2xl font-semibold text-chat-foreground mb-1">Persona Manager</h1>

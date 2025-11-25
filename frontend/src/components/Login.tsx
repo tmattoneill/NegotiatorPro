@@ -72,7 +72,7 @@ function Login() {
       login(userData);
 
       // Redirect to main app
-      navigate('/');
+      navigate('/app');
     } catch (error: any) {
       console.error('Login failed:', error);
       const errorMessage = error.response?.data?.detail || 'Login failed. Please check your credentials.';

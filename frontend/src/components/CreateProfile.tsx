@@ -98,7 +98,7 @@ function CreateProfile() {
       login(response.data);
 
       // Redirect to main app - onboarding wizard will trigger automatically
-      navigate('/');
+      navigate('/app');
     } catch (error: any) {
       console.error('Profile creation failed:', error);
       setErrors({
