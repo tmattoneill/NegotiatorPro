@@ -2,7 +2,7 @@
 LLM Backend Configuration System
 
 This module provides a unified interface for managing multiple LLM backends
-including OpenAI, Anthropic Claude, and Ollama (local and cloud).
+including OpenAI, Anthropic Claude, Ollama (local and cloud), and RunPod (basic fallback).
 """
 
 import os
@@ -158,6 +158,28 @@ class LLMBackendManager:
                 ),
             ]
         ),
+        "runpod": BackendConfig(
+            id="runpod",
+            name="RunPod (Basic Fallback)",
+            provider="runpod",
+            api_key_env_var="RUNPOD_API_KEY",
+            base_url_env_var="RUNPOD_ENDPOINT_ID",  # Used to store endpoint ID
+            default_base_url="https://api.runpod.ai/v2",
+            requires_api_key=True,
+            models=[
+                ModelInfo(
+                    id="basic",
+                    name="Basic Model",
+                    description="Basic fallback model via RunPod serverless inference",
+                    supports_temperature=False,  # RunPod basic endpoint may not support temp
+                    supports_max_tokens=False,
+                    supports_streaming=False,
+                    max_context_length=4096,
+                    cost_per_1k_input=0.0,  # Pay-per-use via RunPod
+                    cost_per_1k_output=0.0,
+                ),
+            ]
+        ),
     }
 
     def __init__(self, config_file: str = "llm_backend_config.json"):
@@ -201,7 +223,8 @@ class LLMBackendManager:
                 "openai": {"enabled": False},
                 "anthropic": {"enabled": False},
                 "ollama": {"enabled": True},
-                "ollama-cloud": {"enabled": False}
+                "ollama-cloud": {"enabled": False},
+                "runpod": {"enabled": True}  # Always enabled as fallback
             }
         }
 
@@ -441,6 +464,27 @@ class LLMBackendManager:
                 return ChatOllama(**ollama_kwargs)
             except ImportError:
                 raise ImportError("Ollama support requires langchain-ollama. Install with: pip install langchain-ollama")
+
+        elif backend.provider == "runpod":
+            try:
+                from backend.runpod_llm import ChatRunPod
+
+                # Get API key and endpoint ID
+                api_key = kwargs.get("api_key") or os.getenv("RUNPOD_API_KEY")
+                endpoint_id = os.getenv("RUNPOD_ENDPOINT_ID", "2m77lcg44ccrb6")
+
+                if not api_key:
+                    raise ValueError("RunPod API key not found. Set RUNPOD_API_KEY environment variable.")
+
+                runpod_kwargs = {
+                    "api_key": api_key,
+                    "endpoint_id": endpoint_id,
+                }
+
+                logger.info(f"Creating ChatRunPod with endpoint: {endpoint_id}")
+                return ChatRunPod(**runpod_kwargs)
+            except ImportError as e:
+                raise ImportError(f"RunPod support requires the requests library: {e}")
 
         else:
             raise ValueError(f"Unknown provider: {backend.provider}")
