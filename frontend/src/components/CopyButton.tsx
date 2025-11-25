@@ -4,6 +4,7 @@
  */
 import { useState, useRef } from 'react';
 import { Remarkable } from 'remarkable';
+import { FaHashtag, FaCode, FaFont } from 'react-icons/fa';
 
 interface CopyButtonProps {
   content: string;
@@ -146,7 +147,7 @@ export default function CopyButton({ content, className = '' }: CopyButtonProps)
             onClick={() => copyToClipboard('markdown')}
             title="Copy as Markdown"
           >
-            <i className="fa-sharp fa-light fa-hashtag"></i>
+            <FaHashtag />
             <span>Markdown</span>
           </button>
           <button
@@ -154,7 +155,7 @@ export default function CopyButton({ content, className = '' }: CopyButtonProps)
             onClick={() => copyToClipboard('html')}
             title="Copy as HTML"
           >
-            <i className="fa-light fa-code"></i>
+            <FaCode />
             <span>HTML</span>
           </button>
           <button
@@ -162,7 +163,7 @@ export default function CopyButton({ content, className = '' }: CopyButtonProps)
             onClick={() => copyToClipboard('text')}
             title="Copy as Plain Text"
           >
-            <i className="fa-light fa-text-size"></i>
+            <FaFont />
             <span>Plain Text</span>
           </button>
         </div>

@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAdminStore } from '../store/adminStore';
+import { FaArrowLeft, FaHistory, FaSpinner } from 'react-icons/fa';
 
 interface BackupInfo {
   filename: string;
@@ -134,7 +135,7 @@ export default function SystemPromptEditor() {
               }}
               title="Back to Chat"
             >
-              <i className="fa-light fa-arrow-left"></i>
+              <FaArrowLeft />
             </button>
             <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 600, color: '#191919' }}>
               System Prompt
@@ -163,7 +164,7 @@ export default function SystemPromptEditor() {
               gap: '8px',
             }}
           >
-            <i className="fa-light fa-history"></i>
+            <FaHistory />
             Backups ({backups.length})
           </button>
           <button
@@ -254,7 +255,7 @@ export default function SystemPromptEditor() {
               justifyContent: 'center',
               color: '#6c757d',
             }}>
-              <i className="fa-light fa-spinner fa-spin" style={{ marginRight: '8px' }}></i>
+              <FaSpinner className="animate-spin" style={{ marginRight: '8px' }} />
               Loading...
             </div>
           ) : (
