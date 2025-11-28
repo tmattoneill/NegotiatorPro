@@ -280,7 +280,7 @@ async def get_available_providers_for_user(user_id: Optional[str] = Query(None))
                 }
 
         # Add metadata about what keys the user has
-        return {
+        response = {
             "providers": available_providers,
             "user_api_keys": {
                 "has_openai": user_has_openai_key,
@@ -293,6 +293,17 @@ async def get_available_providers_for_user(user_id: Optional[str] = Query(None))
             },
             "ollama_local_available": ollama_available
         }
+
+        # Debug logging
+        logger.info(f"[available-for-user] user_id={user_id}")
+        logger.info(f"[available-for-user] user_keys: openai={user_has_openai_key}, anthropic={user_has_anthropic_key}")
+        logger.info(f"[available-for-user] system_keys: openai={system_has_openai_key}, anthropic={system_has_anthropic_key}, runpod={system_has_runpod_key}")
+        logger.info(f"[available-for-user] ollama_available={ollama_available}")
+        logger.info(f"[available-for-user] providers returned: {list(available_providers.keys())}")
+        for pid, pinfo in available_providers.items():
+            logger.info(f"[available-for-user]   {pid}: available={pinfo.get('available')}, is_fallback={pinfo.get('is_fallback')}, models={len(pinfo.get('models', []))}")
+
+        return response
 
     except Exception as e:
         logger.error(f"Error in get_available_providers_for_user: {str(e)}", exc_info=True)
