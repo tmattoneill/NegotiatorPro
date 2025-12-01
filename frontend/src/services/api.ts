@@ -322,4 +322,67 @@ export const adminResetDatabase = async (): Promise<DatabaseResetResponse> => {
   return response.data;
 };
 
+// ============================================================================
+// ADMIN LLM CONFIGURATION
+// ============================================================================
+
+export interface LLMModelInfo {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface LLMBackendStatus {
+  id: string;
+  name: string;
+  enabled: boolean;
+  has_api_key: boolean;
+  requires_api_key: boolean;
+  models: LLMModelInfo[];
+  is_available: boolean;
+}
+
+export interface ActiveModelConfig {
+  backend: string;
+  model: string;
+}
+
+export interface LLMConfigResponse {
+  backends: LLMBackendStatus[];
+  active_models: {
+    default: ActiveModelConfig;
+    premium: ActiveModelConfig;
+  };
+}
+
+export interface SetModelRequest {
+  model_type: 'default' | 'premium';
+  backend: string;
+  model: string;
+}
+
+/**
+ * Admin: Get full LLM backend configuration
+ */
+export const adminGetLLMConfig = async (): Promise<LLMConfigResponse> => {
+  const response = await api.get<LLMConfigResponse>('/admin/llm-config');
+  return response.data;
+};
+
+/**
+ * Admin: Set active model for default or premium tier
+ */
+export const adminSetModel = async (request: SetModelRequest): Promise<{ success: boolean; message: string }> => {
+  const response = await api.post('/admin/llm-config/set-model', request);
+  return response.data;
+};
+
+/**
+ * Admin: Enable or disable an LLM backend
+ */
+export const adminEnableBackend = async (backend: string, enabled: boolean): Promise<{ success: boolean; message: string }> => {
+  const response = await api.post('/admin/llm-config/enable-backend', { backend, enabled });
+  return response.data;
+};
+
 export default api;

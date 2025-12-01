@@ -1,7 +1,7 @@
 import type { HTMLAttributes, PropsWithChildren } from 'react'
 import { cn } from './cn'
 
-type Variant = 'default' | 'success' | 'danger' | 'muted' | 'outline'
+type Variant = 'default' | 'success' | 'danger' | 'warning' | 'muted' | 'outline'
 
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: Variant
@@ -13,6 +13,7 @@ export default function Badge({ variant = 'default', className, children, ...pro
     default: 'bg-chat-muted text-chat-foreground',
     success: 'bg-success/10 text-success border border-success/30',
     danger: 'bg-danger/10 text-danger border border-danger/30',
+    warning: 'bg-amber-500/10 text-amber-600 border border-amber-500/30',
     muted: 'bg-chat-muted text-chat-muted-foreground',
     outline: 'border border-chat-border text-chat-foreground',
   }

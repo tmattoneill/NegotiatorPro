@@ -8,6 +8,7 @@ import * as api from '../services/api';
 import Button from './ui/Button';
 import Badge from './ui/Badge';
 import Input from './ui/Input';
+import LLMConfigTab from './LLMConfigTab';
 
 interface User {
   id: string;
@@ -39,7 +40,7 @@ interface UsageStats {
   last_activity: string | null;
 }
 
-type TabView = 'users' | 'negotiations' | 'usage' | 'database';
+type TabView = 'users' | 'negotiations' | 'usage' | 'llm-config' | 'database';
 
 const AdminPanel = () => {
   const user = useAuthStore((state) => state.user);
@@ -229,6 +230,12 @@ const AdminPanel = () => {
           onClick={() => setActiveTab('usage')}
         >
           📊 Usage Stats
+        </button>
+        <button
+          className={`px-4 py-2 -mb-[2px] border-b-4 ${activeTab === 'llm-config' ? 'border-chat-primary text-chat-primary font-semibold bg-chat-primary/10' : 'border-transparent text-chat-muted-foreground hover:bg-chat-muted hover:text-chat-foreground'}`}
+          onClick={() => setActiveTab('llm-config')}
+        >
+          🤖 LLM Config
         </button>
         <button
           className={`px-4 py-2 -mb-[2px] border-b-4 ${activeTab === 'database' ? 'border-chat-primary text-chat-primary font-semibold bg-chat-primary/10' : 'border-transparent text-chat-muted-foreground hover:bg-chat-muted hover:text-chat-foreground'}`}
@@ -426,6 +433,9 @@ const AdminPanel = () => {
             </div>
           </div>
         )}
+
+        {/* LLM Config Tab */}
+        {activeTab === 'llm-config' && <LLMConfigTab />}
 
         {/* Database Tab */}
         {activeTab === 'database' && (

@@ -16,6 +16,7 @@ import logging
 from backend.prompt_manager import PromptManager
 from backend.user_profile import UserProfileManager, UserProfile
 from backend.database import db
+from backend.llm_backend_config import backend_manager
 from ..middleware.auth import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -114,7 +115,7 @@ def create_backup(content: str) -> str:
 
 
 @router.get("/system-prompt", response_model=SystemPromptResponse)
-async def get_system_prompt():
+async def get_system_prompt(admin: Dict = Depends(verify_admin)):
     """Get the current system prompt (raw template with {context} placeholder)"""
     raw_prompts = prompt_manager.get_raw_prompts()
     content = raw_prompts.get("system", "")
@@ -129,7 +130,7 @@ async def get_system_prompt():
 
 
 @router.put("/system-prompt")
-async def update_system_prompt(request: SystemPromptRequest):
+async def update_system_prompt(request: SystemPromptRequest, admin: Dict = Depends(verify_admin)):
     """Update the system prompt (creates backup of previous)"""
     # Get current prompt and create backup if it exists
     raw_prompts = prompt_manager.get_raw_prompts()
@@ -150,7 +151,7 @@ async def update_system_prompt(request: SystemPromptRequest):
 
 
 @router.get("/system-prompt/backups", response_model=List[BackupInfo])
-async def list_backups():
+async def list_backups(admin: Dict = Depends(verify_admin)):
     """List all system prompt backups"""
     ensure_backup_dir()
     backups = []
@@ -176,7 +177,7 @@ async def list_backups():
 
 
 @router.get("/system-prompt/backup/{filename}")
-async def get_backup(filename: str):
+async def get_backup(filename: str, admin: Dict = Depends(verify_admin)):
     """Get content of a specific backup"""
     filepath = os.path.join(BACKUP_DIR, filename)
 
@@ -194,7 +195,7 @@ async def get_backup(filename: str):
 
 
 @router.post("/system-prompt/restore/{filename}")
-async def restore_backup(filename: str):
+async def restore_backup(filename: str, admin: Dict = Depends(verify_admin)):
     """Restore system prompt from a backup"""
     filepath = os.path.join(BACKUP_DIR, filename)
 
@@ -491,3 +492,179 @@ async def reset_database(admin: Dict = Depends(verify_admin)):
     except Exception as e:
         logger.error(f"Failed to reset database: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to reset database: {str(e)}")
+
+
+# ============================================================================
+# LLM BACKEND CONFIGURATION ENDPOINTS
+# ============================================================================
+
+class LLMModelInfo(BaseModel):
+    id: str
+    name: str
+    description: str
+
+
+class LLMBackendStatus(BaseModel):
+    id: str
+    name: str
+    enabled: bool
+    has_api_key: bool
+    requires_api_key: bool
+    models: List[LLMModelInfo]
+    is_available: bool  # Can actually be used (enabled AND key present if required)
+
+
+class ActiveModelConfig(BaseModel):
+    backend: str
+    model: str
+
+
+class LLMConfigResponse(BaseModel):
+    backends: List[LLMBackendStatus]
+    active_models: Dict[str, ActiveModelConfig]
+
+
+class SetModelRequest(BaseModel):
+    model_type: str  # "default" or "premium"
+    backend: str
+    model: str
+
+
+class EnableBackendRequest(BaseModel):
+    backend: str
+    enabled: bool
+
+
+@router.get("/llm-config", response_model=LLMConfigResponse)
+async def get_llm_config(admin: Dict = Depends(verify_admin)):
+    """Get full LLM backend configuration (admin only)"""
+    try:
+        backends = []
+
+        for backend_id, backend in backend_manager.BACKENDS.items():
+            # Check if backend is enabled
+            enabled = backend_manager.user_config.get("backend_settings", {}).get(
+                backend_id, {}
+            ).get("enabled", False)
+
+            # Check API key status
+            has_api_key = False
+            if backend.api_key_env_var:
+                has_api_key = bool(os.getenv(backend.api_key_env_var))
+            else:
+                has_api_key = True  # No API key required
+
+            # Get models for this backend
+            actual_backend = backend_manager.get_backend(backend_id)
+            models = []
+            if actual_backend and actual_backend.models:
+                for model in actual_backend.models:
+                    models.append(LLMModelInfo(
+                        id=model.id,
+                        name=model.name,
+                        description=model.description
+                    ))
+
+            # Determine if backend is actually available
+            is_available = enabled and (has_api_key or not backend.requires_api_key)
+
+            backends.append(LLMBackendStatus(
+                id=backend_id,
+                name=backend.name,
+                enabled=enabled,
+                has_api_key=has_api_key,
+                requires_api_key=backend.requires_api_key,
+                models=models,
+                is_available=is_available
+            ))
+
+        # Get active models
+        active_models = {}
+        for model_type in ["default", "premium"]:
+            config = backend_manager.get_active_model_config(model_type)
+            active_models[model_type] = ActiveModelConfig(
+                backend=config.get("backend", ""),
+                model=config.get("model", "")
+            )
+
+        return LLMConfigResponse(
+            backends=backends,
+            active_models=active_models
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to get LLM config: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve LLM configuration")
+
+
+@router.post("/llm-config/set-model")
+async def set_active_model(request: SetModelRequest, admin: Dict = Depends(verify_admin)):
+    """Set the active model for default or premium tier (admin only)"""
+    try:
+        # Validate model_type
+        if request.model_type not in ["default", "premium"]:
+            raise HTTPException(
+                status_code=400,
+                detail="model_type must be 'default' or 'premium'"
+            )
+
+        # Validate backend exists
+        backend = backend_manager.get_backend(request.backend)
+        if not backend:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown backend: {request.backend}"
+            )
+
+        # Set the active model
+        backend_manager.set_active_model(
+            request.model_type,
+            request.backend,
+            request.model
+        )
+
+        logger.info(
+            f"Admin {admin.get('username')} set {request.model_type} model to "
+            f"{request.backend}/{request.model}"
+        )
+
+        return {
+            "success": True,
+            "message": f"Set {request.model_type} model to {request.backend}/{request.model}"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to set active model: {e}")
+        raise HTTPException(status_code=500, detail="Failed to set active model")
+
+
+@router.post("/llm-config/enable-backend")
+async def enable_backend(request: EnableBackendRequest, admin: Dict = Depends(verify_admin)):
+    """Enable or disable an LLM backend (admin only)"""
+    try:
+        # Validate backend exists
+        backend = backend_manager.get_backend(request.backend)
+        if not backend:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown backend: {request.backend}"
+            )
+
+        # Enable/disable the backend
+        backend_manager.enable_backend(request.backend, request.enabled)
+
+        action = "enabled" if request.enabled else "disabled"
+        logger.info(f"Admin {admin.get('username')} {action} backend: {request.backend}")
+
+        return {
+            "success": True,
+            "message": f"Backend {request.backend} {action}"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to enable/disable backend: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update backend status")

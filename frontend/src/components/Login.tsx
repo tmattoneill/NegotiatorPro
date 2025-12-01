@@ -153,6 +153,12 @@ function Login() {
               Create one here
             </Link>
           </div>
+
+          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(159, 173, 189, 0.2)', textAlign: 'center' }}>
+            <Link to="/admin-login" style={{ color: '#9fadbd', textDecoration: 'none', fontSize: '13px' }}>
+              Admin access
+            </Link>
+          </div>
         </form>
       </div>
     </div>
