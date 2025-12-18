@@ -2,19 +2,7 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: negotiator-pro-postgres
     restart: unless-stopped
-
-  # Ollama Servce 
-  #ollama:
-  #  image: ollama/ollama
-  #  container_name: negotiator-pro-ollama
-  #  ports:
-  #    - "11434:11434"
-  #  volumes:
-  #    - /home/ubuntu/.ollama:/root/.ollama
-  #  networks:
-  #    - negotiator-network
 
     # Environment variables
     environment:
@@ -24,12 +12,12 @@ services:
 
     # Volume for persistent data - mapped to /data/db
     volumes:
-      - ./data/db:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
       - ./migrations:/docker-entrypoint-initdb.d
 
     # Port mapping (optional, for external access during development)
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
 
     # Networking
     networks:
@@ -54,12 +42,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: negotiator-pro-backend
     restart: unless-stopped
 
     # Port mapping - FastAPI backend
     ports:
-      - "8000:8000"
+      - "${API_HOST_PORT:-8000}:8000"
 
     # Environment variables
     environment:
@@ -155,13 +142,12 @@ services:
   # React Frontend (development mode)
   frontend:
     image: node:20-alpine
-    container_name: negotiator-pro-frontend
     restart: unless-stopped
     working_dir: /app/frontend
 
     # Port mapping - React dev server
     ports:
-      - "5173:5173"
+      - "${FRONTEND_HOST_PORT:-5173}:5173"
 
     # Environment variables
     environment:
@@ -186,3 +172,6 @@ services:
 networks:
   negotiator-network:
     driver: bridge
+
+volumes:
+  postgres_data:

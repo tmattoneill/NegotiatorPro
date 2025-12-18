@@ -353,6 +353,14 @@ ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
 OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
 OLLAMA_CLOUD_URL=${OLLAMA_CLOUD_URL}
 OLLAMA_API_KEY=${OLLAMA_API_KEY}
+
+# ========================================
+# Docker Port Configuration (optional)
+# ========================================
+# Override default ports if needed (e.g., to avoid conflicts)
+# POSTGRES_HOST_PORT=5432
+# API_HOST_PORT=8000
+# FRONTEND_HOST_PORT=5173
 EOF
 
 print_success ".env file created"
@@ -362,7 +370,9 @@ print_success ".env file created"
 # ========================================
 print_header "Creating Data Directories"
 
-mkdir -p data/db data/vectorstore data/uploads data/sources data/config
+# We now use a Docker named volume for Postgres (postgres_data),
+# so no need to create ./data/db here.
+mkdir -p data/vectorstore data/uploads data/sources data/config
 print_success "Data directories created"
 
 # ========================================
@@ -388,13 +398,13 @@ else
     if curl -s http://localhost:8000/api/health > /dev/null 2>&1; then
         print_success "Backend is running"
     else
-        print_warning "Backend may still be starting. Check 'docker logs negotiator-pro-backend'"
+        print_warning "Backend may still be starting. Check 'docker compose logs backend'"
     fi
-    
+
     if curl -s http://localhost:5173 > /dev/null 2>&1; then
         print_success "Frontend is running"
     else
-        print_warning "Frontend may still be starting. Check 'docker logs negotiator-pro-frontend'"
+        print_warning "Frontend may still be starting. Check 'docker compose logs frontend'"
     fi
 fi
 
