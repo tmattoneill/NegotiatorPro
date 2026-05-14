@@ -1,1 +1,27 @@
-{"active_backend":"ollama","active_models":{"default":{"backend":"ollama","model":"glm-4.6:cloud"},"premium":{"backend":"ollama","model":"gpt-oss:120b-cloud"}},"backend_settings":{"openai":{"enabled":false},"anthropic":{"enabled":false},"ollama":{"enabled":true},"ollama-cloud":{"enabled":false}}}
+{
+  "active_backend": "ollama",
+  "active_models": {
+    "default": {
+      "backend": "ollama",
+      "model": "glm-4.6:cloud"
+    },
+    "premium": {
+      "backend": "ollama",
+      "model": "gpt-oss:120b-cloud"
+    }
+  },
+  "backend_settings": {
+    "openai": {
+      "enabled": false
+    },
+    "anthropic": {
+      "enabled": false
+    },
+    "ollama": {
+      "enabled": true
+    },
+    "ollama-cloud": {
+      "enabled": false
+    }
+  }
+}
