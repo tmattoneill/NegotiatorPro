@@ -754,6 +754,13 @@ enable_profiles = config.get("ui.features.enableUserProfiles")
 **Project:** Enhanced RAG-based negotiation guidance system with React frontend, FastAPI backend, multi-backend LLM support (OpenAI, Anthropic, Ollama), and document management.
 
 **Branch:** `main`
-**Last Updated:** 13/05/2026, 22:34:16
+**Last Updated:** 14/05/2026, 07:48:00
+
+### Active Todos
+- [ ] [high] Test the newly implemented admin LLM config tab and provider debug logging functionality (`main`)
+- [ ] [medium] Clean up sync conflict file backend/api/routes/chat.sync-conflict-20260217-170746-DT2N2AX.py and resolve any remaining sync issues (`main`)
+- [ ] [medium] Verify admin login route works correctly with the new authentication changes (`main`)
+- [ ] [medium] Complete implementation of LLM response metadata extraction (TODOs in chat.py:287) (`main`)
+- [ ] [low] Document the new admin features and LLM configuration capabilities in user documentation (`main`)
 
 <!-- DEVCTX:END -->
