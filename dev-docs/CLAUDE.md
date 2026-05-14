@@ -745,3 +745,15 @@ enable_profiles = config.get("ui.features.enableUserProfiles")
 - Prompt templates (prompt_config.json)
 
 **Rationale**: User-specific data requires relational integrity and scalability (PostgreSQL), while system configuration benefits from simple file-based management with version control.
+
+<!-- DEVCTX:START -->
+## Project Context (auto-updated by devctx)
+
+> **IMPORTANT:** When starting a new conversation, greet the user with a brief summary of the project context below — current focus, branch, and any active todos. Keep it to 2-3 sentences. Do not skip this greeting.
+
+**Project:** Enhanced RAG-based negotiation guidance system with React frontend, FastAPI backend, multi-backend LLM support (OpenAI, Anthropic, Ollama), and document management.
+
+**Branch:** `main`
+**Last Updated:** 13/05/2026, 22:34:16
+
+<!-- DEVCTX:END -->

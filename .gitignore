@@ -117,3 +117,4 @@ prompt_config.json
 # Workflow files cannot be pushed by Claude Code GitHub App
 # See .github/README.md for details
 .github/workflows/
+.devctx/

@@ -12,10 +12,11 @@ import ChatInput from './ChatInput';
 import type { Message } from '../types';
 
 export default function ChatContainer() {
-  const { getCurrentSession, addMessage, isLoading, setLoading, createNewSession, renameSession } = useChatStore();
+  const { getCurrentSession, addMessage, isLoading, setLoading, createNewSession, renameSession, createLocalSession } = useChatStore();
   const { selectedProvider, selectedModel, usePremiumModel, usePreprocessing, availableModels } = useSettingsStore();
   const { negotiations, currentNegotiationId } = useNegotiationStore();
   const { user } = useAuthStore();
+  const isSuperAdmin = user?.is_super_admin === true;
 
   // Get display names for provider and model
   const providerDisplayName = selectedProvider && availableModels[selectedProvider]?.name
@@ -52,19 +53,24 @@ export default function ChatContainer() {
   }, [currentSession?.messages]);
 
   const handleSendMessage = async (content: string, files?: File[]) => {
-    // Auto-create conversation if none exists
-    if (!currentSession?.id && currentNegotiation?.id && user?.id) {
-      await createNewSession(currentNegotiation.id, user.id);
-      // Give it a moment for state to update
-      await new Promise(resolve => setTimeout(resolve, 100));
+    if (isSuperAdmin) {
+      // Testing mode: create a local in-memory session on first message
+      if (!getCurrentSession()?.id) {
+        createLocalSession();
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+    } else {
+      if (!currentSession?.id && currentNegotiation?.id && user?.id) {
+        await createNewSession(currentNegotiation.id, user.id);
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      if (!getCurrentSession()?.id) {
+        console.error('No session available');
+        return;
+      }
     }
 
-    // Check again after creation
     const session = getCurrentSession();
-    if (!session?.id) {
-      console.error('No session available');
-      return;
-    }
 
     // Build user message content with file info
     let userContent = content;
@@ -84,10 +90,10 @@ export default function ChatContainer() {
     setLoading(true);
 
     try {
-      // Call API with settings and conversation_id for database persistence
+      // Call API — super admin testing mode sends without a conversation_id
       const response = await sendChatMessage({
         question: content,
-        conversation_id: session.id,  // Always pass conversation ID for database persistence
+        conversation_id: session?.id,
         use_premium_model: usePremiumModel,
         use_preprocessing: usePreprocessing,
         provider: usePremiumModel ? undefined : selectedProvider || undefined,

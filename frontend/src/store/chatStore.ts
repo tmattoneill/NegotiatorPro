@@ -30,6 +30,7 @@ interface ChatState {
   getCurrentSession: () => Session | undefined;
   addMessage: (message: Message) => void;
   setLoading: (loading: boolean) => void;
+  createLocalSession: () => void;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -237,4 +238,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   setLoading: (loading) => set({ isLoading: loading }),
+
+  createLocalSession: () => {
+    const localSession: Session = {
+      id: `local-${Date.now()}`,
+      title: 'Testing Session',
+      messages: [],
+      createdAt: new Date(),
+      messageCount: 0,
+    };
+    set((state) => ({
+      sessions: [localSession, ...state.sessions],
+      currentSessionId: localSession.id,
+    }));
+  },
 }));

@@ -202,9 +202,7 @@ class UserProfileManager:
             ValueError: If username or email already exists, or if trying to
                        create a user with the reserved super admin username
         """
-        from passlib.context import CryptContext
-
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        import bcrypt as _bcrypt
 
         # Prevent creating a user with the reserved super admin username
         # (unless this is the initial super admin creation)
@@ -227,7 +225,7 @@ class UserProfileManager:
             raise ValueError("Username or email already exists")
 
         # Hash password
-        password_hash = pwd_context.hash(profile_data.password)
+        password_hash = _bcrypt.hashpw(profile_data.password.encode(), _bcrypt.gensalt(12)).decode()
 
         # Encrypt API keys if provided
         openai_key_encrypted = None
