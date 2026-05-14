@@ -118,3 +118,6 @@ prompt_config.json
 # See .github/README.md for details
 .github/workflows/
 .devctx/
+
+# Syncthing conflict files
+*.sync-conflict-*
