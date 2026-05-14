@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
-VectorDB Rebuild Script for Negotiation Advisor
-Rebuilds the RAG vector database from all documents in ./sources
+VectorDB Rebuild Script for Negotiation Advisor (interactive CLI).
+
+For the admin UI and API routes, see backend/vectorstore_builder.py which
+exposes the same logic as callable async functions (build_index, promote_staging).
+This script is kept for command-line use; it operates independently and does
+not require a running database connection.
 """
 
 import os
@@ -26,8 +30,8 @@ from backend.embedding_config import EmbeddingConfig
 # Set up logging
 logger = logging.getLogger(__name__)
 
-# Load environment variables
-load_dotenv()
+# Load environment variables — project .env wins over shell env
+load_dotenv(override=True)
 
 class VectorDBRebuilder:
     """Handles rebuilding the vector database from scratch"""

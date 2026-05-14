@@ -1,7 +1,13 @@
 /**
- * Modal for creating a new negotiation
+ * Modal for creating a new negotiation.
+ *
+ * Three-step flow:
+ *   1. Negotiation basics (title, description, AI provider)
+ *   2. Your profile — auto-link the default user persona if one exists,
+ *      otherwise let the user pick an existing persona or create one inline
+ *   3. Submit: creates the persona first (if needed) then the negotiation
  */
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useNegotiationStore } from '../store/negotiationStore';
 import { usePersonaStore } from '../store/personaStore';
@@ -12,17 +18,79 @@ interface NegotiationModalProps {
   onClose: () => void;
 }
 
+type PersonaMode = 'existing' | 'create' | 'skip';
+
 export default function NegotiationModal({ isOpen, onClose }: NegotiationModalProps) {
+  // Basics
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
+
+  // Persona step
+  const [personaMode, setPersonaMode] = useState<PersonaMode>('create');
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string>('');
+  const [newPersonaName, setNewPersonaName] = useState('');
+  const [newPersonaRole, setNewPersonaRole] = useState('');
+  const [newPersonaOrg, setNewPersonaOrg] = useState('');
+  const [newPersonaStyle, setNewPersonaStyle] = useState('');
+  const [newPersonaStrengths, setNewPersonaStrengths] = useState('');
+  const [newPersonaNotes, setNewPersonaNotes] = useState('');
+  const [makeDefault, setMakeDefault] = useState(true);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   const { user } = useAuthStore();
   const { createNegotiation } = useNegotiationStore();
-  const { partnerPersonas } = usePersonaStore();
+  const {
+    partnerPersonas,
+    userPersonas,
+    fetchUserPersonas,
+    createUserPersona,
+  } = usePersonaStore();
+
+  // The user's default persona (if any), found at the time the modal opens
+  const defaultPersona = useMemo(
+    () => userPersonas.find((p) => p.is_default) || null,
+    [userPersonas],
+  );
+
+  // Fetch user personas when the modal opens. Pick a sensible initial mode:
+  // - if user already has personas: default to "existing" with first selected
+  // - otherwise: default to "create"
+  useEffect(() => {
+    if (!isOpen || !user?.id) return;
+    fetchUserPersonas(user.id);
+  }, [isOpen, user?.id, fetchUserPersonas]);
+
+  useEffect(() => {
+    if (userPersonas.length > 0 && !selectedPersonaId) {
+      setPersonaMode('existing');
+      setSelectedPersonaId(defaultPersona?.id ?? userPersonas[0].id);
+    } else if (userPersonas.length === 0) {
+      setPersonaMode('create');
+    }
+    // We deliberately don't reset state when the user has already interacted.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userPersonas.length, defaultPersona?.id]);
+
+  const resetForm = () => {
+    setTitle('');
+    setDescription('');
+    setSelectedProvider(null);
+    setSelectedModel(null);
+    setPersonaMode(userPersonas.length > 0 ? 'existing' : 'create');
+    setSelectedPersonaId(defaultPersona?.id ?? userPersonas[0]?.id ?? '');
+    setNewPersonaName('');
+    setNewPersonaRole('');
+    setNewPersonaOrg('');
+    setNewPersonaStyle('');
+    setNewPersonaStrengths('');
+    setNewPersonaNotes('');
+    setMakeDefault(true);
+    setError('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +100,6 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
       setError('Negotiation name is required');
       return;
     }
-
     if (!user?.id) {
       setError('User not authenticated');
       return;
@@ -41,11 +108,35 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
     setIsSubmitting(true);
 
     try {
-      // If no partner personas exist, create a default one
-      let partnerIds: string[];
+      // Step 1: resolve user persona ID
+      let userPersonaId: string | undefined;
 
+      if (defaultPersona) {
+        // Auto-link the default — no UI step shown
+        userPersonaId = defaultPersona.id;
+      } else if (personaMode === 'existing' && selectedPersonaId) {
+        userPersonaId = selectedPersonaId;
+      } else if (personaMode === 'create') {
+        if (!newPersonaName.trim()) {
+          setError('Profile name is required (or pick "Skip" to create without one)');
+          setIsSubmitting(false);
+          return;
+        }
+        const created = await createUserPersona(user.id, {
+          name: newPersonaName.trim(),
+          role_title: newPersonaRole.trim() || undefined,
+          organization: newPersonaOrg.trim() || undefined,
+          communication_style: newPersonaStyle.trim() || undefined,
+          negotiation_strengths: newPersonaStrengths.trim() || undefined,
+          notes: newPersonaNotes.trim() || undefined,
+          is_default: makeDefault,
+        });
+        userPersonaId = created.id;
+      } // personaMode === 'skip' leaves userPersonaId undefined
+
+      // Step 2: ensure at least one partner persona exists
+      let partnerIds: string[];
       if (partnerPersonas.length === 0) {
-        // Create a default partner persona on the fly
         const { createPartnerPersona } = usePersonaStore.getState();
         const defaultPartner = await createPartnerPersona(user.id, {
           name: 'Partner',
@@ -56,22 +147,19 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
         partnerIds = [partnerPersonas[0].id];
       }
 
+      // Step 3: create the negotiation
       const result = await createNegotiation(user.id, {
         title: title.trim(),
         description: description.trim() || undefined,
+        user_persona_id: userPersonaId,
         partner_persona_ids: partnerIds,
-        settings: selectedProvider ? {
-          provider: selectedProvider,
-          model: selectedModel,
-        } : undefined,
+        settings: selectedProvider
+          ? { provider: selectedProvider, model: selectedModel }
+          : undefined,
       });
 
       if (result) {
-        // Success - close modal and reset form
-        setTitle('');
-        setDescription('');
-        setSelectedProvider(null);
-        setSelectedModel(null);
+        resetForm();
         onClose();
       } else {
         setError('Failed to create negotiation');
@@ -86,20 +174,19 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
 
   const handleClose = () => {
     if (!isSubmitting) {
-      setTitle('');
-      setDescription('');
-      setSelectedProvider(null);
-      setSelectedModel(null);
-      setError('');
+      resetForm();
       onClose();
     }
   };
 
   if (!isOpen) return null;
 
+  // Show the persona section unless a default already exists (then it's silent)
+  const showPersonaSection = !defaultPersona;
+
   return (
     <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center" onClick={handleClose}>
-      <div className="bg-chat-card border border-chat-border rounded-lg w-[90%] max-w-[500px] max-h-[90vh] overflow-auto shadow-lg" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-chat-card border border-chat-border rounded-lg w-[90%] max-w-[560px] max-h-[90vh] overflow-auto shadow-lg" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-5 border-b border-chat-border">
           <h2 className="text-xl font-semibold text-chat-foreground m-0">Create New Negotiation</h2>
           <button
@@ -118,6 +205,14 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
               <div className="px-3 py-2 mb-4 rounded border border-danger/30 bg-danger/10 text-danger">{error}</div>
             )}
 
+            {defaultPersona && (
+              <div className="px-3 py-2 mb-4 rounded border border-chat-border bg-chat-muted/40 text-[13px] text-chat-muted-foreground">
+                Using your default profile: <strong className="text-chat-foreground">{defaultPersona.name}</strong>
+                {defaultPersona.role_title ? ` — ${defaultPersona.role_title}` : ''}
+              </div>
+            )}
+
+            {/* Negotiation name */}
             <div className="mb-4">
               <label htmlFor="negotiation-title" className="block text-[14px] font-medium text-chat-foreground">
                 Negotiation Name <span className="text-danger">*</span>
@@ -135,6 +230,7 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
               />
             </div>
 
+            {/* Description */}
             <div className="mb-4">
               <label htmlFor="negotiation-description" className="block text-[14px] font-medium text-chat-foreground">
                 Description <span className="text-chat-muted-foreground font-normal">(optional)</span>
@@ -143,13 +239,14 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
                 id="negotiation-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Brief description of the negotiation context..."
+                placeholder="Brief description of the negotiation context: stakes, deadline, current state of play..."
                 rows={4}
                 disabled={isSubmitting}
                 className="w-full px-3 py-2 border border-chat-border rounded text-[14px] mt-2 outline-none focus:border-chat-primary focus:ring-2 focus:ring-chat-primary/10 resize-y"
               />
             </div>
 
+            {/* Provider override */}
             <div className="mb-4">
               <label className="block text-[14px] font-medium text-chat-foreground mb-2">
                 AI Provider <span className="text-chat-muted-foreground font-normal">(optional)</span>
@@ -169,6 +266,141 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
                 disabled={isSubmitting}
               />
             </div>
+
+            {/* Persona step — hidden when a default already exists */}
+            {showPersonaSection && (
+              <div className="mb-2 pt-4 border-t border-chat-border">
+                <label className="block text-[14px] font-medium text-chat-foreground mb-1">
+                  Your Profile
+                </label>
+                <p className="text-xs text-chat-muted-foreground mb-3">
+                  Tell the assistant who <em>you</em> are in this negotiation — role, style, strengths. Used in every chat to tailor advice.
+                </p>
+
+                {/* Mode selector */}
+                <div className="flex flex-col gap-2 mb-3">
+                  {userPersonas.length > 0 && (
+                    <label className="flex items-center gap-2 text-[14px] text-chat-foreground">
+                      <input
+                        type="radio"
+                        name="personaMode"
+                        value="existing"
+                        checked={personaMode === 'existing'}
+                        onChange={() => setPersonaMode('existing')}
+                        disabled={isSubmitting}
+                      />
+                      Use an existing profile
+                    </label>
+                  )}
+                  <label className="flex items-center gap-2 text-[14px] text-chat-foreground">
+                    <input
+                      type="radio"
+                      name="personaMode"
+                      value="create"
+                      checked={personaMode === 'create'}
+                      onChange={() => setPersonaMode('create')}
+                      disabled={isSubmitting}
+                    />
+                    Create a new profile
+                  </label>
+                  <label className="flex items-center gap-2 text-[14px] text-chat-foreground">
+                    <input
+                      type="radio"
+                      name="personaMode"
+                      value="skip"
+                      checked={personaMode === 'skip'}
+                      onChange={() => setPersonaMode('skip')}
+                      disabled={isSubmitting}
+                    />
+                    Skip <span className="text-xs text-chat-muted-foreground">(advice won't be tailored to you)</span>
+                  </label>
+                </div>
+
+                {/* Existing-persona dropdown */}
+                {personaMode === 'existing' && userPersonas.length > 0 && (
+                  <select
+                    value={selectedPersonaId}
+                    onChange={(e) => setSelectedPersonaId(e.target.value)}
+                    disabled={isSubmitting}
+                    className="w-full px-3 py-2 border border-chat-border rounded text-[14px] bg-chat-card"
+                  >
+                    {userPersonas.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}{p.role_title ? ` — ${p.role_title}` : ''}{p.is_default ? ' (default)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                {/* Inline create form */}
+                {personaMode === 'create' && (
+                  <div className="grid grid-cols-1 gap-3">
+                    <input
+                      type="text"
+                      value={newPersonaName}
+                      onChange={(e) => setNewPersonaName(e.target.value)}
+                      placeholder="Profile name (e.g. 'Matt — work negotiator')"
+                      maxLength={255}
+                      disabled={isSubmitting}
+                      className="w-full px-3 py-2 border border-chat-border rounded text-[14px]"
+                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        value={newPersonaRole}
+                        onChange={(e) => setNewPersonaRole(e.target.value)}
+                        placeholder="Role / Title"
+                        maxLength={255}
+                        disabled={isSubmitting}
+                        className="px-3 py-2 border border-chat-border rounded text-[14px]"
+                      />
+                      <input
+                        type="text"
+                        value={newPersonaOrg}
+                        onChange={(e) => setNewPersonaOrg(e.target.value)}
+                        placeholder="Organisation"
+                        maxLength={255}
+                        disabled={isSubmitting}
+                        className="px-3 py-2 border border-chat-border rounded text-[14px]"
+                      />
+                    </div>
+                    <textarea
+                      value={newPersonaStyle}
+                      onChange={(e) => setNewPersonaStyle(e.target.value)}
+                      placeholder="Communication style (e.g. 'direct, evidence-led, prefers concise replies')"
+                      rows={2}
+                      disabled={isSubmitting}
+                      className="px-3 py-2 border border-chat-border rounded text-[14px] resize-y"
+                    />
+                    <textarea
+                      value={newPersonaStrengths}
+                      onChange={(e) => setNewPersonaStrengths(e.target.value)}
+                      placeholder="Negotiation strengths (e.g. 'anchoring, reframing, building rapport')"
+                      rows={2}
+                      disabled={isSubmitting}
+                      className="px-3 py-2 border border-chat-border rounded text-[14px] resize-y"
+                    />
+                    <textarea
+                      value={newPersonaNotes}
+                      onChange={(e) => setNewPersonaNotes(e.target.value)}
+                      placeholder="Other context the assistant should know about you (optional)"
+                      rows={2}
+                      disabled={isSubmitting}
+                      className="px-3 py-2 border border-chat-border rounded text-[14px] resize-y"
+                    />
+                    <label className="flex items-center gap-2 text-[13px] text-chat-foreground">
+                      <input
+                        type="checkbox"
+                        checked={makeDefault}
+                        onChange={(e) => setMakeDefault(e.target.checked)}
+                        disabled={isSubmitting}
+                      />
+                      Make this my default profile (auto-used for future negotiations)
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="px-6 py-4 border-t border-chat-border flex justify-end">

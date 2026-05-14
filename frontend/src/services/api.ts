@@ -385,4 +385,112 @@ export const adminEnableBackend = async (backend: string, enabled: boolean): Pro
   return response.data;
 };
 
+// ---------------------------------------------------------------------------
+// Admin RAG — sources and vectorstore
+// ---------------------------------------------------------------------------
+
+export interface AdminSource {
+  id: string;
+  filename: string;
+  sha256: string;
+  title: string | null;
+  author: string | null;
+  year: number | null;
+  tags: string[];
+  enabled: boolean;
+  page_count: number | null;
+  word_count: number | null;
+  size_bytes: number;
+  extension: string;
+  added_at: string;
+  last_indexed_at: string | null;
+}
+
+export interface VectorstoreStatus {
+  embedding_model: string | null;
+  chunks_count: number | null;
+  last_build: string | null;
+  size_bytes: number;
+  dimensions: number | null;
+  metadata_path: string;
+  index_exists: boolean;
+}
+
+export interface RebuildJob {
+  id: string;
+  status: 'pending' | 'running' | 'done' | 'error';
+  percent: number;
+  current_file: string | null;
+  errors: string[];
+  params: Record<string, unknown>;
+  started_at: string;
+  finished_at: string | null;
+}
+
+export interface TestQueryResult {
+  content: string;
+  score: number;
+  source_file: string;
+  title: string | null;
+  tags: string[];
+  page: number | null;
+}
+
+export const adminListSources = async (): Promise<AdminSource[]> => {
+  const response = await api.get<AdminSource[]>('/admin/sources');
+  return response.data;
+};
+
+export const adminUploadSource = async (file: File): Promise<{ success: boolean; source: AdminSource }> => {
+  const form = new FormData();
+  form.append('file', file);
+  const response = await api.post<{ success: boolean; source: AdminSource }>('/admin/sources/upload', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};
+
+export const adminUpdateSource = async (
+  filename: string,
+  updates: { title?: string; author?: string; year?: number; tags?: string[]; enabled?: boolean }
+): Promise<AdminSource> => {
+  const response = await api.patch<AdminSource>(`/admin/sources/${encodeURIComponent(filename)}`, updates);
+  return response.data;
+};
+
+export const adminDeleteSource = async (filename: string): Promise<{ success: boolean }> => {
+  const response = await api.delete<{ success: boolean }>(`/admin/sources/${encodeURIComponent(filename)}`);
+  return response.data;
+};
+
+export const adminGetVectorstoreStatus = async (): Promise<VectorstoreStatus> => {
+  const response = await api.get<VectorstoreStatus>('/admin/vectorstore/status');
+  return response.data;
+};
+
+export const adminTriggerRebuild = async (params: {
+  chunk_size?: number;
+  chunk_overlap?: number;
+  embedding_model?: string;
+  tags_filter?: string[];
+}): Promise<{ job_id: string; status: string }> => {
+  const response = await api.post<{ job_id: string; status: string }>('/admin/vectorstore/rebuild', params);
+  return response.data;
+};
+
+export const adminGetRebuildJob = async (jobId: string): Promise<RebuildJob> => {
+  const response = await api.get<RebuildJob>(`/admin/vectorstore/jobs/${jobId}`);
+  return response.data;
+};
+
+export const adminTestQuery = async (params: {
+  query: string;
+  k?: number;
+  target?: 'live' | 'staging';
+  tags_filter?: string[];
+}): Promise<TestQueryResult[]> => {
+  const response = await api.post<TestQueryResult[]>('/admin/vectorstore/test-query', params);
+  return response.data;
+};
+
 export default api;

@@ -116,14 +116,18 @@ def create_backup(content: str) -> str:
 
 @router.get("/system-prompt", response_model=SystemPromptResponse)
 async def get_system_prompt(admin: Dict = Depends(verify_admin)):
-    """Get the current system prompt (raw template with {context} placeholder)"""
+    """
+    Return the current Amfonica meta prompt (layer 1 of the prompt stack).
+    Persona prompts (sales/negotiation) live in prompts/*.yaml and aren't
+    surfaced here — they're edited in the codebase, not via this endpoint.
+    """
     raw_prompts = prompt_manager.get_raw_prompts()
     content = raw_prompts.get("system", "")
 
-    # Get last modified time from prompts file
+    # Last-modified time comes from the meta markdown file on disk
     last_modified = None
-    if prompt_manager.prompts_file.exists():
-        mtime = os.path.getmtime(prompt_manager.prompts_file)
+    if prompt_manager.meta_file.exists():
+        mtime = os.path.getmtime(prompt_manager.meta_file)
         last_modified = datetime.fromtimestamp(mtime).isoformat()
 
     return SystemPromptResponse(content=content, last_modified=last_modified)

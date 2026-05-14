@@ -357,20 +357,41 @@ class EnhancedNegotiationRAG:
                 "message": f"Error regenerating vectorstore: {str(e)}"
             }
 
-    def get_relevant_context(self, question: str, k: int = None) -> str:
-        """Retrieve relevant context from vectorstore for the given question"""
+    def get_relevant_context(
+        self,
+        question: str,
+        k: int = None,
+        tags_filter: Optional[List[str]] = None,
+    ) -> str:
+        """Retrieve relevant context from vectorstore for the given question.
+
+        When tags_filter is set (e.g. ['sales'] or ['negotiation']), only
+        chunks whose 'tags' metadata field overlaps with the filter list are
+        returned. Uses FAISS post-retrieval metadata filtering.
+        """
         try:
             if not self.vectorstore:
                 return "No knowledge base available."
 
-            # Get k from config if not specified
             if k is None:
                 k = config.get("rag.retrieval_k", 5)
 
-            retriever = self.vectorstore.as_retriever(search_kwargs={"k": k})
-            relevant_docs = retriever.invoke(question)
+            if tags_filter:
+                filter_fn = lambda meta: bool(
+                    set(meta.get("tags", [])) & set(tags_filter)
+                )
+                # Fetch many more candidates so post-retrieval tag filtering
+                # leaves enough results. The corpus is imbalanced (negotiation
+                # outnumbers sales ~5:1), so fetch_k must be high enough that
+                # the minority tag still surfaces in the top-N by similarity.
+                fetch_k = max(k * 40, 200)
+                relevant_docs = self.vectorstore.similarity_search(
+                    question, k=k, fetch_k=fetch_k, filter=filter_fn
+                )
+            else:
+                retriever = self.vectorstore.as_retriever(search_kwargs={"k": k})
+                relevant_docs = retriever.invoke(question)
 
-            # Combine retrieved documents into context
             context_parts = []
             for i, doc in enumerate(relevant_docs):
                 context_parts.append(f"Source {i+1}: {doc.page_content}")
@@ -492,7 +513,8 @@ class EnhancedNegotiationRAG:
         use_premium_model: bool = False,
         use_preprocessing: bool = True,
         override_backend: Optional[str] = None,
-        override_model: Optional[str] = None
+        override_model: Optional[str] = None,
+        mode: str = "auto",
     ) -> str:
         """
         Get negotiation advice based on the question using proper chat completion.
@@ -558,13 +580,23 @@ class EnhancedNegotiationRAG:
                 model_name = f"{model_config.get('backend', 'openai')}/{model_config.get('model', 'gpt-4o-mini')}"
                 logger.info(f"Using default model: {model_name}")
 
-            # Get relevant context from vectorstore
-            context = self.get_relevant_context(question)
+            # Resolve mode → tags_filter for scoped retrieval
+            tags_filter: Optional[List[str]] = None
+            if mode == "sales":
+                tags_filter = ["sales"]
+            elif mode == "negotiation":
+                tags_filter = ["negotiation"]
 
-            # Get system and user prompts from prompt manager
+            # Get relevant context from vectorstore
+            context = self.get_relevant_context(question, tags_filter=tags_filter)
+
+            # Get system and user prompts from prompt manager — mode selects
+            # which persona (sales/negotiation) gets stacked on top of the meta
+            # prompt. mode=auto uses meta only.
             system_prompt, user_prompt = self.prompt_manager.get_prompts_for_chat(
                 question=question,
-                context=context
+                context=context,
+                mode=mode,
             )
 
             # Create messages for chat completion

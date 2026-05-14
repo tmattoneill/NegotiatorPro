@@ -101,48 +101,42 @@ docker compose up -d --build
 
 ## Adding New Sources & Rebuilding the RAG
 
-When you add new negotiation books or documents, you need to rebuild the vector database.
+The preferred way is through the admin panel — no `docker exec` needed.
 
-### 1. Add Documents
+### Via the Admin Panel (recommended)
 
-Place new documents in the sources directory:
+1. Log in as admin and open the **📚 Sources & RAG** tab
+2. Drag-and-drop or browse to upload PDF, TXT, or DOCX files
+3. Edit tags (`sales` / `negotiation`) and other metadata per source
+4. Click **Rebuild Vectorstore** — set chunk size, overlap, embedding model, and optional tag filter
+5. Watch the progress bar; use **Test Query** to verify results before the new index goes live
+6. The rebuild swaps atomically — the live index is only replaced after a successful build
+
+Uploads are deduplicated by SHA-256 hash, so re-uploading the same file is a no-op.
+
+### One-Time Migration (first run with expanded corpus)
+
+To populate `sources/` with the full sales + negotiation corpus and backfill metadata:
+
 ```bash
-cp /path/to/new-book.pdf data/sources/
+# Preview what would happen
+docker exec -it negotiator-pro-backend python scripts/migrate_expanded_corpus.py --dry-run
+
+# Apply
+docker exec -it negotiator-pro-backend python scripts/migrate_expanded_corpus.py
 ```
 
-Supported formats: PDF, TXT, DOCX
+Then trigger a rebuild from the admin panel.
 
-### 2. Rebuild the Vector Database
-
-Run the rebuild script inside the backend container:
+### Via CLI (advanced / scripting)
 
 ```bash
+# Apply DB migration for source_documents and rebuild_jobs tables (first time only)
+docker exec -i negotiator-pro-postgres psql -U negotiatorpro -d negotiatorpro \
+  < migrations/004_source_documents.sql
+
+# Programmatic rebuild (skips interactive prompts)
 docker exec -it negotiator-pro-backend python scripts/rebuild_vectordb.py
-```
-
-This interactive script will:
-1. Scan all documents in `data/sources/`
-2. Let you select an embedding model
-3. Show cost estimation
-4. Ask for confirmation before rebuilding
-5. Create backups of existing vectorstore
-6. Generate new embeddings and save the vectorstore
-
-### 3. Restart to Apply Changes
-
-```bash
-docker compose restart backend
-```
-
-### Non-Interactive Rebuild (Advanced)
-
-For automated rebuilds, you can modify the script or use:
-```bash
-docker exec -it negotiator-pro-backend python -c "
-from scripts.rebuild_vectordb import VectorDBRebuilder
-rebuilder = VectorDBRebuilder(sources_dir='/app/sources', vectorstore_dir='/app/vectorstore')
-# Custom automation here
-"
 ```
 
 ## Docker Commands Reference

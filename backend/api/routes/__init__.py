@@ -9,6 +9,7 @@ from .negotiations import negotiations_router
 from .personas import personas_router
 from .conversations import conversations_router
 from .admin import router as admin_router
+from .admin_rag import router as admin_rag_router
 
 __all__ = [
     "chat_router",
@@ -21,4 +22,5 @@ __all__ = [
     "personas_router",
     "conversations_router",
     "admin_router",
+    "admin_rag_router",
 ]

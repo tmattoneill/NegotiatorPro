@@ -19,8 +19,8 @@ import asyncpg
 from dotenv import load_dotenv
 from cryptography.fernet import Fernet
 
-# Load environment variables
-load_dotenv()
+# Load environment variables — project .env wins over shell env
+load_dotenv(override=True)
 
 # Set up logging
 logging.basicConfig(

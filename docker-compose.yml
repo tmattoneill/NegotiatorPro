@@ -48,32 +48,28 @@ services:
     ports:
       - "${API_HOST_PORT:-8000}:8000"
 
-    # Environment variables
+    # Pull all secrets/config from the project .env file. This bypasses the
+    # docker-compose ${VAR} interpolation which would otherwise let the host
+    # shell's OPENAI_API_KEY (etc.) override the project's intended value.
+    env_file:
+      - .env
+
+    # Only set values that must differ inside the container vs .env.
+    # Everything else (API keys, secrets, ports etc.) flows from env_file.
     environment:
-      # App environment (development/production)
-      - APP_ENV=${APP_ENV:-development}
-
-      # LLM API Keys
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      - OLLAMA_API_KEY=${OLLAMA_API_KEY}
-      - OLLAMA_CLOUD_URL=${OLLAMA_CLOUD_URL:-https://ollama.com}
-
-      # Database
+      # Container-internal hostnames — postgres is the compose service name
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
-      - POSTGRES_DB=${POSTGRES_DB:-negotiatorpro}
-      - POSTGRES_USER=${POSTGRES_USER:-negotiatorpro}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
-      # Security (required in production)
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      # IMPORTANT: blank out DATABASE_URL inside the container. The .env file
+      # has it set to localhost (correct for running uvicorn directly on the
+      # host), but parsed inside the container it points at the container
+      # itself, not the postgres service. With DATABASE_URL empty, the code
+      # falls back to POSTGRES_HOST/PORT/USER/PASSWORD individually.
+      - DATABASE_URL=
 
-      # CORS (comma-separated origins for production)
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      # Canonical corpus location inside the container (bind-mounted from host)
+      - DATA_SOURCES_DIR=/app/data-sources
 
     # Setup Host (ollama)
     extra_hosts:
@@ -92,8 +88,15 @@ services:
       # Persist uploaded documents in /data/uploads
       - ./data/uploads:/app/uploads
 
-      # Source documents (negotiation books) in /data/sources
-      - ./data/sources:/app/sources
+      # Canonical corpus lives outside the project, in ../data-sources/
+      # Mounted read-write so admin uploads can land here.
+      - ../data-sources:/app/data-sources
+
+      # Mount the prompts/ directory so the three-layer prompt stack works
+      # in the container: meta (amfonica-meta.md) + persona YAMLs. Edits on
+      # the host are picked up by PromptManager (meta is re-read each call;
+      # personae require a container restart or prompt_manager.reload_personae()).
+      - ./prompts:/app/prompts
 
       # Persist configuration files in /data/config
       - ./data/config:/app/config

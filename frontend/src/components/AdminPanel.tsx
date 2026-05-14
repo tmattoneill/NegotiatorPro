@@ -9,6 +9,8 @@ import Button from './ui/Button';
 import Badge from './ui/Badge';
 import Input from './ui/Input';
 import LLMConfigTab from './LLMConfigTab';
+import SourcesTab from './admin/SourcesTab';
+import VectorstorePanel from './admin/VectorstorePanel';
 
 interface User {
   id: string;
@@ -40,7 +42,7 @@ interface UsageStats {
   last_activity: string | null;
 }
 
-type TabView = 'users' | 'negotiations' | 'usage' | 'llm-config' | 'database';
+type TabView = 'users' | 'negotiations' | 'usage' | 'llm-config' | 'database' | 'sources';
 
 const AdminPanel = () => {
   const user = useAuthStore((state) => state.user);
@@ -242,6 +244,12 @@ const AdminPanel = () => {
           onClick={() => setActiveTab('database')}
         >
           🗄️ Database
+        </button>
+        <button
+          className={`px-4 py-2 -mb-[2px] border-b-4 ${activeTab === 'sources' ? 'border-chat-primary text-chat-primary font-semibold bg-chat-primary/10' : 'border-transparent text-chat-muted-foreground hover:bg-chat-muted hover:text-chat-foreground'}`}
+          onClick={() => setActiveTab('sources')}
+        >
+          📚 Sources &amp; RAG
         </button>
       </div>
 
@@ -488,6 +496,23 @@ const AdminPanel = () => {
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Sources & RAG Tab */}
+        {activeTab === 'sources' && (
+          <div className="space-y-8">
+            <div>
+              <h2 className="text-xl font-semibold text-chat-foreground mb-1">Source Documents</h2>
+              <p className="text-sm text-chat-muted-foreground">Upload, tag, and manage the knowledge base used by the RAG system.</p>
+            </div>
+            <SourcesTab />
+            <hr className="border-chat-border" />
+            <div>
+              <h2 className="text-xl font-semibold text-chat-foreground mb-1">Vectorstore</h2>
+              <p className="text-sm text-chat-muted-foreground">Rebuild the FAISS index from enabled sources and test retrieval quality.</p>
+            </div>
+            <VectorstorePanel />
           </div>
         )}
       </div>

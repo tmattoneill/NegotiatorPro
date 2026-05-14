@@ -154,12 +154,17 @@ class TestPromptManager:
         assert prompts["system"] == test_prompt
 
     def test_placeholder_replacement(self, temp_dir, monkeypatch):
-        """Test that placeholders are replaced in prompts"""
+        """
+        Context is injected into the system prompt under its own section header
+        (not via {context} substitution any more — that pattern was retired when
+        the three-layer architecture landed). User prompt still substitutes
+        {question}.
+        """
         monkeypatch.chdir(temp_dir)
         manager = PromptManager()
 
-        # Set prompts with placeholders
-        manager.update_system_prompt("Context: {context}")
+        # Set the meta and user template to something deterministic
+        manager.update_system_prompt("# Test Meta\nYou are a tester.")
         manager.update_user_prompt("Question: {question}")
 
         question = "Test question"
@@ -167,9 +172,13 @@ class TestPromptManager:
 
         system_prompt, user_prompt = manager.get_prompts_for_chat(question, context)
 
-        assert "{context}" not in system_prompt
-        assert "{question}" not in user_prompt
+        # Meta content is present
+        assert "Test Meta" in system_prompt
+        # Context is appended verbatim under the reference-material header
         assert "Test context" in system_prompt
+        assert "Reference Material from Knowledge Base" in system_prompt
+        # User template substitution still works
+        assert "{question}" not in user_prompt
         assert "Test question" in user_prompt
 
 

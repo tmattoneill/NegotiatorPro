@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 from .routes import (
     chat_router, auth_router, health_router, models_router,
     users_router, config_router, negotiations_router,
-    personas_router, conversations_router, admin_router
+    personas_router, conversations_router, admin_router, admin_rag_router
 )
 
 # Set up logging
@@ -28,8 +28,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Load environment variables
-load_dotenv()
+# Load environment variables — project .env overrides shell env so the project
+# is self-contained
+load_dotenv(override=True)
 
 
 @asynccontextmanager
@@ -166,6 +167,7 @@ app.include_router(negotiations_router)
 app.include_router(personas_router)
 app.include_router(conversations_router)
 app.include_router(admin_router)
+app.include_router(admin_rag_router)
 
 
 @app.get("/")

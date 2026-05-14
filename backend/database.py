@@ -14,8 +14,10 @@ from dotenv import load_dotenv
 
 from .config_loader import config
 
-# Load environment variables
-load_dotenv()
+# Load environment variables — project .env takes precedence over shell env
+# so this project's keys/config are self-contained and don't depend on the
+# developer's personal shell setup.
+load_dotenv(override=True)
 
 logger = logging.getLogger(__name__)
 

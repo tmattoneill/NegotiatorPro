@@ -1,3 +1,4 @@
+import hashlib
 import os
 import shutil
 import logging
@@ -45,12 +46,23 @@ class DocumentManager:
     # Get max file size from config (in MB, convert to bytes)
     MAX_FILE_SIZE = config.get("uploads.max_file_size_mb", 50) * 1024 * 1024
     
-    def __init__(self, sources_dir: str = "sources", upload_dir: str = "uploads"):
-        self.sources_dir = Path(sources_dir)
+    def __init__(self, sources_dir: Optional[str] = None, upload_dir: str = "uploads"):
+        if sources_dir is None:
+            sources_dir = os.getenv("DATA_SOURCES_DIR", "../data-sources")
+        self.sources_dir = Path(sources_dir).resolve()
         self.upload_dir = Path(upload_dir)
-        self.sources_dir.mkdir(exist_ok=True)
+        self.sources_dir.mkdir(parents=True, exist_ok=True)
         self.upload_dir.mkdir(exist_ok=True)
         
+    @staticmethod
+    def compute_sha256(file_path: str) -> str:
+        """Return the hex SHA-256 digest of a file's content."""
+        h = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            for chunk in iter(lambda: f.read(65536), b""):
+                h.update(chunk)
+        return h.hexdigest()
+
     def get_supported_extensions(self) -> Dict[str, str]:
         """Get supported file extensions and descriptions"""
         return self.SUPPORTED_EXTENSIONS.copy()
@@ -144,17 +156,20 @@ class DocumentManager:
                 source_path = self.sources_dir / filename
                 counter += 1
             
+            # Compute hash before copying so callers can dedupe via metadata layer
+            sha256 = self.compute_sha256(file_path)
+
             # Copy file to sources directory
             shutil.copy2(file_path, source_path)
-            
-            # Log the upload
+
             logger.info(f"File uploaded successfully: {filename} ({validation['info']['size_mb']}MB)")
-            
+
             return {
                 "success": True,
                 "message": f"File '{filename}' uploaded successfully",
                 "filename": filename,
                 "path": str(source_path),
+                "sha256": sha256,
                 "info": validation["info"],
                 "warnings": validation["warnings"]
             }
@@ -168,15 +183,18 @@ class DocumentManager:
             }
     
     def list_source_documents(self) -> List[Dict[str, Any]]:
-        """List all documents in sources directory"""
+        """List all documents in sources directory (recursive, skipping _archive)."""
         documents = []
-        
-        for file_path in self.sources_dir.iterdir():
+
+        for file_path in self.sources_dir.rglob('*'):
+            if '_archive' in file_path.parts:
+                continue
             if file_path.is_file() and self.is_supported_file(file_path.name):
                 try:
                     stat = file_path.stat()
+                    rel = file_path.relative_to(self.sources_dir).as_posix()
                     documents.append({
-                        "filename": file_path.name,
+                        "filename": rel,
                         "path": str(file_path),
                         "size": stat.st_size,
                         "size_mb": round(stat.st_size / (1024 * 1024), 2),
@@ -274,12 +292,14 @@ class DocumentManager:
             return None
     
     def get_storage_stats(self) -> Dict[str, Any]:
-        """Get storage statistics"""
+        """Get storage statistics (recursive, skipping _archive)."""
         total_size = 0
         file_count = 0
         type_stats = {}
-        
-        for file_path in self.sources_dir.iterdir():
+
+        for file_path in self.sources_dir.rglob('*'):
+            if '_archive' in file_path.parts:
+                continue
             if file_path.is_file() and self.is_supported_file(file_path.name):
                 size = file_path.stat().st_size
                 total_size += size

@@ -88,6 +88,90 @@ async def resolve_provider_preferences(
     return None, None, "system_default"
 
 
+def _format_kv(label: str, value: Optional[str]) -> Optional[str]:
+    """Return '- **Label**: value' if value is non-empty, else None."""
+    if value is None:
+        return None
+    v = str(value).strip()
+    if not v:
+        return None
+    return f"- **{label}**: {v}"
+
+
+async def build_negotiation_briefing(conversation_id: Optional[str]) -> str:
+    """
+    Load the current negotiation + personas from PostgreSQL and format them as
+    a markdown briefing block to prepend to the user's question.
+
+    Returns an empty string when the conversation_id is missing, malformed, or
+    points at a negotiation with no useful briefing data.
+    """
+    if not conversation_id:
+        return ""
+    try:
+        conv_uuid = UUID(conversation_id)
+    except ValueError:
+        return ""
+
+    try:
+        conversation = await db_ops.get_conversation(conv_uuid)
+        if not conversation:
+            return ""
+        detail = await db_ops.get_negotiation_detail(conversation["negotiation_id"])
+        if not detail:
+            return ""
+    except Exception as exc:
+        logger.warning(f"Could not load briefing for conversation {conversation_id}: {exc}")
+        return ""
+
+    sections: List[str] = []
+
+    # Negotiation header
+    header_lines = [f"**Title**: {detail.get('title', '(untitled)')}"]
+    if detail.get("description"):
+        header_lines.append(f"**Description**: {detail['description']}")
+    sections.append("\n".join(header_lines))
+
+    # User persona
+    user_persona = detail.get("user_persona")
+    if user_persona:
+        bullets = [
+            _format_kv("Role", user_persona.get("role_title")),
+            _format_kv("Organisation", user_persona.get("organization")),
+            _format_kv("Communication style", user_persona.get("communication_style")),
+            _format_kv("Strengths", user_persona.get("negotiation_strengths")),
+            _format_kv("Notes", user_persona.get("notes")),
+        ]
+        bullets = [b for b in bullets if b]
+        if bullets:
+            sections.append(
+                f"**You ({user_persona.get('name', 'negotiator')})**\n" + "\n".join(bullets)
+            )
+
+    # Partner personas
+    partners = detail.get("partners") or []
+    for idx, partner in enumerate(partners, start=1):
+        bullets = [
+            _format_kv("Role", partner.get("role_title")),
+            _format_kv("Company", partner.get("company")),
+            _format_kv("Communication style", partner.get("communication_style")),
+            _format_kv("Known interests", partner.get("known_interests")),
+            _format_kv("BATNA estimate", partner.get("batna_estimate")),
+            _format_kv("Relationship notes", partner.get("relationship_notes")),
+        ]
+        bullets = [b for b in bullets if b]
+        header = f"**Counterparty {idx}: {partner.get('name', 'partner')}**"
+        if bullets:
+            sections.append(header + "\n" + "\n".join(bullets))
+        else:
+            sections.append(header)
+
+    if not sections:
+        return ""
+
+    return "## Negotiation Briefing\n\n" + "\n\n".join(sections)
+
+
 async def process_uploaded_files(files: List[UploadFile]) -> str:
     """
     Process uploaded files and return formatted context string.
@@ -135,6 +219,7 @@ async def process_chat(
     use_preprocessing: bool = Form(True),
     provider: Optional[str] = Form(None),
     model: Optional[str] = Form(None),
+    mode: Optional[str] = Form(None),
     files: Optional[List[UploadFile]] = File(None),
     current_user: Optional[dict] = Depends(get_current_user)
 ):
@@ -187,14 +272,21 @@ async def process_chat(
         if files:
             file_context = await process_uploaded_files(files)
 
-        # Enhance question with partner info and file context if provided
+        # Enhance question with the negotiation briefing (loaded server-side
+        # from conversation_id), uploaded file context, and the legacy
+        # partner_info form field (if the frontend chose to send one).
         enhanced_question = question
+
+        briefing = await build_negotiation_briefing(conversation_id)
+        if briefing:
+            logger.info(f"Briefing loaded for conversation {conversation_id} ({len(briefing)} chars)")
+            enhanced_question = f"{briefing}\n\n---\n\n{enhanced_question}"
 
         if file_context:
             enhanced_question = f"{file_context}\n\n{enhanced_question}"
 
         if partner_info and partner_info.strip():
-            enhanced_question = f"Context about my negotiation partner: {partner_info}\n\n{enhanced_question}"
+            enhanced_question = f"Additional partner context: {partner_info}\n\n{enhanced_question}"
 
         # Process question using existing RAG system
         # Pass resolved provider/model overrides
@@ -203,7 +295,8 @@ async def process_chat(
             use_premium_model=use_premium_model,
             use_preprocessing=use_preprocessing,
             override_backend=resolved_provider,
-            override_model=resolved_model
+            override_model=resolved_model,
+            mode=mode or "auto",
         )
 
         processing_time = time.time() - start_time

@@ -138,14 +138,13 @@ export default function SystemPromptEditor() {
               <FaArrowLeft />
             </button>
             <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 600, color: '#191919' }}>
-              System Prompt
+              Amfonica Meta Prompt
             </h1>
           </div>
-          {lastModified && (
-            <div style={{ fontSize: '13px', color: '#6c757d', marginTop: '4px', marginLeft: '42px' }}>
-              Last modified: {new Date(lastModified).toLocaleString()}
-            </div>
-          )}
+          <div style={{ fontSize: '13px', color: '#6c757d', marginTop: '4px', marginLeft: '42px' }}>
+            Cross-persona identity & output rules. Sales and negotiation personae live in <code>prompts/*.yaml</code> and are edited in the codebase, not here.
+            {lastModified && <> &middot; Last modified: {new Date(lastModified).toLocaleString()}</>}
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>

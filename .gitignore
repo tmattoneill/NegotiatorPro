@@ -41,8 +41,12 @@ env/
 
 # Vector Store (Keep in repo - contains processed embeddings for users)
 # vectorstore/ - REMOVED: We want this in the repo
-# *.faiss - REMOVED: We want this in the repo  
+# *.faiss - REMOVED: We want this in the repo
 # *.pkl - REMOVED: We want this in the repo
+
+# But not vectorstore backups — these are timestamped snapshots created during
+# rebuild promotion. Safe to discard once the new live index is validated.
+vectorstore_backup_*/
 
 # Logs
 *.log

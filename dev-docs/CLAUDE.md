@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an enhanced RAG (Retrieval-Augmented Generation) system that provides expert negotiation guidance by analyzing PDF sources of negotiation books. The system features a **modern React frontend** with **FastAPI backend**, **multi-backend LLM support (OpenAI, Anthropic Claude, Ollama)**, intelligent model selection between default and premium models, and robust document management.
+This is an enhanced RAG (Retrieval-Augmented Generation) system that provides expert sales and negotiation guidance by analysing PDF sources of sales and negotiation books. The system features a **modern React frontend** with **FastAPI backend**, **multi-backend LLM support (OpenAI, Anthropic Claude, Ollama)**, intelligent model selection between default and premium models, robust document management, and **admin corpus governance tools** (upload, tag, rebuild vectorstore from the UI).
 
 ## Core Architecture
 
@@ -16,7 +16,7 @@ This is an enhanced RAG (Retrieval-Augmented Generation) system that provides ex
 - **Markdown Support**: Rich formatting for AI responses
 
 **API Layer**: FastAPI application in `backend/api/`:
-- **Routes**: `/chat`, `/auth`, `/health`, `/models`, `/users`, `/config` endpoints
+- **Routes**: `/chat`, `/auth`, `/health`, `/models`, `/users`, `/config`, `/admin`, `/admin/sources`, `/admin/vectorstore` endpoints
 - **Models**: Pydantic request/response validation
 - **Middleware**: JWT authentication and CORS
 - **Async**: Non-blocking request handling
@@ -25,19 +25,28 @@ This is an enhanced RAG (Retrieval-Augmented Generation) system that provides ex
 **Backend Core**: Shared RAG system in `backend/`:
 - **LLMBackendManager**: Centralized management of multiple LLM backends (OpenAI, Anthropic, Ollama)
 - **ModelConfig**: Middleware class that handles model-specific parameters and creates LLM instances
-- **EnhancedNegotiationRAG**: Core RAG system with admin integration, processing PDFs/DOCX/TXT, creating embeddings, and managing QA chains
+- **EnhancedNegotiationRAG**: Core RAG system with admin integration, processing PDFs/DOCX/TXT, creating embeddings, and managing QA chains. Accepts `tags_filter` on retrieval and `mode` (`auto`/`sales`/`negotiation`) on advice generation.
 - **AdminConfig**: Manages admin authentication, sessions, system prompts, and usage statistics
-- **DocumentManager**: Handles file uploads, validation, and source document management
+- **DocumentManager**: Handles file uploads, validation, source document management, and SHA-256 deduplication
+- **SourceMetadataManager** (`backend/source_metadata.py`): CRUD against `source_documents` and `rebuild_jobs` PostgreSQL tables. Tracks provenance (title, author, year, tags, sha256, page/word counts) for every file in `sources/`.
+- **VectorstoreBuilder** (`backend/vectorstore_builder.py`): Programmatic rebuild — `build_index()` builds to a staging dir and stamps chunk metadata with source tags; `promote_staging()` atomically swaps staging into live. Used by the admin API and wrappable from the CLI.
 - **EmbeddingConfig**: Manages embedding model configuration and vectorstore compatibility
 - **UserProfile**: Handles user account management, API key storage (encrypted), and user preferences
 - **Database**: Async PostgreSQL interface using asyncpg for all persistent data
 
 **Document Processing Flow**:
 1. Multiple file formats (PDF, TXT, DOCX, DOC) in `sources/` directory are loaded via appropriate loaders
-2. Documents are chunked using RecursiveCharacterTextSplitter (1000 chars, 200 overlap)
-3. FAISS vectorstore is created with configurable OpenAI embeddings (text-embedding-3-large default)
-4. Vectorstore is persisted to `vectorstore/` with metadata for model compatibility
-5. Admin can upload new documents via FastAPI endpoints (React admin UI coming soon)
+2. Documents are chunked using RecursiveCharacterTextSplitter (1000 chars, 200 overlap by default)
+3. Each chunk's LangChain metadata is stamped with `source_file`, `sha256`, `tags`, and `title` from `source_documents`
+4. FAISS vectorstore is built to `vectorstore_staging/`, then atomically promoted to `vectorstore/`
+5. Vectorstore is persisted to `vectorstore/` with metadata for model compatibility
+6. Admin uploads and rebuilds via the **Sources & RAG** tab in the admin panel (no `docker exec` needed)
+
+**Tag-Scoped Retrieval**:
+- Each source document has `tags: text[]` — currently `sales`, `negotiation`, or both
+- Chat endpoint accepts `mode: "sales" | "negotiation" | "auto"` (default `"auto"`)
+- `auto` = no filter; `sales`/`negotiation` restrict FAISS `similarity_search` to chunks matching that tag
+- `fetch_k = max(k*6, 30)` ensures enough raw candidates before filtering
 
 **Multi-Backend LLM Architecture**:
 - **Supported Backends**: OpenAI, Anthropic Claude, Ollama (local and cloud)
@@ -214,6 +223,13 @@ python debug_chatollama.py
 - **Lifespan Management**: Connects on startup, disconnects on shutdown (see `backend/api/main.py`)
 - **Migrations**: SQL schema files in `migrations/` directory
   - `001_initial_schema.sql` - User profiles, API keys, conversations
+  - `002_fix_negotiations_schema.sql` - Negotiation schema fixes
+  - `003_provider_preferences.sql` - Per-user provider/model preferences
+  - `004_source_documents.sql` - `source_documents` corpus registry + `rebuild_jobs` for async rebuild tracking
+
+**source_documents schema**: `id UUID PK`, `filename VARCHAR UNIQUE`, `sha256 VARCHAR(64) UNIQUE`, `title`, `author`, `year`, `tags TEXT[]` (GIN indexed), `enabled BOOL`, `page_count`, `word_count`, `size_bytes`, `extension`, `added_at`, `last_indexed_at`
+
+**rebuild_jobs schema**: `id UUID PK`, `status VARCHAR(20)` (pending/running/done/error), `percent INT`, `current_file TEXT`, `errors JSONB`, `params JSONB`, `started_at`, `finished_at`
 
 ### User Profile System
 
@@ -336,8 +352,14 @@ docker compose logs -f
   - Choose default and premium models from any available backend
   - View backend status and API key configuration
   - Support for 20+ models across different providers
-- **Document Upload**: Web-based file upload with validation for PDF, TXT, DOCX, DOC
-- **Vectorstore Management**: Regenerate embeddings when documents change
+- **Sources & RAG tab** (admin panel, 6th tab):
+  - Upload PDF/TXT/DOCX via drag-and-drop; SHA-256 deduplication prevents duplicate ingestion
+  - Edit metadata (title, author, year, tags) and toggle enabled/disabled per source
+  - Delete sources from both filesystem and metadata table
+  - Vectorstore status card (model, chunks, dimensions, last build, size)
+  - Rebuild form: chunk size, chunk overlap, embedding model, optional tags filter
+  - Live progress bar while rebuilding (polls job status every 2s)
+  - Test-query box: run a query against live or staging vectorstore before promoting
 - **Usage Statistics**: Track API usage, tokens, and costs by model
 - **Embedding Configuration**: Monitor and manage embedding model compatibility
 - **Session Management**: Secure admin authentication with expiring sessions
