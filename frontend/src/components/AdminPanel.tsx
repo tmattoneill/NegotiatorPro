@@ -69,7 +69,7 @@ const AdminPanel = () => {
   // Check if user is admin
   if (user?.role !== 'admin') {
     return (
-      <div className="p-8 max-w-[1400px] mx-auto bg-chat-muted min-h-screen">
+      <div className="flex-1 overflow-y-auto p-8 bg-chat-muted">
         <div className="rounded-md border border-danger/30 bg-danger/10 text-danger px-4 py-3">
           Access Denied: Admin privileges required
         </div>
@@ -207,7 +207,7 @@ const AdminPanel = () => {
   };
 
   return (
-    <div className="p-8 max-w-[1400px] mx-auto bg-chat-muted min-h-screen">
+    <div className="flex-1 overflow-y-auto p-8 bg-chat-muted">
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-chat-foreground">🛡️ Admin Panel</h1>
         <p className="text-sm text-chat-muted-foreground">System Administration &amp; Management</p>

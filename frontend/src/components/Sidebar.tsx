@@ -11,7 +11,7 @@ import SettingsModal from './SettingsModal';
 import ModelSelector from './ModelSelector';
 import NegotiationModal from './NegotiationModal';
 import { useAdminStore } from '../store/adminStore';
-import { FaRegUser, FaHandshake, FaFlask, FaShieldAlt, FaTerminal, FaCog, FaSignOutAlt, FaTrash } from 'react-icons/fa';
+import { FaRegUser, FaHandshake, FaFlask, FaShieldAlt, FaTerminal, FaCog, FaSignOutAlt, FaTrash, FaComments } from 'react-icons/fa';
 
 export default function Sidebar() {
   const navigate = useNavigate();
@@ -401,6 +401,33 @@ export default function Sidebar() {
             Admin
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <button
+              onClick={() => setView('none')}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                background: currentView === 'none' ? 'rgba(182, 137, 71, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                border: currentView === 'none' ? '1px solid rgba(182, 137, 71, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '6px',
+                color: '#fff',
+                fontSize: '13px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                textAlign: 'left',
+                transition: 'all 0.2s',
+              }}
+              onMouseOver={(e) => {
+                if (currentView !== 'none') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+              }}
+              onMouseOut={(e) => {
+                if (currentView !== 'none') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+              }}
+            >
+              <FaComments style={{ opacity: 0.7 }} />
+              Chat
+            </button>
             <button
               onClick={() => setView(currentView === 'admin-panel' ? 'none' : 'admin-panel')}
               style={{

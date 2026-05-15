@@ -24,7 +24,7 @@ const ModelSelectModal = ({ isOpen, onClose, modelType, backends, currentConfig,
   useEffect(() => {
     setSelectedBackend(currentConfig.backend);
     setSelectedModel(currentConfig.model);
-  }, [currentConfig, isOpen]);
+  }, [currentConfig.backend, currentConfig.model, isOpen]);
 
   if (!isOpen) return null;
 
