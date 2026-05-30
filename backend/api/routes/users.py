@@ -349,7 +349,7 @@ async def test_api_key(request: TestAPIKeyRequest):
                 # Make a minimal request to verify the key
                 # We'll use a very short message to minimize cost
                 response = client.messages.create(
-                    model="claude-3-haiku-20240307",
+                    model="claude-haiku-4-5-20251001",
                     max_tokens=10,
                     messages=[{"role": "user", "content": "Hi"}]
                 )

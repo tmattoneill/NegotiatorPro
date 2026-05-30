@@ -87,9 +87,6 @@ export const sendChatMessage = async (request: ChatRequest, files?: File[]): Pro
   return response.data;
 };
 
-/**
- * Login as admin
- */
 export const login = async (request: LoginRequest): Promise<LoginResponse> => {
   const response = await api.post<LoginResponse>('/auth/login', request);
   return response.data;

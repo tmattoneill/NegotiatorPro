@@ -75,6 +75,9 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+    # Override CMD to enable hot-reload in development
+    command: ["uvicorn", "backend.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
     # Depends on database
     depends_on:
       postgres:
@@ -154,7 +157,7 @@ services:
 
     # Environment variables
     environment:
-      - VITE_API_URL=http://backend:8000
+      - VITE_API_TARGET=http://backend:8000
 
     # Volume mounts
     volumes:

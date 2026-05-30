@@ -27,12 +27,14 @@ class ChatRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    """Request model for admin login"""
-    password: str = Field(..., min_length=1, description="Admin password")
+    """Request model for user login"""
+    username: str = Field(..., min_length=1, description="Username")
+    password: str = Field(..., min_length=1, description="Password")
 
     class Config:
         json_schema_extra = {
             "example": {
-                "password": "admin123"
+                "username": "moneill",
+                "password": "mypassword"
             }
         }

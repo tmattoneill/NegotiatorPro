@@ -95,9 +95,17 @@ class LLMBackendManager:
             requires_api_key=True,
             models=[
                 ModelInfo(
+                    id="claude-sonnet-4-6",
+                    name="Claude Sonnet 4.6",
+                    description="Latest Claude Sonnet — most capable",
+                    max_context_length=200000,
+                    cost_per_1k_input=3.0,
+                    cost_per_1k_output=15.0
+                ),
+                ModelInfo(
                     id="claude-sonnet-4-5-20250929",
                     name="Claude Sonnet 4.5",
-                    description="Latest Claude Sonnet with enhanced capabilities",
+                    description="Claude Sonnet 4.5",
                     max_context_length=200000,
                     cost_per_1k_input=3.0,
                     cost_per_1k_output=15.0
@@ -105,7 +113,7 @@ class LLMBackendManager:
                 ModelInfo(
                     id="claude-haiku-4-5-20251001",
                     name="Claude Haiku 4.5",
-                    description="Latest Claude Haiku - fast and efficient",
+                    description="Fast and efficient",
                     max_context_length=200000,
                     cost_per_1k_input=0.25,
                     cost_per_1k_output=1.25
@@ -393,7 +401,7 @@ class LLMBackendManager:
 
         return kwargs
 
-    def create_llm_instance(self, backend_id: str, model_id: str):
+    def create_llm_instance(self, backend_id: str, model_id: str, api_key: Optional[str] = None):
         """Create an LLM instance based on backend and model"""
         backend = self.get_backend(backend_id)
 
@@ -401,6 +409,10 @@ class LLMBackendManager:
             raise ValueError(f"Unknown backend: {backend_id}")
 
         kwargs = self.get_llm_kwargs(backend_id, model_id)
+
+        # User-supplied key takes priority over env var
+        if api_key:
+            kwargs["api_key"] = api_key
 
         # Create appropriate LLM instance based on provider
         if backend.provider == "openai":

@@ -131,7 +131,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
               <h3 className="text-lg font-semibold m-0">Message</h3>
               <button className="text-2xl text-chat-muted-foreground" onClick={() => setIsExpanded(false)} aria-label="Close">×</button>
             </div>
-            <div className="prose dark:prose-invert">
+            <div className="prose prose-sm dark:prose-invert">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm, remarkMath]}
                 rehypePlugins={[rehypeKatex]}

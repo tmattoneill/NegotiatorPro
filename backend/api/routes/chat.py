@@ -288,6 +288,14 @@ async def process_chat(
         if partner_info and partner_info.strip():
             enhanced_question = f"Additional partner context: {partner_info}\n\n{enhanced_question}"
 
+        # Fetch user's stored API keys to pass through to the LLM
+        user_api_keys = None
+        if user_id:
+            try:
+                user_api_keys = await UserProfileManager.get_user_api_keys(user_id)
+            except Exception as e:
+                logger.warning(f"Could not fetch user API keys: {e}")
+
         # Process question using existing RAG system
         # Pass resolved provider/model overrides
         answer = rag.get_advice(
@@ -297,6 +305,7 @@ async def process_chat(
             override_backend=resolved_provider,
             override_model=resolved_model,
             mode=mode or "auto",
+            user_api_keys=user_api_keys,
         )
 
         processing_time = time.time() - start_time
