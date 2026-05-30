@@ -61,15 +61,6 @@ export default {
             'code::after': { content: 'none' },
           },
         },
-        sm: {
-          css: {
-            // Constrain heading sizes for chat bubbles (prose-sm base = 14px)
-            h1: { fontSize: '1.2em',   fontWeight: '700', marginTop: '1em',    marginBottom: '0.4em' },
-            h2: { fontSize: '1.125em', fontWeight: '600', marginTop: '1em',    marginBottom: '0.35em' },
-            h3: { fontSize: '1.05em',  fontWeight: '600', marginTop: '0.85em', marginBottom: '0.3em' },
-            h4: { fontSize: '1em',     fontWeight: '600', marginTop: '0.75em', marginBottom: '0.25em' },
-          },
-        },
       },
     },
   },

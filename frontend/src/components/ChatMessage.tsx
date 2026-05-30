@@ -68,7 +68,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           </button>
         )}
       </div>
-      <div className={`message-content ${isUser ? '' : 'prose prose-sm dark:prose-invert'}`}>
+      <div className={`message-content ${isUser ? '' : 'prose prose-sm dark:prose-invert chat-message-prose'}`}>
         {!isUser && <CopyButton content={message.content} />}
         <ReactMarkdown
           remarkPlugins={[remarkGfm, remarkMath]}
@@ -131,7 +131,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
               <h3 className="text-lg font-semibold m-0">Message</h3>
               <button className="text-2xl text-chat-muted-foreground" onClick={() => setIsExpanded(false)} aria-label="Close">×</button>
             </div>
-            <div className="prose prose-sm dark:prose-invert">
+            <div className="prose prose-sm dark:prose-invert chat-message-prose">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm, remarkMath]}
                 rehypePlugins={[rehypeKatex]}
