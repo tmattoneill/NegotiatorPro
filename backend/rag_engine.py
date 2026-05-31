@@ -31,6 +31,14 @@ from .runpod_llm import ChatRunPod, is_runpod_available
 logger = logging.getLogger(__name__)
 
 
+class LLMGenerationError(Exception):
+    """Raised when the LLM fails to generate advice (bad key, upstream down, etc.).
+
+    The chat route maps this to an HTTP error so the frontend renders a proper
+    error state instead of displaying the exception text as an assistant message.
+    """
+
+
 # =============================================================================
 # Global Model Configuration
 # =============================================================================
@@ -531,7 +539,7 @@ class EnhancedNegotiationRAG:
             The AI's response as a string
         """
         if not hasattr(self, 'default_llm') or not hasattr(self, 'premium_llm'):
-            return "System not initialized properly. Please check if documents are loaded."
+            raise LLMGenerationError("RAG system not initialized — vectorstore or LLMs unavailable.")
 
         # Check for test/ping prompts - call LLM but skip RAG context retrieval
         if self.prompt_manager.is_test_prompt(question):
@@ -554,7 +562,7 @@ class EnhancedNegotiationRAG:
                 return response.content if hasattr(response, 'content') else str(response)
             except Exception as e:
                 logger.error(f"Test prompt LLM call failed: {e}")
-                return f"Connection test failed: {e}"
+                raise LLMGenerationError(f"Connection test failed: {e}") from e
 
         # Preprocess the question if enabled
         preprocessing_info = None
@@ -622,10 +630,12 @@ class EnhancedNegotiationRAG:
             else:
                 return str(response)
 
+        except LLMGenerationError:
+            raise
         except Exception as e:
             import traceback
             logger.error(f"Error getting advice: {repr(e)}")
             logger.error(f"Error type: {type(e)}")
             logger.error(f"Error args: {e.args}")
             logger.error(f"Full traceback: {traceback.format_exc()}")
-            return f"Error getting advice: {repr(e)}"
+            raise LLMGenerationError(f"Error getting advice: {repr(e)}") from e

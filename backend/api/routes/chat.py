@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, status, File, UploadFile, Form, De
 
 from ..models.requests import ChatRequest
 from ..models.responses import ChatResponse
-from ...rag_engine import EnhancedNegotiationRAG
+from ...rag_engine import EnhancedNegotiationRAG, LLMGenerationError
 from ... import db_operations as db_ops
 from ..middleware.auth import get_current_user
 from ...user_profile import UserProfileManager
@@ -171,10 +171,14 @@ async def build_negotiation_briefing(conversation_id: Optional[str]) -> str:
     return "## Negotiation Briefing\n\n" + "\n\n".join(sections)
 
 
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB per file
+
+
 async def process_uploaded_files(files: List[UploadFile]) -> str:
     """
     Process uploaded files and return a formatted context string for the LLM.
     Supports: PDF, DOCX, TXT, CSV. Images are noted but not decoded (no vision model).
+    Per-file size is capped at MAX_UPLOAD_BYTES to avoid loading huge files into memory.
     """
     import io
     file_context = []
@@ -182,7 +186,15 @@ async def process_uploaded_files(files: List[UploadFile]) -> str:
     for file in files:
         content_type = file.content_type or ""
         filename = (file.filename or "unknown").lower()
-        file_bytes = await file.read()
+
+        # Bounded read: pull at most one byte past the limit so we can reject
+        # oversized uploads without loading the entire file into memory.
+        file_bytes = await file.read(MAX_UPLOAD_BYTES + 1)
+        if len(file_bytes) > MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"File '{file.filename}' exceeds the {MAX_UPLOAD_BYTES // (1024 * 1024)}MB upload limit."
+            )
 
         try:
             if content_type.startswith("image/"):
@@ -405,6 +417,21 @@ async def process_chat(
             model_used=model_used,
             tokens_used=None,  # TODO: Extract from LLM response metadata
             processing_time=round(processing_time, 2)
+        )
+
+    except HTTPException:
+        # Intentional HTTP errors (e.g. 413 oversized upload) must keep their
+        # status code, not be masked as a 500 by the generic handler below.
+        raise
+
+    except LLMGenerationError as e:
+        # LLM/upstream failure (bad key, provider down, etc.). Log details
+        # server-side; return a clean 502 the frontend renders as an error state
+        # rather than letting the exception text surface as an assistant message.
+        logger.error(f"LLM generation failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="The AI model could not generate a response. Check your provider/API key and try again."
         )
 
     except Exception as e:

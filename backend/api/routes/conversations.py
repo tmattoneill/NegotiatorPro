@@ -20,6 +20,15 @@ logger = logging.getLogger(__name__)
 conversations_router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 
 
+def _parse_uuid(value: str, field: str = "id") -> UUID:
+    """Parse a path parameter into a UUID, returning HTTP 400 on malformed input
+    instead of letting ValueError bubble up as an unhandled 500."""
+    try:
+        return UUID(value)
+    except (ValueError, AttributeError, TypeError):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid {field}")
+
+
 @conversations_router.post("/", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED)
 async def create_conversation(data: ConversationCreate, user_id: str):
     """Create a new conversation within a negotiation."""
@@ -43,11 +52,12 @@ async def create_conversation(data: ConversationCreate, user_id: str):
 async def get_negotiation_conversations(negotiation_id: str, user_id: str):
     """Get all conversations for a negotiation with message counts."""
     # Verify user owns the negotiation
-    negotiation = await db_ops.get_negotiation(UUID(negotiation_id))
+    neg_uuid = _parse_uuid(negotiation_id, "negotiation_id")
+    negotiation = await db_ops.get_negotiation(neg_uuid)
     if not negotiation or str(negotiation['user_id']) != user_id:
         raise HTTPException(status_code=404, detail="Negotiation not found")
 
-    conversations = await db_ops.get_conversations(UUID(negotiation_id))
+    conversations = await db_ops.get_conversations(neg_uuid)
 
     # Add message count to each conversation
     detailed_conversations = []
@@ -65,7 +75,7 @@ async def get_negotiation_conversations(negotiation_id: str, user_id: str):
 @conversations_router.get("/{conversation_id}", response_model=ConversationDetailResponse)
 async def get_conversation(conversation_id: str, user_id: str):
     """Get a specific conversation with message count."""
-    conversation = await db_ops.get_conversation_detail(UUID(conversation_id))
+    conversation = await db_ops.get_conversation_detail(_parse_uuid(conversation_id, "conversation_id"))
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
@@ -80,7 +90,8 @@ async def get_conversation(conversation_id: str, user_id: str):
 @conversations_router.patch("/{conversation_id}", response_model=ConversationResponse)
 async def update_conversation(conversation_id: str, user_id: str, data: ConversationUpdate):
     """Update a conversation title."""
-    conversation = await db_ops.get_conversation(UUID(conversation_id))
+    conv_uuid = _parse_uuid(conversation_id, "conversation_id")
+    conversation = await db_ops.get_conversation(conv_uuid)
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
@@ -90,7 +101,7 @@ async def update_conversation(conversation_id: str, user_id: str, data: Conversa
         raise HTTPException(status_code=404, detail="Conversation not found")
 
     if data.title is not None:
-        conversation = await db_ops.update_conversation(UUID(conversation_id), data.title)
+        conversation = await db_ops.update_conversation(conv_uuid, data.title)
 
     return ConversationResponse(**conversation)
 
@@ -98,7 +109,8 @@ async def update_conversation(conversation_id: str, user_id: str, data: Conversa
 @conversations_router.delete("/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_conversation(conversation_id: str, user_id: str):
     """Delete a conversation."""
-    conversation = await db_ops.get_conversation(UUID(conversation_id))
+    conv_uuid = _parse_uuid(conversation_id, "conversation_id")
+    conversation = await db_ops.get_conversation(conv_uuid)
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
@@ -107,13 +119,14 @@ async def delete_conversation(conversation_id: str, user_id: str):
     if not negotiation or str(negotiation['user_id']) != user_id:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    await db_ops.delete_conversation(UUID(conversation_id))
+    await db_ops.delete_conversation(conv_uuid)
 
 
 @conversations_router.get("/{conversation_id}/messages")
 async def get_conversation_messages(conversation_id: str, user_id: str, limit: int = None):
     """Get all messages for a conversation."""
-    conversation = await db_ops.get_conversation(UUID(conversation_id))
+    conv_uuid = _parse_uuid(conversation_id, "conversation_id")
+    conversation = await db_ops.get_conversation(conv_uuid)
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
@@ -122,5 +135,5 @@ async def get_conversation_messages(conversation_id: str, user_id: str, limit: i
     if not negotiation or str(negotiation['user_id']) != user_id:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    messages = await db_ops.get_conversation_messages(UUID(conversation_id), limit)
+    messages = await db_ops.get_conversation_messages(conv_uuid, limit)
     return messages

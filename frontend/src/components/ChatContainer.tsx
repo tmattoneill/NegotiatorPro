@@ -37,15 +37,9 @@ export default function ChatContainer() {
     setEditingTitle('');
   }, [currentSession?.id]);
 
-  // Auto-create a conversation when user first loads the chat (if none exists)
-  useEffect(() => {
-    const initializeChat = async () => {
-      if (!currentSession?.id && currentNegotiation?.id && user?.id) {
-        await createNewSession(currentNegotiation.id, user.id);
-      }
-    };
-    initializeChat();
-  }, [currentNegotiation?.id, user?.id]); // Run when negotiation or user changes
+  // Note: conversations are created lazily on first message (see handleSendMessage)
+  // and explicitly via the "New Conversation" button — never on mount/refresh,
+  // which would otherwise spawn an empty conversation on every page load.
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {

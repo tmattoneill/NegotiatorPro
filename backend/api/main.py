@@ -39,9 +39,16 @@ async def lifespan(app: FastAPI):
     Lifespan context manager for startup/shutdown events.
     """
     from ..database import db
+    from ..utils.env_validator import validate_startup_environment
 
     # Startup
     logger.info("=== Starting NegotiatorPro FastAPI Backend ===")
+
+    # Fail fast in production if critical secrets are missing
+    # (JWT_SECRET_KEY, ADMIN_PASSWORD, POSTGRES_PASSWORD). In development this
+    # only warns and allows insecure defaults.
+    validate_startup_environment()
+
     logger.info("Initializing database connection...")
 
     try:

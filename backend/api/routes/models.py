@@ -192,7 +192,7 @@ async def get_available_providers_for_user(user_id: Optional[str] = Query(None))
         try:
             response = requests.get(f"{ollama_base_url}/api/tags", timeout=2)
             ollama_available = response.status_code == 200
-        except:
+        except Exception:
             ollama_available = False
 
         # Build response with filtered providers
