@@ -35,6 +35,8 @@ export interface LoginResponse {
     role: string;
     first_name?: string | null;
     last_name?: string | null;
+    preferred_provider?: string | null;
+    preferred_model?: string | null;
   };
 }
 
