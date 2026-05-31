@@ -6,7 +6,8 @@
 
 import { create } from 'zustand';
 import type { ModelsResponse } from '../types';
-import { fetchAvailableModels } from '../services/api';
+import { fetchAvailableProviders } from '../services/api';
+import { useAuthStore } from './authStore';
 
 interface SettingsState {
   // Model selection
@@ -69,7 +70,26 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set({ isLoadingModels: true, modelsError: null });
 
     try {
-      const models = await fetchAvailableModels();
+      // Users can choose any LLM they have a key for — this is independent of
+      // the admin's backend-processor enablement. Source the picker from the
+      // key-aware endpoint, not the admin-gated /api/models.
+      const userId = useAuthStore.getState().user?.id;
+      const { providers } = await fetchAvailableProviders(userId);
+
+      // Map the provider response into the ModelsResponse shape the pickers
+      // expect. Include providers that are usable now (available) or offered as
+      // a fallback; carry through any connection error (e.g. Ollama offline).
+      const models: ModelsResponse = {};
+      for (const [id, info] of Object.entries(providers)) {
+        if (info.available || info.is_fallback || info.error) {
+          models[id] = {
+            name: info.name,
+            enabled: true,
+            models: info.models || [],
+            error: info.error,
+          };
+        }
+      }
       set({ availableModels: models, isLoadingModels: false });
 
       // Auto-select first available provider and model if none selected
