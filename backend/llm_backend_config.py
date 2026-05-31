@@ -257,6 +257,7 @@ class LLMBackendManager:
             "backend_settings": {
                 "openai": {"enabled": False},
                 "anthropic": {"enabled": False},
+                "deepseek": {"enabled": False},
                 "ollama": {"enabled": True},
                 "ollama-cloud": {"enabled": False},
                 "runpod": {"enabled": True}  # Always enabled as fallback
