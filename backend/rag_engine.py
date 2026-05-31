@@ -171,9 +171,9 @@ class ModelConfig:
         """Get appropriate kwargs for a specific backend and model via backend manager."""
         return self.backend_manager.get_llm_kwargs(backend_id, model_id)
 
-    def create_llm(self, backend_id: str, model_id: str):
+    def create_llm(self, backend_id: str, model_id: str, api_key: Optional[str] = None):
         """Create an LLM instance for the specified backend and model"""
-        return self.backend_manager.create_llm_instance(backend_id, model_id)
+        return self.backend_manager.create_llm_instance(backend_id, model_id, api_key=api_key)
 
 
 class EnhancedNegotiationRAG:
@@ -515,6 +515,7 @@ class EnhancedNegotiationRAG:
         override_backend: Optional[str] = None,
         override_model: Optional[str] = None,
         mode: str = "auto",
+        user_api_keys: Optional[Dict[str, str]] = None,
     ) -> str:
         """
         Get negotiation advice based on the question using proper chat completion.
@@ -538,7 +539,8 @@ class EnhancedNegotiationRAG:
             try:
                 # Use the same LLM selection logic as regular prompts
                 if override_backend and override_model:
-                    llm = self.model_config.create_llm(override_backend, override_model)
+                    api_key = (user_api_keys or {}).get(f"{override_backend}_api_key")
+                    llm = self.model_config.create_llm(override_backend, override_model, api_key=api_key)
                 elif use_premium_model:
                     llm = self.premium_llm
                 else:
@@ -566,7 +568,8 @@ class EnhancedNegotiationRAG:
             # Select appropriate LLM based on model choice
             if override_backend and override_model:
                 # User selected custom provider/model from dropdown
-                llm = self.model_config.create_llm(override_backend, override_model)
+                api_key = (user_api_keys or {}).get(f"{override_backend}_api_key")
+                llm = self.model_config.create_llm(override_backend, override_model, api_key=api_key)
                 model_name = f"{override_backend}/{override_model}"
                 logger.info(f"Using user-selected model: {model_name}")
             elif use_premium_model:

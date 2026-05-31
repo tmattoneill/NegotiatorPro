@@ -397,8 +397,8 @@ export default function UserProfile() {
                 <ProviderSelector
                   selectedProvider={formData.preferred_provider}
                   selectedModel={formData.preferred_model}
-                  onProviderChange={(provider) => setFormData({ ...formData, preferred_provider: provider })}
-                  onModelChange={(model) => setFormData({ ...formData, preferred_model: model })}
+                  onProviderChange={(provider) => setFormData(prev => ({ ...prev, preferred_provider: provider }))}
+                  onModelChange={(model) => setFormData(prev => ({ ...prev, preferred_model: model }))}
                   providerLabel="Default Provider"
                   modelLabel="Default Model"
                   showUseDefault={true}
@@ -585,8 +585,8 @@ export default function UserProfile() {
                   <ProviderSelector
                     selectedProvider={personaForm.preferred_provider || null}
                     selectedModel={personaForm.preferred_model || null}
-                    onProviderChange={(provider) => setPersonaForm({ ...personaForm, preferred_provider: provider })}
-                    onModelChange={(model) => setPersonaForm({ ...personaForm, preferred_model: model })}
+                    onProviderChange={(provider) => setPersonaForm(prev => ({ ...prev, preferred_provider: provider }))}
+                    onModelChange={(model) => setPersonaForm(prev => ({ ...prev, preferred_model: model }))}
                     providerLabel=""
                     modelLabel=""
                     showUseDefault={true}

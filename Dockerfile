@@ -63,10 +63,8 @@ COPY .env* /app/
 COPY *.json /app/
 COPY run-api.sh /app/
 
-# Copy necessary data directories
-COPY sources/ /app/sources/
-
 # Create necessary directories with proper permissions
+# (sources are mounted via docker-compose volume at runtime)
 RUN mkdir -p /app/vectorstore /app/uploads /app/sources && \
     chmod -R 755 /app/vectorstore /app/uploads /app/sources
 

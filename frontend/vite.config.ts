@@ -12,19 +12,10 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        // Use Compose service name for stable resolution inside Docker network
-        target: 'http://backend:8000',
+        // Docker uses 'backend' hostname; local dev uses localhost
+        target: process.env.VITE_API_TARGET || 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path,
-        configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            console.log('proxy error', err);
-          });
-          proxy.on('proxyReq', (proxyReq, _req, _res) => {
-            console.log('Proxying request to:', proxyReq.path);
-          });
-        }
       }
     }
   }

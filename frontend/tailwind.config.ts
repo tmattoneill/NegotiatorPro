@@ -52,6 +52,16 @@ export default {
       animation: {
         'fade-in': 'fade-in 0.2s ease-out',
       },
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: 'none',
+            // Remove prose backtick pseudo-elements — we use a custom CodeBlock renderer
+            'code::before': { content: 'none' },
+            'code::after': { content: 'none' },
+          },
+        },
+      },
     },
   },
   plugins: [
