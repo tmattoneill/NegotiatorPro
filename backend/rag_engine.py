@@ -539,7 +539,7 @@ class EnhancedNegotiationRAG:
             try:
                 # Use the same LLM selection logic as regular prompts
                 if override_backend and override_model:
-                    api_key = (user_api_keys or {}).get(f"{override_backend}_api_key")
+                    api_key = (user_api_keys or {}).get(override_backend)
                     llm = self.model_config.create_llm(override_backend, override_model, api_key=api_key)
                 elif use_premium_model:
                     llm = self.premium_llm

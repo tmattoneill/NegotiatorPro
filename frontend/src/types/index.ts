@@ -81,10 +81,12 @@ export interface AvailableProvidersResponse {
   user_api_keys: {
     has_openai: boolean;
     has_anthropic: boolean;
+    has_deepseek: boolean;
   };
   system_api_keys: {
     has_openai: boolean;
     has_anthropic: boolean;
+    has_deepseek: boolean;
     has_runpod: boolean;
   };
   ollama_local_available: boolean;

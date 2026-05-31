@@ -369,10 +369,32 @@ async def test_api_key(request: TestAPIKeyRequest):
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Failed to validate Anthropic API key: {str(e)}"
                 )
+        elif provider == "deepseek":
+            # DeepSeek uses an OpenAI-compatible API
+            import openai
+            try:
+                client = openai.OpenAI(api_key=api_key, base_url="https://api.deepseek.com/v1")
+                client.models.list()
+                return {
+                    "valid": True,
+                    "message": "DeepSeek API key is valid",
+                    "provider": "deepseek"
+                }
+            except openai.AuthenticationError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid DeepSeek API key"
+                )
+            except Exception as e:
+                logger.error(f"DeepSeek API test failed: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Failed to validate DeepSeek API key: {str(e)}"
+                )
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unsupported provider: {provider}. Supported providers: openai, anthropic"
+                detail=f"Unsupported provider: {provider}. Supported: openai, anthropic, deepseek"
             )
 
     except HTTPException:

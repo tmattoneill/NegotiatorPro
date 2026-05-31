@@ -4,6 +4,7 @@ User Profile Management
 Handles user profile data, including personal information and API key management.
 Provides secure storage and retrieval of user-specific configuration.
 """
+import json
 import logging
 from typing import Optional, Dict, Any
 from datetime import datetime
@@ -34,6 +35,7 @@ class UserProfileCreate(BaseModel):
     last_name: Optional[str] = Field(None, max_length=100)
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
+    deepseek_api_key: Optional[str] = None
     role: str = Field(default="user")
     preferred_provider: Optional[str] = Field(None, max_length=50)
     preferred_model: Optional[str] = Field(None, max_length=100)
@@ -54,6 +56,7 @@ class UserProfileUpdate(BaseModel):
     email: Optional[EmailStr] = None
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
+    deepseek_api_key: Optional[str] = None
     preferred_provider: Optional[str] = Field(None, max_length=50)
     preferred_model: Optional[str] = Field(None, max_length=100)
 
@@ -72,6 +75,7 @@ class UserProfile(BaseModel):
     profile_updated_at: Optional[datetime] = None
     has_openai_key: bool = False
     has_anthropic_key: bool = False
+    has_deepseek_key: bool = False
     preferred_provider: Optional[str] = None
     preferred_model: Optional[str] = None
 
@@ -227,27 +231,29 @@ class UserProfileManager:
         # Hash password
         password_hash = _bcrypt.hashpw(profile_data.password.encode(), _bcrypt.gensalt(12)).decode()
 
-        # Encrypt API keys if provided
-        openai_key_encrypted = None
-        if profile_data.openai_api_key:
-            openai_key_encrypted = encryption_manager.encrypt(profile_data.openai_api_key)
-
-        anthropic_key_encrypted = None
-        if profile_data.anthropic_api_key:
-            anthropic_key_encrypted = encryption_manager.encrypt(profile_data.anthropic_api_key)
+        # Encrypt any provided API keys into provider_keys JSONB
+        provider_keys: Dict[str, str] = {}
+        for provider, raw_key in [
+            ("openai",    profile_data.openai_api_key),
+            ("anthropic", profile_data.anthropic_api_key),
+            ("deepseek",  profile_data.deepseek_api_key),
+        ]:
+            if raw_key:
+                provider_keys[provider] = encryption_manager.encrypt(raw_key)
 
         # Insert user
         query = """
             INSERT INTO users (
                 id, username, email, password_hash, first_name, last_name,
-                openai_api_key, anthropic_api_key, role, profile_updated_at,
+                provider_keys, role, profile_updated_at,
                 preferred_provider, preferred_model
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, $10, $11)
+            VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, CURRENT_TIMESTAMP, $9, $10)
             RETURNING id, username, email, first_name, last_name, role,
                       created_at, last_login, is_active, profile_updated_at,
-                      (openai_api_key IS NOT NULL) as has_openai_key,
-                      (anthropic_api_key IS NOT NULL) as has_anthropic_key,
+                      (provider_keys ? 'openai')    as has_openai_key,
+                      (provider_keys ? 'anthropic') as has_anthropic_key,
+                      (provider_keys ? 'deepseek')  as has_deepseek_key,
                       preferred_provider, preferred_model
         """
 
@@ -261,8 +267,7 @@ class UserProfileManager:
             password_hash,
             profile_data.first_name,
             profile_data.last_name,
-            openai_key_encrypted,
-            anthropic_key_encrypted,
+            json.dumps(provider_keys),
             profile_data.role,
             profile_data.preferred_provider,
             profile_data.preferred_model
@@ -289,8 +294,9 @@ class UserProfileManager:
         query = """
             SELECT id, username, email, first_name, last_name, role,
                    created_at, last_login, is_active, profile_updated_at,
-                   (openai_api_key IS NOT NULL) as has_openai_key,
-                   (anthropic_api_key IS NOT NULL) as has_anthropic_key,
+                   (provider_keys ? 'openai')    as has_openai_key,
+                   (provider_keys ? 'anthropic') as has_anthropic_key,
+                   (provider_keys ? 'deepseek')  as has_deepseek_key,
                    preferred_provider, preferred_model
             FROM users
             WHERE id = $1
@@ -320,8 +326,9 @@ class UserProfileManager:
         query = """
             SELECT id, username, email, first_name, last_name, role,
                    created_at, last_login, is_active, profile_updated_at,
-                   (openai_api_key IS NOT NULL) as has_openai_key,
-                   (anthropic_api_key IS NOT NULL) as has_anthropic_key,
+                   (provider_keys ? 'openai')    as has_openai_key,
+                   (provider_keys ? 'anthropic') as has_anthropic_key,
+                   (provider_keys ? 'deepseek')  as has_deepseek_key,
                    preferred_provider, preferred_model
             FROM users
             WHERE username = $1
@@ -351,8 +358,9 @@ class UserProfileManager:
         query = """
             SELECT id, username, email, first_name, last_name, role,
                    created_at, last_login, is_active, profile_updated_at,
-                   (openai_api_key IS NOT NULL) as has_openai_key,
-                   (anthropic_api_key IS NOT NULL) as has_anthropic_key,
+                   (provider_keys ? 'openai')    as has_openai_key,
+                   (provider_keys ? 'anthropic') as has_anthropic_key,
+                   (provider_keys ? 'deepseek')  as has_deepseek_key,
                    preferred_provider, preferred_model
             FROM users
             WHERE email = $1
@@ -400,16 +408,18 @@ class UserProfileManager:
             params.append(update_data.email)
             param_index += 1
 
-        if update_data.openai_api_key is not None:
-            encrypted_key = encryption_manager.encrypt(update_data.openai_api_key)
-            updates.append(f"openai_api_key = ${param_index}")
-            params.append(encrypted_key)
-            param_index += 1
-
-        if update_data.anthropic_api_key is not None:
-            encrypted_key = encryption_manager.encrypt(update_data.anthropic_api_key)
-            updates.append(f"anthropic_api_key = ${param_index}")
-            params.append(encrypted_key)
+        # Merge any provided API keys into provider_keys JSONB
+        key_updates: Dict[str, str] = {}
+        for provider, raw_key in [
+            ("openai",    update_data.openai_api_key),
+            ("anthropic", update_data.anthropic_api_key),
+            ("deepseek",  update_data.deepseek_api_key),
+        ]:
+            if raw_key is not None:
+                key_updates[provider] = encryption_manager.encrypt(raw_key)
+        if key_updates:
+            updates.append(f"provider_keys = provider_keys || ${param_index}::jsonb")
+            params.append(json.dumps(key_updates))
             param_index += 1
 
         if update_data.preferred_provider is not None:
@@ -435,8 +445,9 @@ class UserProfileManager:
             WHERE id = ${param_index}
             RETURNING id, username, email, first_name, last_name, role,
                       created_at, last_login, is_active, profile_updated_at,
-                      (openai_api_key IS NOT NULL) as has_openai_key,
-                      (anthropic_api_key IS NOT NULL) as has_anthropic_key,
+                      (provider_keys ? 'openai')    as has_openai_key,
+                      (provider_keys ? 'anthropic') as has_anthropic_key,
+                      (provider_keys ? 'deepseek')  as has_deepseek_key,
                       preferred_provider, preferred_model
         """
 
@@ -457,36 +468,21 @@ class UserProfileManager:
         """
         Get decrypted API keys for a user.
 
-        Args:
-            user_id: User UUID
-
         Returns:
-            Dictionary with 'openai_api_key' and 'anthropic_api_key'
+            {provider_id: decrypted_key} e.g. {"openai": "sk-...", "deepseek": "sk-..."}
         """
-        query = """
-            SELECT openai_api_key, anthropic_api_key
-            FROM users
-            WHERE id = $1
-        """
-
+        query = "SELECT provider_keys FROM users WHERE id = $1"
         row = await db.fetchrow(query, user_id)
 
-        if not row:
-            return {"openai_api_key": None, "anthropic_api_key": None}
+        if not row or not row['provider_keys']:
+            return {}
 
-        # Decrypt keys
-        openai_key = None
-        if row['openai_api_key']:
-            openai_key = encryption_manager.decrypt(row['openai_api_key'])
+        result: Dict[str, Optional[str]] = {}
+        for provider, encrypted_key in row['provider_keys'].items():
+            if encrypted_key:
+                result[provider] = encryption_manager.decrypt(encrypted_key)
 
-        anthropic_key = None
-        if row['anthropic_api_key']:
-            anthropic_key = encryption_manager.decrypt(row['anthropic_api_key'])
-
-        return {
-            "openai_api_key": openai_key,
-            "anthropic_api_key": anthropic_key
-        }
+        return result
 
     @staticmethod
     async def delete_user(user_id: str) -> bool:

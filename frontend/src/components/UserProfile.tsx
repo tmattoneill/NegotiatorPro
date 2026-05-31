@@ -33,8 +33,10 @@ export default function UserProfile() {
   const [success, setSuccess] = useState('');
   const [testingOpenAI, setTestingOpenAI] = useState(false);
   const [testingAnthropic, setTestingAnthropic] = useState(false);
+  const [testingDeepSeek, setTestingDeepSeek] = useState(false);
   const [openAITestResult, setOpenAITestResult] = useState<{ valid: boolean; message: string } | null>(null);
   const [anthropicTestResult, setAnthropicTestResult] = useState<{ valid: boolean; message: string } | null>(null);
+  const [deepSeekTestResult, setDeepSeekTestResult] = useState<{ valid: boolean; message: string } | null>(null);
 
   // Persona state
   const [showPersonaForm, setShowPersonaForm] = useState(false);
@@ -49,6 +51,7 @@ export default function UserProfile() {
     email: '',
     openai_api_key: '',
     anthropic_api_key: '',
+    deepseek_api_key: '',
     preferred_provider: null as string | null,
     preferred_model: null as string | null,
   });
@@ -61,6 +64,7 @@ export default function UserProfile() {
         email: user.email || '',
         openai_api_key: '',
         anthropic_api_key: '',
+        deepseek_api_key: '',
         preferred_provider: (user as any).preferred_provider || null,
         preferred_model: (user as any).preferred_model || null,
       });
@@ -108,50 +112,27 @@ export default function UserProfile() {
     }
   };
 
-  const handleTestAPIKey = async (provider: 'openai' | 'anthropic') => {
-    const apiKey = provider === 'openai' ? formData.openai_api_key : formData.anthropic_api_key;
+  const handleTestAPIKey = async (provider: 'openai' | 'anthropic' | 'deepseek') => {
+    const keyMap = { openai: formData.openai_api_key, anthropic: formData.anthropic_api_key, deepseek: formData.deepseek_api_key };
+    const setTesting = { openai: setTestingOpenAI, anthropic: setTestingAnthropic, deepseek: setTestingDeepSeek };
+    const setResult = { openai: setOpenAITestResult, anthropic: setAnthropicTestResult, deepseek: setDeepSeekTestResult };
 
-    if (!apiKey || !apiKey.trim()) {
-      if (provider === 'openai') {
-        setOpenAITestResult({ valid: false, message: 'Please enter an API key to test' });
-      } else {
-        setAnthropicTestResult({ valid: false, message: 'Please enter an API key to test' });
-      }
+    const apiKey = keyMap[provider];
+    if (!apiKey?.trim()) {
+      setResult[provider]({ valid: false, message: 'Please enter an API key to test' });
       return;
     }
 
-    if (provider === 'openai') {
-      setTestingOpenAI(true);
-      setOpenAITestResult(null);
-    } else {
-      setTestingAnthropic(true);
-      setAnthropicTestResult(null);
-    }
+    setTesting[provider](true);
+    setResult[provider](null);
 
     try {
-      const response = await api.post('/users/test-api-key', {
-        provider,
-        api_key: apiKey,
-      });
-
-      if (provider === 'openai') {
-        setOpenAITestResult({ valid: true, message: response.data.message });
-      } else {
-        setAnthropicTestResult({ valid: true, message: response.data.message });
-      }
+      const response = await api.post('/users/test-api-key', { provider, api_key: apiKey });
+      setResult[provider]({ valid: true, message: response.data.message });
     } catch (err: any) {
-      const errorMessage = err.response?.data?.detail || 'API key validation failed';
-      if (provider === 'openai') {
-        setOpenAITestResult({ valid: false, message: errorMessage });
-      } else {
-        setAnthropicTestResult({ valid: false, message: errorMessage });
-      }
+      setResult[provider]({ valid: false, message: err.response?.data?.detail || 'API key validation failed' });
     } finally {
-      if (provider === 'openai') {
-        setTestingOpenAI(false);
-      } else {
-        setTestingAnthropic(false);
-      }
+      setTesting[provider](false);
     }
   };
 
@@ -175,6 +156,9 @@ export default function UserProfile() {
       if (formData.anthropic_api_key) {
         updateData.anthropic_api_key = formData.anthropic_api_key;
       }
+      if (formData.deepseek_api_key) {
+        updateData.deepseek_api_key = formData.deepseek_api_key;
+      }
 
       // Include provider preferences
       updateData.preferred_provider = formData.preferred_provider;
@@ -191,6 +175,7 @@ export default function UserProfile() {
         ...prev,
         openai_api_key: '',
         anthropic_api_key: '',
+        deepseek_api_key: '',
       }));
 
       setTimeout(() => setSuccess(''), 3000);
@@ -259,6 +244,12 @@ export default function UserProfile() {
                 }>
                   <span className={user.has_anthropic_key ? 'h-2 w-2 rounded-full bg-success inline-block' : 'h-2 w-2 rounded-full bg-chat-muted-foreground inline-block'} />
                   <span className={user.has_anthropic_key ? 'font-medium text-success' : 'font-medium text-chat-muted-foreground'}>Anthropic</span>
+                </div>
+                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border ${
+                  (user as any).has_deepseek_key ? 'border-success/30 bg-success/10' : 'border-chat-border bg-transparent'
+                }`}>
+                  <span className={(user as any).has_deepseek_key ? 'h-2 w-2 rounded-full bg-success inline-block' : 'h-2 w-2 rounded-full bg-chat-muted-foreground inline-block'} />
+                  <span className={(user as any).has_deepseek_key ? 'font-medium text-success' : 'font-medium text-chat-muted-foreground'}>DeepSeek</span>
                 </div>
               </div>
             </div>
@@ -380,6 +371,31 @@ export default function UserProfile() {
                       </div>
                     )}
                   </div>
+
+                  {/* DeepSeek API Key */}
+                  <div>
+                    <label className="block text-sm font-medium text-chat-foreground mb-1.5">
+                      DeepSeek API Key
+                    </label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="password"
+                        placeholder="sk-..."
+                        value={formData.deepseek_api_key}
+                        onChange={(e) => setFormData({ ...formData, deepseek_api_key: e.target.value })}
+                      />
+                      <Button type="button" onClick={() => handleTestAPIKey('deepseek')} disabled={testingDeepSeek || !formData.deepseek_api_key}>
+                        {testingDeepSeek ? 'Testing...' : 'Test Key'}
+                      </Button>
+                    </div>
+                    {deepSeekTestResult && (
+                      <div className={deepSeekTestResult.valid
+                        ? 'mt-2 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-xs text-success'
+                        : 'mt-2 rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger'}>
+                        {deepSeekTestResult.message}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -434,6 +450,7 @@ export default function UserProfile() {
                       email: user.email || '',
                       openai_api_key: '',
                       anthropic_api_key: '',
+        deepseek_api_key: '',
                       preferred_provider: (user as any).preferred_provider || null,
                       preferred_model: (user as any).preferred_model || null,
                     });
