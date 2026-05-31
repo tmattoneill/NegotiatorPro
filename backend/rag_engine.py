@@ -541,13 +541,30 @@ class EnhancedNegotiationRAG:
         if not hasattr(self, 'default_llm') or not hasattr(self, 'premium_llm'):
             raise LLMGenerationError("RAG system not initialized — vectorstore or LLMs unavailable.")
 
+        def resolve_user_key(backend_id: str) -> Optional[str]:
+            """Resolve a provider's key from the USER's profile only.
+
+            User negotiations must never fall back to a system env key — if the
+            selected provider needs a key the user hasn't configured, fail
+            clearly instead of silently using a system key (which also gets sent
+            to the wrong provider's endpoint).
+            """
+            key = (user_api_keys or {}).get(backend_id)
+            backend = self.backend_manager.get_backend(backend_id)
+            if backend and backend.requires_api_key and not key:
+                raise LLMGenerationError(
+                    f"No {backend.name} API key found in your profile. "
+                    f"Add one in Settings to use this provider."
+                )
+            return key
+
         # Check for test/ping prompts - call LLM but skip RAG context retrieval
         if self.prompt_manager.is_test_prompt(question):
             logger.info("Test prompt detected - using simplified LLM call (no RAG)")
             try:
                 # Use the same LLM selection logic as regular prompts
                 if override_backend and override_model:
-                    api_key = (user_api_keys or {}).get(override_backend)
+                    api_key = resolve_user_key(override_backend)
                     llm = self.model_config.create_llm(override_backend, override_model, api_key=api_key)
                 elif use_premium_model:
                     llm = self.premium_llm
@@ -576,7 +593,7 @@ class EnhancedNegotiationRAG:
             # Select appropriate LLM based on model choice
             if override_backend and override_model:
                 # User selected custom provider/model from dropdown
-                api_key = (user_api_keys or {}).get(f"{override_backend}_api_key")
+                api_key = resolve_user_key(override_backend)
                 llm = self.model_config.create_llm(override_backend, override_model, api_key=api_key)
                 model_name = f"{override_backend}/{override_model}"
                 logger.info(f"Using user-selected model: {model_name}")
