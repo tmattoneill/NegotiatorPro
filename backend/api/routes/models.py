@@ -242,6 +242,15 @@ async def get_available_providers_for_user(user_id: Optional[str] = Query(None))
                         for model in backend.models
                     ]
 
+            elif backend.id == "deepseek":
+                system_has_deepseek_key = bool(os.getenv("DEEPSEEK_API_KEY"))
+                provider_available = system_has_deepseek_key
+                if provider_available:
+                    provider_models = [
+                        {"id": model.id, "name": model.name, "description": model.description}
+                        for model in backend.models
+                    ]
+
             elif backend.id == "runpod":
                 # RunPod always available as fallback (if API key exists)
                 provider_available = system_has_runpod_key

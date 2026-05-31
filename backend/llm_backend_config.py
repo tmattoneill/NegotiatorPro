@@ -166,6 +166,33 @@ class LLMBackendManager:
                 ),
             ]
         ),
+        "deepseek": BackendConfig(
+            id="deepseek",
+            name="DeepSeek",
+            provider="openai",  # OpenAI-compatible API
+            api_key_env_var="DEEPSEEK_API_KEY",
+            base_url_env_var="DEEPSEEK_BASE_URL",
+            default_base_url="https://api.deepseek.com/v1",
+            requires_api_key=True,
+            models=[
+                ModelInfo(
+                    id="deepseek-v4-pro",
+                    name="DeepSeek V4 Pro",
+                    description="DeepSeek V4 Pro — most capable",
+                    max_context_length=128000,
+                    cost_per_1k_input=2.0,
+                    cost_per_1k_output=8.0
+                ),
+                ModelInfo(
+                    id="deepseek-v4-flash",
+                    name="DeepSeek V4 Flash",
+                    description="DeepSeek V4 Flash — fast and cost-effective",
+                    max_context_length=128000,
+                    cost_per_1k_input=0.3,
+                    cost_per_1k_output=1.2
+                ),
+            ]
+        ),
         "runpod": BackendConfig(
             id="runpod",
             name="RunPod (Basic Fallback)",
