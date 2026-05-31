@@ -1,7 +1,6 @@
 """Chat endpoint"""
 import logging
 import time
-import base64
 from uuid import UUID
 from typing import List, Optional, Tuple
 from fastapi import APIRouter, HTTPException, status, File, UploadFile, Form, Depends
@@ -174,38 +173,56 @@ async def build_negotiation_briefing(conversation_id: Optional[str]) -> str:
 
 async def process_uploaded_files(files: List[UploadFile]) -> str:
     """
-    Process uploaded files and return formatted context string.
-
-    Supports:
-    - Images: Convert to base64 for vision models
-    - Text files (.txt, .csv): Extract text content
+    Process uploaded files and return a formatted context string for the LLM.
+    Supports: PDF, DOCX, TXT, CSV. Images are noted but not decoded (no vision model).
     """
+    import io
     file_context = []
 
     for file in files:
         content_type = file.content_type or ""
-        filename = file.filename or "unknown"
-
-        # Read file content
+        filename = (file.filename or "unknown").lower()
         file_bytes = await file.read()
 
-        if content_type.startswith("image/"):
-            # For images, encode as base64
-            base64_image = base64.b64encode(file_bytes).decode('utf-8')
-            file_context.append(f"[Image: {filename}]")
-            # Note: We're adding this as context. For vision models, we'd need to format differently
-            # For now, we just note that an image was uploaded
-            logger.info(f"Image uploaded: {filename} ({len(file_bytes)} bytes)")
+        try:
+            if content_type.startswith("image/"):
+                file_context.append(f"[Image attached: {file.filename} — image content not readable by this model]")
+                logger.info(f"Image uploaded: {file.filename} ({len(file_bytes)} bytes)")
 
-        elif filename.endswith(('.txt', '.csv')):
-            # Extract text from text files
-            try:
-                text_content = file_bytes.decode('utf-8')
-                file_context.append(f"[File: {filename}]\n{text_content}")
-                logger.info(f"Text file uploaded: {filename} ({len(text_content)} chars)")
-            except UnicodeDecodeError:
-                logger.warning(f"Could not decode file: {filename}")
-                file_context.append(f"[File: {filename} - could not read content]")
+            elif filename.endswith(".pdf") or content_type == "application/pdf":
+                import pypdf
+                reader = pypdf.PdfReader(io.BytesIO(file_bytes))
+                pages = [page.extract_text() or "" for page in reader.pages]
+                text = "\n\n".join(p.strip() for p in pages if p.strip())
+                if text:
+                    file_context.append(f"[File: {file.filename}]\n{text}")
+                    logger.info(f"PDF extracted: {file.filename} ({len(text)} chars, {len(reader.pages)} pages)")
+                else:
+                    file_context.append(f"[File: {file.filename} — PDF contains no extractable text]")
+                    logger.warning(f"PDF yielded no text: {file.filename}")
+
+            elif filename.endswith((".docx",)) or content_type in (
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ):
+                import docx2txt
+                text = docx2txt.process(io.BytesIO(file_bytes)).strip()
+                if text:
+                    file_context.append(f"[File: {file.filename}]\n{text}")
+                    logger.info(f"DOCX extracted: {file.filename} ({len(text)} chars)")
+                else:
+                    file_context.append(f"[File: {file.filename} — document contains no extractable text]")
+
+            elif filename.endswith((".txt", ".csv", ".md")):
+                text = file_bytes.decode("utf-8", errors="replace").strip()
+                file_context.append(f"[File: {file.filename}]\n{text}")
+                logger.info(f"Text file uploaded: {file.filename} ({len(text)} chars)")
+
+            else:
+                logger.warning(f"Unsupported file type, skipping: {file.filename} ({content_type})")
+
+        except Exception as e:
+            logger.error(f"Failed to process uploaded file {file.filename}: {e}")
+            file_context.append(f"[File: {file.filename} — could not be read: {e}]")
 
     return "\n\n".join(file_context) if file_context else ""
 

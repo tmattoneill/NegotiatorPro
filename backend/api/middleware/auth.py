@@ -16,7 +16,7 @@ SECRET_KEY = get_required_env(
     secret=True
 )
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(get_required_env("JWT_TOKEN_EXPIRE_MINUTES", default="30"))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(get_required_env("JWT_TOKEN_EXPIRE_MINUTES", default="5256000"))  # 10 years
 
 # HTTP Bearer token scheme (auto_error=False makes it optional)
 security = HTTPBearer(auto_error=False)
@@ -131,12 +131,11 @@ async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] =
         return None
 
     try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-
-        # Check if token has expired
-        exp = payload.get("exp")
-        if exp and datetime.utcnow() > datetime.fromtimestamp(exp):
-            return None
+        # Skip expiry validation — session is good until the account is cancelled in the DB
+        payload = jwt.decode(
+            credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM],
+            options={"verify_exp": False}
+        )
 
         user_id = payload.get("sub")
         if user_id is None:
