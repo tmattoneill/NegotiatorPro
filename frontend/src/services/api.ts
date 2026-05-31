@@ -24,8 +24,6 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    // Debug: log the full URL being requested
-    console.log('Axios request:', config.method?.toUpperCase(), config.baseURL ?? '', config.url ?? '', '→', (config.baseURL ?? '') + (config.url ?? ''));
     return config;
   },
   (error) => Promise.reject(error)

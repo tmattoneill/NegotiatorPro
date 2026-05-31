@@ -46,7 +46,7 @@ class AdminConfig:
                     if key not in self.config:
                         self.config[key] = value
             except Exception as e:
-                print(f"Error loading admin config: {e}")
+                logger.error(f"Error loading admin config: {e}")
                 self.config = default_config
         else:
             self.config = default_config
@@ -58,7 +58,7 @@ class AdminConfig:
             with open(self.config_file, 'w') as f:
                 json.dump(self.config, f, indent=2)
         except Exception as e:
-            print(f"Error saving admin config: {e}")
+            logger.error(f"Error saving admin config: {e}")
     
     def _hash_password(self, password: str) -> str:
         """Hash password using SHA256"""
@@ -112,7 +112,7 @@ class AdminConfig:
             with open(self.sessions_file, 'w') as f:
                 json.dump(sessions, f, indent=2)
         except Exception as e:
-            print(f"Error saving sessions: {e}")
+            logger.error(f"Error saving sessions: {e}")
     
     def cleanup_expired_sessions(self):
         """Remove expired sessions"""
@@ -180,7 +180,7 @@ class AdminConfig:
             with open(self.usage_file, 'w') as f:
                 json.dump(usage_data, f, indent=2)
         except Exception as e:
-            print(f"Error saving usage stats: {e}")
+            logger.error(f"Error saving usage stats: {e}")
     
     def get_usage_summary(self, days: int = 30) -> Dict[str, Any]:
         """Get usage summary for last N days"""

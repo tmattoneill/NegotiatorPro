@@ -56,9 +56,7 @@ export default function ProviderSelector({
     setIsLoading(true);
     setError(null);
     try {
-      console.log('[ProviderSelector] Loading providers for user:', user?.id);
       const data = await fetchAvailableProviders(user?.id);
-      console.log('[ProviderSelector] Received data:', JSON.stringify(data, null, 2));
       setProvidersData(data);
     } catch (err) {
       console.error('Failed to load providers:', err);
@@ -75,18 +73,11 @@ export default function ProviderSelector({
   // Get available providers sorted by priority
   const getAvailableProviders = (): Array<{ id: string; info: ProviderInfo }> => {
     if (!providersData) {
-      console.log('[ProviderSelector] No providersData available');
       return [];
     }
 
-    console.log('[ProviderSelector] Raw providers:', Object.keys(providersData.providers));
-
     const providers = Object.entries(providersData.providers)
-      .filter(([id, info]) => {
-        const passes = info.available || info.is_fallback;
-        console.log(`[ProviderSelector] Filter ${id}: available=${info.available}, is_fallback=${info.is_fallback}, passes=${passes}`);
-        return passes;
-      })
+      .filter(([, info]) => info.available || info.is_fallback)
       .map(([id, info]) => ({ id, info }))
       .sort((a, b) => {
         // Sort order: available first, then fallback
@@ -98,7 +89,6 @@ export default function ProviderSelector({
         return 0;
       });
 
-    console.log('[ProviderSelector] Filtered providers:', providers.map(p => p.id));
     return providers;
   };
 

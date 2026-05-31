@@ -23,11 +23,6 @@ export default function Sidebar() {
   // Compute currentNegotiation from negotiations and currentNegotiationId
   const currentNegotiation = negotiations.find(n => n.id === currentNegotiationId) || null;
 
-  // Debug: log when currentNegotiationId changes
-  useEffect(() => {
-    console.log('Current Negotiation ID changed:', currentNegotiationId);
-    console.log('Current Negotiation object:', currentNegotiation);
-  }, [currentNegotiationId, currentNegotiation]);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showNegotiationModal, setShowNegotiationModal] = useState(false);
@@ -52,15 +47,20 @@ export default function Sidebar() {
 
   // Load conversations when negotiation changes
   useEffect(() => {
-    console.log('Negotiation changed:', currentNegotiation?.id);
     if (currentNegotiation?.id && user?.id) {
-      console.log('Loading conversations for negotiation:', currentNegotiation.id);
       loadConversations(currentNegotiation.id, user.id);
     }
   }, [currentNegotiation?.id, user?.id]);
 
-  // Get active personas
-  const activeUserPersona = userPersonas.find(p => p.is_default) || userPersonas[0];
+  // Get active personas. The "You" persona is the one BOUND to the current
+  // negotiation (user_persona_id) — that is what the server-side briefing uses
+  // to build the prompt. Showing the global default here would contradict the
+  // actual prompt when the two differ.
+  const activeUserPersona =
+    userPersonas.find(p => p.id === currentNegotiation?.user_persona_id)
+    || currentNegotiation?.user_persona
+    || userPersonas.find(p => p.is_default)
+    || userPersonas[0];
   const activePartnerPersona = currentNegotiation?.partners?.[0];
 
   const handleLogout = () => {
@@ -210,13 +210,7 @@ export default function Sidebar() {
             <div className="relative">
               <select
                 value={currentNegotiation?.id || ''}
-                onChange={(e) => {
-                  const selectedId = e.target.value;
-                  console.log('Negotiation dropdown changed to:', selectedId);
-                  console.log('Available negotiations:', negotiations);
-                  setCurrentNegotiation(selectedId);
-                  console.log('After setCurrentNegotiation, currentNegotiationId should be:', selectedId);
-                }}
+                onChange={(e) => setCurrentNegotiation(e.target.value)}
                 className="np-select w-full appearance-none bg-none px-3 py-2 bg-black/30 border border-white/20 rounded-md text-white text-[13px] pr-8 cursor-pointer"
               >
                 <option value="">Select a negotiation...</option>

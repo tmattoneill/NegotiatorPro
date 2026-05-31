@@ -1,4 +1,5 @@
 """Chat endpoint"""
+import asyncio
 import logging
 import time
 from uuid import UUID
@@ -325,9 +326,11 @@ async def process_chat(
             except Exception as e:
                 logger.warning(f"Could not fetch user API keys: {e}")
 
-        # Process question using existing RAG system
-        # Pass resolved provider/model overrides
-        answer = rag.get_advice(
+        # Process question using existing RAG system. get_advice is synchronous
+        # and does a blocking llm.invoke() network call — run it in a worker
+        # thread so it doesn't block the event loop and serialize all requests.
+        answer = await asyncio.to_thread(
+            rag.get_advice,
             question=enhanced_question,
             use_premium_model=use_premium_model,
             use_preprocessing=use_preprocessing,
@@ -363,49 +366,44 @@ async def process_chat(
             try:
                 conversation_uuid = UUID(conversation_id)
 
-                # Determine which user owns this conversation.
-                user_uuid = None
-
-                if current_user and current_user.get('id'):
+                # Persist only for an authenticated user who actually owns this
+                # conversation. We never derive the owner from the conversation
+                # itself — doing so let an unauthenticated caller write messages
+                # attributed to the conversation's real owner (IDOR / spoofing).
+                if not (current_user and current_user.get('id')):
+                    logger.info("Unauthenticated chat — messages not persisted")
+                else:
                     user_uuid = UUID(current_user['id'])
-                else:
-                    # Fallback: derive owner from the conversation → negotiation → user mapping
+
+                    # Verify ownership: conversation → negotiation → user_id
                     conversation = await db_ops.get_conversation(conversation_uuid)
-                    if conversation:
-                        negotiation = await db_ops.get_negotiation(conversation['negotiation_id'])
-                        if negotiation:
-                            user_uuid = negotiation['user_id']
-
-                if user_uuid is None:
-                    logger.warning(
-                        "Could not determine user for conversation %s – messages not persisted",
-                        conversation_id,
+                    negotiation = (
+                        await db_ops.get_negotiation(conversation['negotiation_id'])
+                        if conversation else None
                     )
-                else:
-                    # Save user message
-                    await db_ops.create_chat_message(
-                        conversation_id=conversation_uuid,
-                        user_id=user_uuid,
-                        role="user",
-                        content=question,
-                        preprocessing_applied=use_preprocessing
+                    owns_conversation = bool(
+                        negotiation and str(negotiation['user_id']) == str(user_uuid)
                     )
 
-                    # Save assistant response
-                    await db_ops.create_chat_message(
-                        conversation_id=conversation_uuid,
-                        user_id=user_uuid,
-                        role="assistant",
-                        content=answer,
-                        model=model_used,
-                        preprocessing_applied=use_preprocessing
-                    )
-
-                    logger.info(
-                        "Messages saved to conversation %s (user=%s)",
-                        conversation_id,
-                        current_user['username'] if current_user else str(user_uuid)
-                    )
+                    if not owns_conversation:
+                        logger.warning(
+                            "User %s does not own conversation %s — messages not persisted",
+                            user_uuid, conversation_id,
+                        )
+                    else:
+                        # Atomic: user + assistant rows commit together or not at all
+                        await db_ops.save_conversation_turn(
+                            conversation_id=conversation_uuid,
+                            user_id=user_uuid,
+                            user_content=question,
+                            assistant_content=answer,
+                            model=model_used,
+                            preprocessing_applied=use_preprocessing,
+                        )
+                        logger.info(
+                            "Messages saved to conversation %s (user=%s)",
+                            conversation_id, current_user['username'],
+                        )
             except ValueError:
                 logger.warning(f"Invalid conversation_id format: {conversation_id}")
             except Exception as db_error:
