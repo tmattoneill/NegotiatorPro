@@ -1,4 +1,5 @@
 """Chat endpoint"""
+import asyncio
 import logging
 import time
 from uuid import UUID
@@ -7,7 +8,7 @@ from fastapi import APIRouter, HTTPException, status, File, UploadFile, Form, De
 
 from ..models.requests import ChatRequest
 from ..models.responses import ChatResponse
-from ...rag_engine import EnhancedNegotiationRAG
+from ...rag_engine import EnhancedNegotiationRAG, LLMGenerationError
 from ... import db_operations as db_ops
 from ..middleware.auth import get_current_user
 from ...user_profile import UserProfileManager
@@ -171,10 +172,14 @@ async def build_negotiation_briefing(conversation_id: Optional[str]) -> str:
     return "## Negotiation Briefing\n\n" + "\n\n".join(sections)
 
 
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB per file
+
+
 async def process_uploaded_files(files: List[UploadFile]) -> str:
     """
     Process uploaded files and return a formatted context string for the LLM.
     Supports: PDF, DOCX, TXT, CSV. Images are noted but not decoded (no vision model).
+    Per-file size is capped at MAX_UPLOAD_BYTES to avoid loading huge files into memory.
     """
     import io
     file_context = []
@@ -182,7 +187,15 @@ async def process_uploaded_files(files: List[UploadFile]) -> str:
     for file in files:
         content_type = file.content_type or ""
         filename = (file.filename or "unknown").lower()
-        file_bytes = await file.read()
+
+        # Bounded read: pull at most one byte past the limit so we can reject
+        # oversized uploads without loading the entire file into memory.
+        file_bytes = await file.read(MAX_UPLOAD_BYTES + 1)
+        if len(file_bytes) > MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"File '{file.filename}' exceeds the {MAX_UPLOAD_BYTES // (1024 * 1024)}MB upload limit."
+            )
 
         try:
             if content_type.startswith("image/"):
@@ -313,9 +326,11 @@ async def process_chat(
             except Exception as e:
                 logger.warning(f"Could not fetch user API keys: {e}")
 
-        # Process question using existing RAG system
-        # Pass resolved provider/model overrides
-        answer = rag.get_advice(
+        # Process question using existing RAG system. get_advice is synchronous
+        # and does a blocking llm.invoke() network call — run it in a worker
+        # thread so it doesn't block the event loop and serialize all requests.
+        answer = await asyncio.to_thread(
+            rag.get_advice,
             question=enhanced_question,
             use_premium_model=use_premium_model,
             use_preprocessing=use_preprocessing,
@@ -351,49 +366,44 @@ async def process_chat(
             try:
                 conversation_uuid = UUID(conversation_id)
 
-                # Determine which user owns this conversation.
-                user_uuid = None
-
-                if current_user and current_user.get('id'):
+                # Persist only for an authenticated user who actually owns this
+                # conversation. We never derive the owner from the conversation
+                # itself — doing so let an unauthenticated caller write messages
+                # attributed to the conversation's real owner (IDOR / spoofing).
+                if not (current_user and current_user.get('id')):
+                    logger.info("Unauthenticated chat — messages not persisted")
+                else:
                     user_uuid = UUID(current_user['id'])
-                else:
-                    # Fallback: derive owner from the conversation → negotiation → user mapping
+
+                    # Verify ownership: conversation → negotiation → user_id
                     conversation = await db_ops.get_conversation(conversation_uuid)
-                    if conversation:
-                        negotiation = await db_ops.get_negotiation(conversation['negotiation_id'])
-                        if negotiation:
-                            user_uuid = negotiation['user_id']
-
-                if user_uuid is None:
-                    logger.warning(
-                        "Could not determine user for conversation %s – messages not persisted",
-                        conversation_id,
+                    negotiation = (
+                        await db_ops.get_negotiation(conversation['negotiation_id'])
+                        if conversation else None
                     )
-                else:
-                    # Save user message
-                    await db_ops.create_chat_message(
-                        conversation_id=conversation_uuid,
-                        user_id=user_uuid,
-                        role="user",
-                        content=question,
-                        preprocessing_applied=use_preprocessing
+                    owns_conversation = bool(
+                        negotiation and str(negotiation['user_id']) == str(user_uuid)
                     )
 
-                    # Save assistant response
-                    await db_ops.create_chat_message(
-                        conversation_id=conversation_uuid,
-                        user_id=user_uuid,
-                        role="assistant",
-                        content=answer,
-                        model=model_used,
-                        preprocessing_applied=use_preprocessing
-                    )
-
-                    logger.info(
-                        "Messages saved to conversation %s (user=%s)",
-                        conversation_id,
-                        current_user['username'] if current_user else str(user_uuid)
-                    )
+                    if not owns_conversation:
+                        logger.warning(
+                            "User %s does not own conversation %s — messages not persisted",
+                            user_uuid, conversation_id,
+                        )
+                    else:
+                        # Atomic: user + assistant rows commit together or not at all
+                        await db_ops.save_conversation_turn(
+                            conversation_id=conversation_uuid,
+                            user_id=user_uuid,
+                            user_content=question,
+                            assistant_content=answer,
+                            model=model_used,
+                            preprocessing_applied=use_preprocessing,
+                        )
+                        logger.info(
+                            "Messages saved to conversation %s (user=%s)",
+                            conversation_id, current_user['username'],
+                        )
             except ValueError:
                 logger.warning(f"Invalid conversation_id format: {conversation_id}")
             except Exception as db_error:
@@ -405,6 +415,21 @@ async def process_chat(
             model_used=model_used,
             tokens_used=None,  # TODO: Extract from LLM response metadata
             processing_time=round(processing_time, 2)
+        )
+
+    except HTTPException:
+        # Intentional HTTP errors (e.g. 413 oversized upload) must keep their
+        # status code, not be masked as a 500 by the generic handler below.
+        raise
+
+    except LLMGenerationError as e:
+        # LLM/upstream failure (bad key, provider down, etc.). Log details
+        # server-side; return a clean 502 the frontend renders as an error state
+        # rather than letting the exception text surface as an assistant message.
+        logger.error(f"LLM generation failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="The AI model could not generate a response. Check your provider/API key and try again."
         )
 
     except Exception as e:

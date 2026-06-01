@@ -93,12 +93,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   // Create new conversation in database
   createNewSession: async (negotiationId: string, userId: string) => {
-    console.log('createNewSession called with:', { negotiationId, userId });
-
     // Prevent duplicate creation if already in progress
     const { isCreatingSession } = get();
     if (isCreatingSession) {
-      console.log('Session creation already in progress, skipping duplicate call');
       return;
     }
 
@@ -111,8 +108,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
         user_id: userId,
       });
 
-      console.log('Conversation created successfully:', newConversation);
-
       const newSession: Session = {
         id: newConversation.id,
         title: newConversation.title || 'New Conversation',
@@ -122,15 +117,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
         negotiationId: negotiationId,
       };
 
-      console.log('Adding session to state:', newSession);
-
       set((state) => ({
         sessions: [newSession, ...state.sessions],
         currentSessionId: newSession.id,
         isCreatingSession: false,
       }));
-
-      console.log('Session added, currentSessionId:', newSession.id);
     } catch (error) {
       console.error('Failed to create conversation:', error);
       set({ isCreatingSession: false });

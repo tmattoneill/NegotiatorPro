@@ -477,8 +477,13 @@ class UserProfileManager:
         if not row or not row['provider_keys']:
             return {}
 
+        # asyncpg returns JSONB as a string, not a dict — parse if needed.
+        provider_keys = row['provider_keys']
+        if isinstance(provider_keys, str):
+            provider_keys = json.loads(provider_keys)
+
         result: Dict[str, Optional[str]] = {}
-        for provider, encrypted_key in row['provider_keys'].items():
+        for provider, encrypted_key in provider_keys.items():
             if encrypted_key:
                 result[provider] = encryption_manager.decrypt(encrypted_key)
 

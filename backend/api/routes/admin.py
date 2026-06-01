@@ -174,7 +174,7 @@ async def list_backups(admin: Dict = Depends(verify_admin)):
                     timestamp=timestamp.isoformat(),
                     size=stat.st_size
                 ))
-            except:
+            except Exception:
                 continue
 
     return backups

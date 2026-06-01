@@ -245,9 +245,10 @@ export default function UserProfile() {
                   <span className={user.has_anthropic_key ? 'h-2 w-2 rounded-full bg-success inline-block' : 'h-2 w-2 rounded-full bg-chat-muted-foreground inline-block'} />
                   <span className={user.has_anthropic_key ? 'font-medium text-success' : 'font-medium text-chat-muted-foreground'}>Anthropic</span>
                 </div>
-                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border ${
-                  (user as any).has_deepseek_key ? 'border-success/30 bg-success/10' : 'border-chat-border bg-transparent'
-                }`}>
+                <div className={
+                  'inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm ' +
+                  ((user as any).has_deepseek_key ? 'border-success/30 bg-success/10' : 'border-chat-border bg-transparent')
+                }>
                   <span className={(user as any).has_deepseek_key ? 'h-2 w-2 rounded-full bg-success inline-block' : 'h-2 w-2 rounded-full bg-chat-muted-foreground inline-block'} />
                   <span className={(user as any).has_deepseek_key ? 'font-medium text-success' : 'font-medium text-chat-muted-foreground'}>DeepSeek</span>
                 </div>

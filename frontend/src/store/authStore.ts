@@ -13,7 +13,10 @@ interface User {
   role: string;
   has_openai_key?: boolean;
   has_anthropic_key?: boolean;
+  has_deepseek_key?: boolean;
   is_super_admin?: boolean;
+  preferred_provider?: string | null;
+  preferred_model?: string | null;
 }
 
 interface AuthState {

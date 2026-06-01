@@ -31,6 +31,14 @@ from .runpod_llm import ChatRunPod, is_runpod_available
 logger = logging.getLogger(__name__)
 
 
+class LLMGenerationError(Exception):
+    """Raised when the LLM fails to generate advice (bad key, upstream down, etc.).
+
+    The chat route maps this to an HTTP error so the frontend renders a proper
+    error state instead of displaying the exception text as an assistant message.
+    """
+
+
 # =============================================================================
 # Global Model Configuration
 # =============================================================================
@@ -531,7 +539,24 @@ class EnhancedNegotiationRAG:
             The AI's response as a string
         """
         if not hasattr(self, 'default_llm') or not hasattr(self, 'premium_llm'):
-            return "System not initialized properly. Please check if documents are loaded."
+            raise LLMGenerationError("RAG system not initialized — vectorstore or LLMs unavailable.")
+
+        def resolve_user_key(backend_id: str) -> Optional[str]:
+            """Resolve a provider's key from the USER's profile only.
+
+            User negotiations must never fall back to a system env key — if the
+            selected provider needs a key the user hasn't configured, fail
+            clearly instead of silently using a system key (which also gets sent
+            to the wrong provider's endpoint).
+            """
+            key = (user_api_keys or {}).get(backend_id)
+            backend = self.backend_manager.get_backend(backend_id)
+            if backend and backend.requires_api_key and not key:
+                raise LLMGenerationError(
+                    f"No {backend.name} API key found in your profile. "
+                    f"Add one in Settings to use this provider."
+                )
+            return key
 
         # Check for test/ping prompts - call LLM but skip RAG context retrieval
         if self.prompt_manager.is_test_prompt(question):
@@ -539,7 +564,7 @@ class EnhancedNegotiationRAG:
             try:
                 # Use the same LLM selection logic as regular prompts
                 if override_backend and override_model:
-                    api_key = (user_api_keys or {}).get(override_backend)
+                    api_key = resolve_user_key(override_backend)
                     llm = self.model_config.create_llm(override_backend, override_model, api_key=api_key)
                 elif use_premium_model:
                     llm = self.premium_llm
@@ -554,7 +579,7 @@ class EnhancedNegotiationRAG:
                 return response.content if hasattr(response, 'content') else str(response)
             except Exception as e:
                 logger.error(f"Test prompt LLM call failed: {e}")
-                return f"Connection test failed: {e}"
+                raise LLMGenerationError(f"Connection test failed: {e}") from e
 
         # Preprocess the question if enabled
         preprocessing_info = None
@@ -568,7 +593,7 @@ class EnhancedNegotiationRAG:
             # Select appropriate LLM based on model choice
             if override_backend and override_model:
                 # User selected custom provider/model from dropdown
-                api_key = (user_api_keys or {}).get(f"{override_backend}_api_key")
+                api_key = resolve_user_key(override_backend)
                 llm = self.model_config.create_llm(override_backend, override_model, api_key=api_key)
                 model_name = f"{override_backend}/{override_model}"
                 logger.info(f"Using user-selected model: {model_name}")
@@ -622,10 +647,12 @@ class EnhancedNegotiationRAG:
             else:
                 return str(response)
 
+        except LLMGenerationError:
+            raise
         except Exception as e:
             import traceback
             logger.error(f"Error getting advice: {repr(e)}")
             logger.error(f"Error type: {type(e)}")
             logger.error(f"Error args: {e.args}")
             logger.error(f"Full traceback: {traceback.format_exc()}")
-            return f"Error getting advice: {repr(e)}"
+            raise LLMGenerationError(f"Error getting advice: {repr(e)}") from e

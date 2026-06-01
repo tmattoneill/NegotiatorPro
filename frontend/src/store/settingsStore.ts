@@ -6,7 +6,8 @@
 
 import { create } from 'zustand';
 import type { ModelsResponse } from '../types';
-import { fetchAvailableModels } from '../services/api';
+import { fetchAvailableProviders } from '../services/api';
+import { useAuthStore } from './authStore';
 
 interface SettingsState {
   // Model selection
@@ -69,18 +70,51 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set({ isLoadingModels: true, modelsError: null });
 
     try {
-      const models = await fetchAvailableModels();
+      // Users can choose any LLM they have a key for — this is independent of
+      // the admin's backend-processor enablement. Source the picker from the
+      // key-aware endpoint, not the admin-gated /api/models.
+      const userId = useAuthStore.getState().user?.id;
+      const { providers } = await fetchAvailableProviders(userId);
+
+      // Map the provider response into the ModelsResponse shape the pickers
+      // expect. Include providers that are usable now (available) or offered as
+      // a fallback; carry through any connection error (e.g. Ollama offline).
+      const models: ModelsResponse = {};
+      for (const [id, info] of Object.entries(providers)) {
+        if (info.available || info.is_fallback || info.error) {
+          models[id] = {
+            name: info.name,
+            enabled: true,
+            models: info.models || [],
+            error: info.error,
+          };
+        }
+      }
       set({ availableModels: models, isLoadingModels: false });
 
-      // Auto-select first available provider and model if none selected
+      // Initialise the selection if none is set yet this session. Honour the
+      // user's saved preference (preferred_provider/preferred_model) when it's
+      // still available; otherwise fall back to the first available provider.
       if (!get().selectedProvider) {
-        const firstBackend = Object.keys(models)[0];
-        if (firstBackend) {
-          const firstModel = models[firstBackend].models[0];
+        const user = useAuthStore.getState().user;
+        const prefProvider = user?.preferred_provider;
+        const prefModel = user?.preferred_model;
+
+        if (prefProvider && models[prefProvider]) {
+          const providerModels = models[prefProvider].models;
+          const modelExists = prefModel && providerModels.some(m => m.id === prefModel);
           set({
-            selectedProvider: firstBackend,
-            selectedModel: firstModel?.id || null
+            selectedProvider: prefProvider,
+            selectedModel: modelExists ? prefModel : (providerModels[0]?.id ?? null),
           });
+        } else {
+          const firstBackend = Object.keys(models)[0];
+          if (firstBackend) {
+            set({
+              selectedProvider: firstBackend,
+              selectedModel: models[firstBackend].models[0]?.id ?? null,
+            });
+          }
         }
       }
     } catch (error) {
