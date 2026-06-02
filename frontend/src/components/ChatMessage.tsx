@@ -67,44 +67,51 @@ export default function ChatMessage({ message }: ChatMessageProps) {
       </div>
       <div className={`message-content chat-message-prose ${isUser ? '' : 'prose prose-sm dark:prose-invert'}`}>
         {!isUser && <CopyButton content={message.content} />}
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            code(props) {
-              const { children, className } = props;
-              const match = /language-(\w+)/.exec(className || '');
-              const language = match ? match[1] : '';
-              const isInline = !className;
-              const codeValue = String(children).replace(/\n$/, '');
+        {isUser ? (
+          // User input is shown verbatim — wrapped plain text in the bubble's
+          // own styling. We don't run it through markdown/code rendering, which
+          // turned pasted ``` fences into a dark code block inside the bubble.
+          <div className="whitespace-pre-wrap break-words">{message.content}</div>
+        ) : (
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              code(props) {
+                const { children, className } = props;
+                const match = /language-(\w+)/.exec(className || '');
+                const language = match ? match[1] : '';
+                const isInline = !className;
+                const codeValue = String(children).replace(/\n$/, '');
 
-              // Handle Mermaid diagrams
-              if (!isInline && (language === 'mermaid' || language === 'mmd')) {
-                return <MermaidDiagram chart={codeValue} />;
-              }
+                // Handle Mermaid diagrams
+                if (!isInline && (language === 'mermaid' || language === 'mmd')) {
+                  return <MermaidDiagram chart={codeValue} />;
+                }
 
-              // Handle regular code blocks
-              if (!isInline && language) {
+                // Handle regular code blocks
+                if (!isInline && language) {
+                  return (
+                    <CodeBlock
+                      language={language}
+                      value={codeValue}
+                    />
+                  );
+                }
+
+                // Handle inline code
                 return (
                   <CodeBlock
-                    language={language}
-                    value={codeValue}
+                    language="text"
+                    value={String(children)}
+                    inline={true}
                   />
                 );
-              }
-
-              // Handle inline code
-              return (
-                <CodeBlock
-                  language="text"
-                  value={String(children)}
-                  inline={true}
-                />
-              );
-            },
-          }}
-        >
-          {message.content}
-        </ReactMarkdown>
+              },
+            }}
+          >
+            {message.content}
+          </ReactMarkdown>
+        )}
       </div>
       {!isUser && message.model_used && (
         <div className="message-meta">
