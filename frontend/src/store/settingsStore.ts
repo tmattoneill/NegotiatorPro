@@ -26,6 +26,7 @@ interface SettingsState {
   // Actions
   setProvider: (provider: string) => void;
   setModel: (model: string) => void;
+  setProviderModel: (provider: string | null, model: string | null) => void;
   setPremiumModel: (use: boolean) => void;
   setPreprocessing: (use: boolean) => void;
   loadAvailableModels: () => Promise<void>;
@@ -56,6 +57,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   setModel: (model: string) => {
     set({ selectedModel: model });
+  },
+
+  // Set provider and model together without the auto-first-model behaviour —
+  // used when loading a negotiation's saved choice so a stored model is kept.
+  setProviderModel: (provider: string | null, model: string | null) => {
+    set({ selectedProvider: provider, selectedModel: model });
   },
 
   setPremiumModel: (use: boolean) => {
