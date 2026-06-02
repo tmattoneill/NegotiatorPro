@@ -214,7 +214,7 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
 
   return (
     <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center" onClick={handleClose}>
-      <div className="bg-chat-card border border-chat-border rounded-lg w-[90%] max-w-[560px] max-h-[90vh] overflow-auto shadow-lg" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-chat-card text-chat-foreground border border-chat-border rounded-lg w-[90%] max-w-[560px] max-h-[90vh] overflow-auto shadow-lg" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-5 border-b border-chat-border">
           <h2 className="text-xl font-semibold text-chat-foreground m-0">Create New Negotiation</h2>
           <button
