@@ -6,6 +6,7 @@
 
 import { useEffect } from 'react';
 import { useSettingsStore } from '../store/settingsStore';
+import Portal from './Portal';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   if (!isOpen) return null;
 
   return (
+    <Portal>
     <div
       style={{
         position: 'fixed',
@@ -208,5 +210,6 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         </div>
       </div>
     </div>
+    </Portal>
   );
 }

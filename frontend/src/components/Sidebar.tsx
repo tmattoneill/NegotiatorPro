@@ -11,6 +11,7 @@ import { useSettingsStore } from '../store/settingsStore';
 import SettingsModal from './SettingsModal';
 import ModelSelector from './ModelSelector';
 import NegotiationModal from './NegotiationModal';
+import Portal from './Portal';
 import { useAdminStore } from '../store/adminStore';
 import { FaRegUser, FaHandshake, FaFlask, FaShieldAlt, FaTerminal, FaCog, FaSignOutAlt, FaTrash, FaComments } from 'react-icons/fa';
 
@@ -618,6 +619,7 @@ export default function Sidebar() {
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
+        <Portal>
         <div style={{
           position: 'fixed',
           top: 0,
@@ -709,10 +711,12 @@ export default function Sidebar() {
             </div>
           </div>
         </div>
+        </Portal>
       )}
 
       {/* Delete Conversation Confirmation Modal */}
       {showDeleteModal && (
+        <Portal>
         <div style={{
           position: 'fixed',
           top: 0,
@@ -805,6 +809,7 @@ export default function Sidebar() {
             </div>
           </div>
         </div>
+        </Portal>
       )}
 
       {/* Settings Modal */}

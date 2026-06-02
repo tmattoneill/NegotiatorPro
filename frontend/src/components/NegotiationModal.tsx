@@ -12,6 +12,7 @@ import { useAuthStore } from '../store/authStore';
 import { useNegotiationStore } from '../store/negotiationStore';
 import { usePersonaStore } from '../store/personaStore';
 import ProviderSelector from './ProviderSelector';
+import Portal from './Portal';
 
 interface NegotiationModalProps {
   isOpen: boolean;
@@ -213,6 +214,7 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
   if (!isOpen) return null;
 
   return (
+    <Portal>
     <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center" onClick={handleClose}>
       <div className="bg-chat-card text-chat-foreground border border-chat-border rounded-lg w-[90%] max-w-[560px] max-h-[90vh] overflow-auto shadow-lg" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-5 border-b border-chat-border">
@@ -531,5 +533,6 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
         </form>
       </div>
     </div>
+    </Portal>
   );
 }
