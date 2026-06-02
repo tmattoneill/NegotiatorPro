@@ -193,11 +193,15 @@ export default function CodeBlock({ language, value, inline = false, theme = 'VS
           style={selectedTheme}
           showLineNumbers={!isCollapsed && lineCount > 1}
           wrapLines={true}
+          wrapLongLines={true}
           customStyle={{
             margin: 0,
             borderRadius: '0 0 8px 8px',
             fontSize: '13px',
             lineHeight: '1.5',
+            maxWidth: '100%',
+            whiteSpace: 'pre-wrap',
+            overflowWrap: 'anywhere',
           }}
         >
           {displayValue}

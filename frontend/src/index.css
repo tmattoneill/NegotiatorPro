@@ -112,7 +112,11 @@
 
   /* Chat prose — explicit type scale that overrides all prose/:where() defaults.
      Direct selectors (specificity 0-1-1+) beat Tailwind Typography's :where() (specificity 0-0-0). */
-  .chat-message-prose { font-size: 0.875rem; line-height: 1.65; }
+  .chat-message-prose { font-size: 0.875rem; line-height: 1.65; min-width: 0; overflow-wrap: break-word; word-break: break-word; }
+  /* Never let content (long URLs, fenced code, wide tables) push the bubble past its width */
+  .chat-message-prose pre { max-width: 100%; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .chat-message-prose .code-block-wrapper { max-width: 100%; }
+  .chat-message-prose table { display: block; max-width: 100%; overflow-x: auto; }
   .chat-message-prose p,
   .chat-message-prose li,
   .chat-message-prose td,
