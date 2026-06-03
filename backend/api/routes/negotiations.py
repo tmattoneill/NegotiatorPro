@@ -166,8 +166,8 @@ async def get_user_negotiations(
         )
 
 
-@negotiations_router.put("/{negotiation_id}", response_model=NegotiationResponse)
-@negotiations_router.patch("/{negotiation_id}", response_model=NegotiationResponse)
+@negotiations_router.put("/{negotiation_id}", response_model=NegotiationDetailResponse)
+@negotiations_router.patch("/{negotiation_id}", response_model=NegotiationDetailResponse)
 async def update_negotiation(
     negotiation_id: UUID,
     user_id: UUID,
@@ -210,13 +210,18 @@ async def update_negotiation(
         if update_data.settings is not None:
             update_kwargs['settings'] = update_data.settings
 
-        negotiation = await db_ops.update_negotiation(negotiation_id, **update_kwargs)
+        updated = await db_ops.update_negotiation(negotiation_id, **update_kwargs)
 
-        if not negotiation:
+        if not updated:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Negotiation not found"
             )
+
+        # Return the hydrated detail so the response carries partners, parsed
+        # settings, and the (re)bound user_persona. The bare update row drops
+        # these, which would blank the partner display on the client.
+        negotiation = await db_ops.get_negotiation_detail(negotiation_id)
 
         logger.info(f"Negotiation updated: {negotiation_id}")
         return negotiation

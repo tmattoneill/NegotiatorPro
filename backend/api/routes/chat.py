@@ -88,12 +88,17 @@ async def resolve_provider_preferences(
     return None, None, "system_default"
 
 
+# Placeholder strings users type into persona fields when they have nothing to
+# say. Treat these as empty so they never leak into the prompt as "Role: N/A".
+_PLACEHOLDER_VALUES = {"n/a", "na", "n.a.", "-", "—", "none", "tbd"}
+
+
 def _format_kv(label: str, value: Optional[str]) -> Optional[str]:
-    """Return '- **Label**: value' if value is non-empty, else None."""
+    """Return '- **Label**: value' if value is meaningful, else None."""
     if value is None:
         return None
     v = str(value).strip()
-    if not v:
+    if not v or v.lower() in _PLACEHOLDER_VALUES:
         return None
     return f"- **{label}**: {v}"
 

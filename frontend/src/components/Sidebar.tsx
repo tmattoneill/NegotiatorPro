@@ -21,7 +21,7 @@ export default function Sidebar() {
   const { user, logout } = useAuthStore();
   const { userPersonas, partnerPersonas: _partnerPersonas, fetchUserPersonas, fetchPartnerPersonas } = usePersonaStore();
   void _partnerPersonas; // Available for future use
-  const { negotiations, loadNegotiations, setCurrentNegotiation, currentNegotiationId } = useNegotiationStore();
+  const { negotiations, loadNegotiations, setCurrentNegotiation, currentNegotiationId, updateNegotiation } = useNegotiationStore();
   const { availableModels, setProviderModel } = useSettingsStore();
   // Compute currentNegotiation from negotiations and currentNegotiationId
   const currentNegotiation = negotiations.find(n => n.id === currentNegotiationId) || null;
@@ -161,19 +161,50 @@ export default function Sidebar() {
             <div style={{ fontSize: '10px', color: '#9fadbd', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
               You
             </div>
-            <div style={{ fontSize: '13px', color: '#fff', fontWeight: 500 }}>
-              {activeUserPersona ? (
-                <>
-                  <FaRegUser style={{ marginRight: '6px', opacity: 0.7, display: 'inline' }} />
-                  {activeUserPersona.name}
-                  {activeUserPersona.role_title && (
-                    <span style={{ opacity: 0.6, fontWeight: 400 }}> · {activeUserPersona.role_title}</span>
+            {currentNegotiation && userPersonas.length > 0 ? (
+              <div className="relative">
+                <FaRegUser style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.7, pointerEvents: 'none' }} />
+                <select
+                  value={currentNegotiation.user_persona_id ?? ''}
+                  onChange={(e) => {
+                    if (user?.id && currentNegotiation?.id && e.target.value) {
+                      updateNegotiation(user.id, currentNegotiation.id, { user_persona_id: e.target.value });
+                    }
+                  }}
+                  title="Who you are in this negotiation — used to tailor advice"
+                  className="np-select w-full appearance-none bg-none py-2 bg-black/30 border border-white/20 rounded-md text-white text-[13px] cursor-pointer"
+                  style={{ paddingLeft: '30px', paddingRight: '28px' }}
+                >
+                  {!currentNegotiation.user_persona_id && (
+                    <option value="">No persona set</option>
                   )}
-                </>
-              ) : (
-                <span style={{ opacity: 0.5, fontStyle: 'italic' }}>No persona set</span>
-              )}
-            </div>
+                  {userPersonas.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}{p.role_title ? ` · ${p.role_title}` : ''}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-white/70">
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                  </svg>
+                </span>
+              </div>
+            ) : (
+              <div style={{ fontSize: '13px', color: '#fff', fontWeight: 500 }}>
+                {activeUserPersona ? (
+                  <>
+                    <FaRegUser style={{ marginRight: '6px', opacity: 0.7, display: 'inline' }} />
+                    {activeUserPersona.name}
+                    {activeUserPersona.role_title && (
+                      <span style={{ opacity: 0.6, fontWeight: 400 }}> · {activeUserPersona.role_title}</span>
+                    )}
+                  </>
+                ) : (
+                  <span style={{ opacity: 0.5, fontStyle: 'italic' }}>No persona set</span>
+                )}
+              </div>
+            )}
           </div>
           <div>
             <div style={{ fontSize: '10px', color: '#9fadbd', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
