@@ -39,13 +39,11 @@ env/
 .env.staging
 .env.dev
 
-# Vector Store (Keep in repo - contains processed embeddings for users)
-# vectorstore/ - REMOVED: We want this in the repo
-# *.faiss - REMOVED: We want this in the repo
-# *.pkl - REMOVED: We want this in the repo
-
-# But not vectorstore backups — these are timestamped snapshots created during
-# rebuild promotion. Safe to discard once the new live index is validated.
+# Vector Store — build artifact, not tracked. Regenerate from sources/ via the
+# admin Sources & RAG rebuild (or scripts/rebuild_vectordb.py). The running
+# container uses its own ./data/vectorstore mount, not this copy.
+vectorstore/
+vectorstore_staging/
 vectorstore_backup_*/
 
 # Logs
