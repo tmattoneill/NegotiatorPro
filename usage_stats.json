@@ -58,5 +58,21 @@
         "cost": 0.0
       }
     }
+  },
+  "2026-06-03": {
+    "total_tokens": 3974,
+    "total_cost": 0.0,
+    "models": {
+      "ollama/glm-4.6:cloud": {
+        "tokens": 3076,
+        "requests": 1,
+        "cost": 0.0
+      },
+      "ollama/gpt-oss:120b-cloud": {
+        "tokens": 898,
+        "requests": 1,
+        "cost": 0.0
+      }
+    }
   }
 }

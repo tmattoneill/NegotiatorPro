@@ -773,16 +773,31 @@ enable_profiles = config.get("ui.features.enableUserProfiles")
 
 > **IMPORTANT:** When starting a new conversation, greet the user with a brief summary of the project context below — current focus, branch, and any active todos. Keep it to 2-3 sentences. Do not skip this greeting.
 
+**Current Focus:** UI/UX pass on negotiation management (branch ux/negotiation-management) — fixing UI issues and UX bugs around creating, selecting, editing, and deleting negotiations
+
 **Project:** Enhanced RAG-based negotiation guidance system with React frontend, FastAPI backend, multi-backend LLM support (OpenAI, Anthropic, Ollama), and document management.
 
 **Branch:** `main`
-**Last Updated:** 14/05/2026, 07:48:00
+**Last Updated:** 03/06/2026, 17:19:41
 
 ### Active Todos
+- [ ] [critical] Test vectorstore rebuild functionality end-to-end with the new bind mount fix to ensure no data loss (`main`)
 - [ ] [high] Test the newly implemented admin LLM config tab and provider debug logging functionality (`main`)
-- [ ] [medium] Clean up sync conflict file backend/api/routes/chat.sync-conflict-20260217-170746-DT2N2AX.py and resolve any remaining sync issues (`main`)
+- [ ] [high] Fix chat message typography: inconsistent fonts, sizes, and heading weights across markdown elements — needs a single coherent type scale applied to all rendered output (`main`)
+- [ ] [high] Add context switching between negotiation and sales modes: NLP auto-detect intent from the query and switch mode automatically, inform the user which mode is active, allow explicit override ("what's a good negotiation strategy..." always works regardless of current mode) (`main`)
+- [ ] [high] Create edit negotiation modal UI to utilize existing backend CRUD endpoints (`ux/negotiation-management`)
+- [ ] [high] Implement delete negotiation confirmation dialog with backend integration (`ux/negotiation-management`)
+- [ ] [high] Admin Sources & RAG: make rebuild auto-register unregistered files on disk. The rebuild/source-list assume every file in DATA_SOURCES_DIR has a source_documents row, but the original corpus was built by a CLI that never registered sources or stamped tags. Reconcile disk -> registry: auto-create rows deriving tags from top-level folder (negotiation/, sales/), and warn in UI when files lack rows. Stopgap: scripts/backfill_source_registry.py. (`main`)
+- [ ] [high] Run the backfill_source_registry.py script to reconcile existing corpus files with the database registry (`main`)
 - [ ] [medium] Verify admin login route works correctly with the new authentication changes (`main`)
-- [ ] [medium] Complete implementation of LLM response metadata extraction (TODOs in chat.py:287) (`main`)
+- [ ] [medium] Replace 'YOU' label with the active Persona Name in chat messages (`main`)
+- [ ] [medium] Show RAG source citations in right margin of chat messages, with hover tooltip revealing the relevant source text (`main`)
+- [ ] [medium] Add copy button to chat prompts and responses — copies raw markdown to clipboard (`main`)
+- [ ] [medium] PDF upload: use Anthropic native document API (base64 document content block) instead of pypdf text extraction when backend is Anthropic — handles scanned PDFs via server-side OCR, same as claude.ai. Fall back to pypdf for OpenAI/Ollama. May need to bypass langchain-anthropic and call Anthropic SDK directly for the multipart message. (`main`)
+- [ ] [medium] Test the complete negotiation lifecycle: create, edit, delete with the new UI components (`ux/negotiation-management`)
+- [ ] [medium] Verify the negotiation modal improvements work correctly across different screen sizes and browsers (`main`)
+- [ ] [medium] Test chat message rendering fixes with various markdown content types including code blocks and lists (`main`)
 - [ ] [low] Document the new admin features and LLM configuration capabilities in user documentation (`main`)
+- [ ] [low] Commit the 4 modified files in working tree (CLAUDE.md, embedding_config.json, llm_backend_config.json, usage_stats.json) (`ux/negotiation-management`)
 
 <!-- DEVCTX:END -->
