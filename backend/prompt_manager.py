@@ -164,6 +164,41 @@ class PromptManager:
     # Public API
     # ------------------------------------------------------------------
 
+    def get_prompt_parts(
+        self,
+        question: str,
+        context: str = "",
+        mode: str = "auto",
+    ) -> Tuple[str, str, str]:
+        """
+        Return (static_system, context_block, user_prompt) for cache-friendly
+        message assembly.
+
+        - static_system = <meta> + <persona for mode>. Byte-identical across
+          requests in a given mode, so it is the cacheable prefix.
+        - context_block = the per-request RAG material (varies every call). It
+          must follow the cache breakpoint, never precede it.
+        - user_prompt = the user template with the question filled in.
+
+        Callers that don't care about caching can use get_prompts_for_chat,
+        which simply concatenates static_system + context_block.
+        """
+        if mode not in _VALID_MODES:
+            logger.warning("Unknown mode %r — falling back to 'auto'.", mode)
+            mode = "auto"
+
+        static_parts: list[str] = [self._load_meta().rstrip()]
+        persona = self._persona_markdown.get(mode, "")
+        if persona:
+            static_parts.append(persona.rstrip())
+        static_system = "\n\n".join(static_parts).rstrip() + "\n"
+
+        context_block = (
+            "## Reference Material from Knowledge Base\n\n" + context if context else ""
+        )
+        user_prompt = self._user_template.format(question=question)
+        return static_system, context_block, user_prompt
+
     def get_prompts_for_chat(
         self,
         question: str,
@@ -171,30 +206,18 @@ class PromptManager:
         mode: str = "auto",
     ) -> Tuple[str, str]:
         """
-        Build the per-request system and user prompts.
-
-        Layers concatenated into the system prompt:
-            <meta>
-            <persona for mode, if any>
-            ## Reference Material from Knowledge Base
-            <context>
+        Build the per-request system and user prompts as a single concatenated
+        system string (meta + persona + reference material). Kept for callers
+        that don't split the prompt for provider caching.
         """
-        if mode not in _VALID_MODES:
-            logger.warning("Unknown mode %r — falling back to 'auto'.", mode)
-            mode = "auto"
-
-        parts: list[str] = [self._load_meta().rstrip()]
-
-        persona = self._persona_markdown.get(mode, "")
-        if persona:
-            parts.append(persona.rstrip())
-
-        if context:
-            parts.append("## Reference Material from Knowledge Base\n\n" + context)
-
-        system_prompt = "\n\n".join(parts).rstrip() + "\n"
-        user_prompt = self._user_template.format(question=question)
-        return system_prompt, user_prompt
+        static_system, context_block, user_prompt = self.get_prompt_parts(
+            question, context, mode
+        )
+        if context_block:
+            system_prompt = f"{static_system.rstrip()}\n\n{context_block}"
+        else:
+            system_prompt = static_system
+        return system_prompt.rstrip() + "\n", user_prompt
 
     def get_system_prompt(self, context: str = "", mode: str = "auto") -> str:
         """Return only the system half of the prompt pair."""

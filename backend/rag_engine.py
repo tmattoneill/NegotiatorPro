@@ -628,17 +628,20 @@ class EnhancedNegotiationRAG:
                 # User selected custom provider/model from dropdown
                 api_key = resolve_user_key(override_backend)
                 llm = self.model_config.create_llm(override_backend, override_model, api_key=api_key)
+                backend_id = override_backend
                 model_name = f"{override_backend}/{override_model}"
                 logger.info(f"Using user-selected model: {model_name}")
             elif use_premium_model:
                 llm = self.premium_llm
                 model_config = self.backend_manager.get_active_model_config("premium")
-                model_name = f"{model_config.get('backend', 'openai')}/{model_config.get('model', 'o3-mini')}"
+                backend_id = model_config.get('backend', 'openai')
+                model_name = f"{backend_id}/{model_config.get('model', 'o3-mini')}"
                 logger.info(f"Using premium model: {model_name}")
             else:
                 llm = self.default_llm
                 model_config = self.backend_manager.get_active_model_config("default")
-                model_name = f"{model_config.get('backend', 'openai')}/{model_config.get('model', 'gpt-4o-mini')}"
+                backend_id = model_config.get('backend', 'openai')
+                model_name = f"{backend_id}/{model_config.get('model', 'gpt-4o-mini')}"
                 logger.info(f"Using default model: {model_name}")
 
             # Resolve mode → tags_filter for scoped retrieval
@@ -651,22 +654,46 @@ class EnhancedNegotiationRAG:
             # Get relevant context from vectorstore
             context = self.get_relevant_context(question, tags_filter=tags_filter)
 
-            # Get system and user prompts from prompt manager — mode selects
-            # which persona (sales/negotiation) gets stacked on top of the meta
-            # prompt. mode=auto uses meta only.
-            system_prompt, user_prompt = self.prompt_manager.get_prompts_for_chat(
+            # Split the prompt into a static prefix (meta + persona, identical
+            # every request) and the per-request context. mode selects which
+            # persona stacks on the meta prompt; mode=auto uses meta only.
+            static_system, context_block, user_prompt = self.prompt_manager.get_prompt_parts(
                 question=question,
                 context=context,
                 mode=mode,
             )
 
+            # Provider-aware system message for prompt caching.
+            #   anthropic: mark the static prefix with cache_control so it's
+            #     cached across requests; context goes in a second, uncached
+            #     block after the breakpoint.
+            #   openai: a single static-first string lets OpenAI auto-cache the
+            #     identical prefix (>1024 tokens).
+            #   ollama/others: no caching; the string form is equivalent.
+            if backend_id == "anthropic":
+                system_content = [
+                    {"type": "text", "text": static_system,
+                     "cache_control": {"type": "ephemeral"}},
+                ]
+                if context_block:
+                    system_content.append({"type": "text", "text": context_block})
+                system_message = {"role": "system", "content": system_content}
+                sys_len = len(static_system) + len(context_block)
+            else:
+                system_text = (
+                    f"{static_system.rstrip()}\n\n{context_block}\n"
+                    if context_block else static_system
+                )
+                system_message = {"role": "system", "content": system_text}
+                sys_len = len(system_text)
+
             # Create messages for chat completion
             messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
+                system_message,
+                {"role": "user", "content": user_prompt},
             ]
 
-            logger.info(f"Sending chat completion request with {len(system_prompt)} char system prompt and {len(user_prompt)} char user prompt")
+            logger.info(f"Sending chat completion request with {sys_len} char system prompt and {len(user_prompt)} char user prompt (backend={backend_id})")
 
             # Call the LLM with proper chat format
             response = llm.invoke(messages)
