@@ -99,6 +99,19 @@ cp /path/to/your/books/*.pdf data/sources/
 docker compose up -d --build
 ```
 
+### 5. Build the Vectorstore (first run)
+
+The FAISS index is a build artifact and is **not** stored in the repo, so a
+fresh checkout or deploy starts with no index. Build it once from your sources
+before the RAG can answer anything:
+
+- Preferred: open the admin **📚 Sources & RAG** tab and click **Rebuild
+  Vectorstore** (see below).
+- Or from the CLI: `docker exec -it negotiator-pro-backend python scripts/rebuild_vectordb.py`
+
+After the first build the index persists in the `data/vectorstore/` volume, so
+this step is only needed on a fresh environment or when you change the corpus.
+
 ## Adding New Sources & Rebuilding the RAG
 
 The preferred way is through the admin panel — no `docker exec` needed.
