@@ -331,7 +331,7 @@ async def process_chat(
         # Process question using existing RAG system. get_advice is synchronous
         # and does a blocking llm.invoke() network call — run it in a worker
         # thread so it doesn't block the event loop and serialize all requests.
-        answer = await asyncio.to_thread(
+        answer, usage = await asyncio.to_thread(
             rag.get_advice,
             question=enhanced_question,
             use_premium_model=use_premium_model,
@@ -343,6 +343,7 @@ async def process_chat(
             # Revisit when SalesPro shares this endpoint.
             mode=mode or "negotiation",
             user_api_keys=user_api_keys,
+            return_usage=True,
         )
 
         processing_time = time.time() - start_time
@@ -418,7 +419,7 @@ async def process_chat(
         return ChatResponse(
             answer=answer,
             model_used=model_used,
-            tokens_used=None,  # TODO: Extract from LLM response metadata
+            tokens_used=usage.get("total_tokens") or None,
             processing_time=round(processing_time, 2)
         )
 

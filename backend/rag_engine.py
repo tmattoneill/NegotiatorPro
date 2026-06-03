@@ -515,6 +515,33 @@ class EnhancedNegotiationRAG:
         setup_end = time.time()
         logger.info(f"RAG system setup complete in {setup_end-setup_start:.2f}s!")
 
+    @staticmethod
+    def _extract_usage(response: Any) -> Dict[str, int]:
+        """Pull real token counts from a LangChain chat response.
+
+        LangChain standardises `usage_metadata` across providers with
+        input/output/total tokens; Anthropic adds cache read/creation counts
+        under input_token_details. Returns zeros when a backend doesn't report
+        usage (e.g. some Ollama builds).
+        """
+        um = getattr(response, "usage_metadata", None)
+        if not isinstance(um, dict):
+            # Some backends omit usage; tests mock the LLM (usage_metadata is a
+            # Mock, not a dict). Treat anything non-dict as "no usage reported".
+            return {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0,
+                    "cache_read": 0, "cache_creation": 0}
+        input_tokens = int(um.get("input_tokens", 0) or 0)
+        output_tokens = int(um.get("output_tokens", 0) or 0)
+        total = int(um.get("total_tokens", input_tokens + output_tokens) or 0)
+        details = um.get("input_token_details", {}) or {}
+        return {
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "total_tokens": total,
+            "cache_read": int(details.get("cache_read", 0) or 0),
+            "cache_creation": int(details.get("cache_creation", 0) or 0),
+        }
+
     def get_advice(
         self,
         question: str,
@@ -524,7 +551,8 @@ class EnhancedNegotiationRAG:
         override_model: Optional[str] = None,
         mode: str = "auto",
         user_api_keys: Optional[Dict[str, str]] = None,
-    ) -> str:
+        return_usage: bool = False,
+    ):
         """
         Get negotiation advice based on the question using proper chat completion.
 
@@ -534,9 +562,12 @@ class EnhancedNegotiationRAG:
             use_preprocessing: Whether to preprocess the input text
             override_backend: Optional backend override
             override_model: Optional model override
+            return_usage: When True, return (answer, usage_dict) instead of just
+                the answer string. usage_dict has input/output/total token counts
+                and Anthropic cache_read/cache_creation when available.
 
         Returns:
-            The AI's response as a string
+            The AI's response as a string, or (answer, usage) when return_usage.
         """
         if not hasattr(self, 'default_llm') or not hasattr(self, 'premium_llm'):
             raise LLMGenerationError("RAG system not initialized — vectorstore or LLMs unavailable.")
@@ -576,7 +607,9 @@ class EnhancedNegotiationRAG:
                     {"role": "user", "content": self.prompt_manager.get_test_user_prompt(question)}
                 ]
                 response = llm.invoke(messages)
-                return response.content if hasattr(response, 'content') else str(response)
+                content = response.content if hasattr(response, 'content') else str(response)
+                usage = self._extract_usage(response)
+                return (content, usage) if return_usage else content
             except Exception as e:
                 logger.error(f"Test prompt LLM call failed: {e}")
                 raise LLMGenerationError(f"Connection test failed: {e}") from e
@@ -638,14 +671,21 @@ class EnhancedNegotiationRAG:
             # Call the LLM with proper chat format
             response = llm.invoke(messages)
 
-            # Log usage (simplified - in production you'd get actual token counts)
-            self.admin_config.log_usage(model_name, 1000)  # Placeholder token count
+            # Real token metering from the response (replaces the old placeholder
+            # of 1000). cost stays 0.0 for now — the per-model pricing fields are
+            # mislabeled (per-1M values in a *_per_1k field), so deriving cost
+            # from them would be 1000x off. Tokens are what we need to verify
+            # caching; cost is a follow-up once pricing units are fixed.
+            usage = self._extract_usage(response)
+            self.admin_config.log_usage(model_name, usage["total_tokens"])
+            logger.info(
+                "Token usage [%s] input=%d output=%d total=%d cache_read=%d cache_creation=%d",
+                model_name, usage["input_tokens"], usage["output_tokens"],
+                usage["total_tokens"], usage["cache_read"], usage["cache_creation"],
+            )
 
-            # Extract content from response
-            if hasattr(response, 'content'):
-                return response.content
-            else:
-                return str(response)
+            content = response.content if hasattr(response, 'content') else str(response)
+            return (content, usage) if return_usage else content
 
         except LLMGenerationError:
             raise
