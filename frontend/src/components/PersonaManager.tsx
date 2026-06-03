@@ -2,6 +2,7 @@
  * PersonaManager - Manage User and Partner Personas (Tailwind)
  */
 import { useState, useEffect } from 'react';
+import { meaningfulLen, MIN_PERSONA_CHARS } from '../utils/personaContext';
 import { useNavigate } from 'react-router-dom';
 import { usePersonaStore } from '../store/personaStore';
 import { useAuthStore } from '../store/authStore';
@@ -232,6 +233,12 @@ function PersonaForm({ type, persona, onSubmit, onCancel }: PersonaFormProps) {
 
   const updateField = (field: string, value: string | boolean | null) => setFormData((prev: any) => ({ ...prev, [field]: value }));
 
+  const f = formData as any;
+  const contextLen = isUserPersona
+    ? meaningfulLen(f.role_title, f.organization, f.communication_style, f.negotiation_strengths, f.notes)
+    : meaningfulLen(f.role_title, f.company, f.communication_style, f.known_interests, f.batna_estimate, f.relationship_notes);
+  const meetsMin = contextLen >= MIN_PERSONA_CHARS;
+
   return (
     <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center">
       <div className="bg-chat-card border border-chat-border rounded-xl w-[90%] max-w-[600px] max-h-[90vh] overflow-auto">
@@ -342,9 +349,15 @@ function PersonaForm({ type, persona, onSubmit, onCancel }: PersonaFormProps) {
               {isUserPersona ? ' Set as default persona' : ' Share with all users'}
             </label>
           </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" type="button" onClick={onCancel}>Cancel</Button>
-            <Button type="submit">{persona ? 'Save Changes' : 'Create Persona'}</Button>
+          <div className="flex items-center justify-between gap-3 pt-2">
+            <span className={`text-xs ${meetsMin ? 'text-chat-muted-foreground' : 'text-danger'}`}>
+              {contextLen}/{MIN_PERSONA_CHARS} characters of context
+              {!meetsMin && ` — add ${isUserPersona ? 'your role, style, strengths' : 'their role, interests, BATNA'}`}
+            </span>
+            <div className="flex gap-3">
+              <Button variant="outline" type="button" onClick={onCancel}>Cancel</Button>
+              <Button type="submit" disabled={!meetsMin}>{persona ? 'Save Changes' : 'Create Persona'}</Button>
+            </div>
           </div>
         </form>
       </div>

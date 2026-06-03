@@ -13,6 +13,7 @@ import { useNegotiationStore } from '../store/negotiationStore';
 import { usePersonaStore } from '../store/personaStore';
 import ProviderSelector from './ProviderSelector';
 import Portal from './Portal';
+import { meaningfulLen, MIN_PERSONA_CHARS } from '../utils/personaContext';
 
 interface NegotiationModalProps {
   isOpen: boolean;
@@ -46,6 +47,10 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
   const [newPartnerName, setNewPartnerName] = useState('');
   const [newPartnerRole, setNewPartnerRole] = useState('');
   const [newPartnerCompany, setNewPartnerCompany] = useState('');
+  const [newPartnerStyle, setNewPartnerStyle] = useState('');
+  const [newPartnerInterests, setNewPartnerInterests] = useState('');
+  const [newPartnerBatna, setNewPartnerBatna] = useState('');
+  const [newPartnerNotes, setNewPartnerNotes] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -96,6 +101,19 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [partnerPersonas.length]);
 
+  // Context length gates (mirror the backend 240-char minimum). Only the
+  // "create" path needs to meet it — existing/skip carry no new persona text.
+  const userContextLen = meaningfulLen(
+    newPersonaRole, newPersonaOrg, newPersonaStyle, newPersonaStrengths, newPersonaNotes,
+  );
+  const partnerContextLen = meaningfulLen(
+    newPartnerRole, newPartnerCompany, newPartnerStyle, newPartnerInterests,
+    newPartnerBatna, newPartnerNotes,
+  );
+  const userPersonaOk = personaMode !== 'create' || userContextLen >= MIN_PERSONA_CHARS;
+  const partnerOk = partnerMode !== 'create' || partnerContextLen >= MIN_PERSONA_CHARS;
+  const canSubmit = !!title.trim() && userPersonaOk && partnerOk && !isSubmitting;
+
   const resetForm = () => {
     setTitle('');
     setDescription('');
@@ -115,6 +133,10 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
     setNewPartnerName('');
     setNewPartnerRole('');
     setNewPartnerCompany('');
+    setNewPartnerStyle('');
+    setNewPartnerInterests('');
+    setNewPartnerBatna('');
+    setNewPartnerNotes('');
     setError('');
   };
 
@@ -162,21 +184,29 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
       let partnerIds: string[];
       if (partnerMode === 'existing' && selectedPartnerId) {
         partnerIds = [selectedPartnerId];
-      } else if (partnerMode === 'create' && newPartnerName.trim()) {
+      } else if (partnerMode === 'create') {
+        if (!newPartnerName.trim()) {
+          setError('Partner name is required');
+          setIsSubmitting(false);
+          return;
+        }
+        // No placeholder fallback any more — a partner needs real context
+        // (>=240 chars) so the briefing can tailor strategy to them.
         const createdPartner = await createPartnerPersona(user.id, {
           name: newPartnerName.trim(),
           role_title: newPartnerRole.trim() || undefined,
           company: newPartnerCompany.trim() || undefined,
+          communication_style: newPartnerStyle.trim() || undefined,
+          known_interests: newPartnerInterests.trim() || undefined,
+          batna_estimate: newPartnerBatna.trim() || undefined,
+          relationship_notes: newPartnerNotes.trim() || undefined,
           is_shared: false,
         });
         partnerIds = [createdPartner.id];
       } else {
-        // Fallback: no partner chosen and none to reuse — create a placeholder
-        const defaultPartner = await createPartnerPersona(user.id, {
-          name: 'Partner',
-          is_shared: false,
-        });
-        partnerIds = [defaultPartner.id];
+        setError('Choose or create a negotiation partner');
+        setIsSubmitting(false);
+        return;
       }
 
       // Step 3: create the negotiation
@@ -421,6 +451,10 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
                       />
                       Make this my default profile (auto-used for future negotiations)
                     </label>
+                    <span className={`text-xs ${userContextLen >= MIN_PERSONA_CHARS ? 'text-chat-muted-foreground' : 'text-danger'}`}>
+                      {userContextLen}/{MIN_PERSONA_CHARS} characters of context
+                      {userContextLen < MIN_PERSONA_CHARS && ' — add your role, style and strengths'}
+                    </span>
                   </div>
                 )}
               </div>
@@ -508,6 +542,42 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
                       className="px-3 py-2 border border-chat-border rounded text-[14px]"
                     />
                   </div>
+                  <textarea
+                    value={newPartnerStyle}
+                    onChange={(e) => setNewPartnerStyle(e.target.value)}
+                    placeholder="Communication style (e.g. 'aggressive opener, anchors high, goes quiet under pressure')"
+                    rows={2}
+                    disabled={isSubmitting}
+                    className="px-3 py-2 border border-chat-border rounded text-[14px] resize-y"
+                  />
+                  <textarea
+                    value={newPartnerInterests}
+                    onChange={(e) => setNewPartnerInterests(e.target.value)}
+                    placeholder="Known interests / priorities (what do they actually want — price, speed, certainty, status?)"
+                    rows={2}
+                    disabled={isSubmitting}
+                    className="px-3 py-2 border border-chat-border rounded text-[14px] resize-y"
+                  />
+                  <textarea
+                    value={newPartnerBatna}
+                    onChange={(e) => setNewPartnerBatna(e.target.value)}
+                    placeholder="BATNA estimate (their best alternative if this deal falls through)"
+                    rows={2}
+                    disabled={isSubmitting}
+                    className="px-3 py-2 border border-chat-border rounded text-[14px] resize-y"
+                  />
+                  <textarea
+                    value={newPartnerNotes}
+                    onChange={(e) => setNewPartnerNotes(e.target.value)}
+                    placeholder="Relationship notes (history, leverage, constraints, anything else that matters)"
+                    rows={2}
+                    disabled={isSubmitting}
+                    className="px-3 py-2 border border-chat-border rounded text-[14px] resize-y"
+                  />
+                  <span className={`text-xs ${partnerContextLen >= MIN_PERSONA_CHARS ? 'text-chat-muted-foreground' : 'text-danger'}`}>
+                    {partnerContextLen}/{MIN_PERSONA_CHARS} characters of context
+                    {partnerContextLen < MIN_PERSONA_CHARS && ' — add their style, interests and BATNA'}
+                  </span>
                 </div>
               )}
             </div>
@@ -524,7 +594,7 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || !title.trim()}
+              disabled={!canSubmit}
               className="px-4 py-2 text-[14px] rounded bg-chat-primary text-white disabled:opacity-50"
             >
               {isSubmitting ? 'Creating...' : 'Create Negotiation'}

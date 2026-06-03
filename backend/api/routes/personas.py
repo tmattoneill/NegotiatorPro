@@ -19,10 +19,40 @@ from ..models import (
 from ..middleware.auth import get_current_user
 from ... import db_operations as db_ops
 from ...user_profile import SUPER_ADMIN_USERNAME
+from ...persona_text import meaningful_len, MIN_PERSONA_CHARS
 
 logger = logging.getLogger(__name__)
 
 personas_router = APIRouter(prefix="/api/personas", tags=["personas"])
+
+# Descriptive free-text fields that count toward the per-persona context minimum.
+_USER_CONTEXT_FIELDS = (
+    "role_title", "organization", "communication_style",
+    "negotiation_strengths", "notes",
+)
+_PARTNER_CONTEXT_FIELDS = (
+    "role_title", "company", "communication_style",
+    "known_interests", "batna_estimate", "relationship_notes",
+)
+
+
+def _enforce_min_context(merged: dict, fields: tuple, what: str) -> None:
+    """Raise 422 if the merged persona has < MIN_PERSONA_CHARS of real context.
+
+    Updates are partial, so the caller merges the incoming fields over the
+    existing row before calling this — editing one field can't silently drop a
+    persona below the minimum, and a grandfathered thin persona must be brought
+    up to the minimum on its next edit.
+    """
+    total = meaningful_len(*(merged.get(f) for f in fields))
+    if total < MIN_PERSONA_CHARS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                f"Add at least {MIN_PERSONA_CHARS} characters of context across "
+                f"{what} (currently {total})."
+            ),
+        )
 
 
 def check_super_admin_restriction(current_user: Optional[dict], action: str = "perform this action"):
@@ -92,6 +122,10 @@ async def update_user_persona(persona_id: str, user_id: str, data: UserPersonaUp
         raise HTTPException(status_code=404, detail="Persona not found")
 
     update_data = data.model_dump(exclude_unset=True)
+    _enforce_min_context(
+        {**existing, **update_data}, _USER_CONTEXT_FIELDS,
+        "role, organisation, communication style, strengths and notes",
+    )
     persona = await db_ops.update_user_persona(UUID(persona_id), **update_data)
     return UserPersonaResponse(**persona)
 
@@ -166,6 +200,10 @@ async def update_partner_persona(persona_id: str, user_id: str, data: PartnerPer
         raise HTTPException(status_code=404, detail="Persona not found or not authorized")
 
     update_data = data.model_dump(exclude_unset=True)
+    _enforce_min_context(
+        {**existing, **update_data}, _PARTNER_CONTEXT_FIELDS,
+        "role, company, communication style, known interests, BATNA and relationship notes",
+    )
     persona = await db_ops.update_partner_persona(UUID(persona_id), **update_data)
     return PartnerPersonaResponse(**persona)
 

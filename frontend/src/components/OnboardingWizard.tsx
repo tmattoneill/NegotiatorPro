@@ -95,50 +95,26 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
     setIsSubmitting(true);
     setError(null);
 
-    // Track created partner for potential rollback
-    let createdDefaultPartnerId: string | null = null;
-
     try {
-      // Determine which partner persona to use
-      let partnerIds: string[];
-
-      if (createdPartnerPersonaId) {
-        // Use the partner persona created in the wizard
-        partnerIds = [createdPartnerPersonaId];
-      } else {
-        // User skipped partner creation - create a default one
-        const defaultPartner = await createPartnerPersona(user.id, {
-          name: 'Partner',
-          is_shared: false,
-        });
-        createdDefaultPartnerId = defaultPartner.id;
-        partnerIds = [defaultPartner.id];
-      }
-
-      // CRITICAL FIX: Try to create negotiation, rollback on failure
-      try {
-        await createNegotiation(user.id, {
-          title,
-          description: description || undefined,
-          partner_persona_ids: partnerIds,
-        });
-
-        // Mark onboarding as complete
+      // A negotiation needs a real counterparty (>=240 chars of context), so we
+      // no longer fabricate a placeholder "Partner" when the partner step was
+      // skipped. If there's no real partner, finish onboarding without a first
+      // negotiation — the user can create one later from the sidebar.
+      if (!createdPartnerPersonaId) {
         localStorage.setItem('onboardingCompleted', 'true');
         onComplete();
-      } catch (negotiationError) {
-        // ROLLBACK: Delete the default partner if we created it and negotiation failed
-        if (createdDefaultPartnerId) {
-          const { deletePartnerPersona } = usePersonaStore.getState();
-          try {
-            await deletePartnerPersona(user.id, createdDefaultPartnerId);
-            console.log('Rolled back default partner creation after negotiation failure');
-          } catch (rollbackError) {
-            console.error('Failed to rollback partner persona:', rollbackError);
-          }
-        }
-        throw negotiationError; // Re-throw to be caught by outer catch
+        return;
       }
+
+      await createNegotiation(user.id, {
+        title,
+        description: description || undefined,
+        partner_persona_ids: [createdPartnerPersonaId],
+      });
+
+      // Mark onboarding as complete
+      localStorage.setItem('onboardingCompleted', 'true');
+      onComplete();
     } catch (err) {
       console.error('Failed to create negotiation:', err);
       setError('Failed to create negotiation. Please try again.');

@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import type { PartnerPersonaCreate } from '../../types/personas';
+import { meaningfulLen, MIN_PERSONA_CHARS } from '../../utils/personaContext';
 
 interface PartnerPersonaStepProps {
   onComplete: (persona: PartnerPersonaCreate) => void;
@@ -16,10 +17,20 @@ export default function PartnerPersonaStep({ onComplete, onBack, onSkip }: Partn
     name: '',
     role_title: '',
     company: '',
+    communication_style: '',
+    known_interests: '',
+    batna_estimate: '',
+    relationship_notes: '',
     is_shared: false,
   });
 
   const [errors, setErrors] = useState<{ name?: string }>({});
+
+  const contextLen = meaningfulLen(
+    formData.role_title, formData.company, formData.communication_style,
+    formData.known_interests, formData.batna_estimate, formData.relationship_notes,
+  );
+  const meetsMin = contextLen >= MIN_PERSONA_CHARS;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -104,15 +115,78 @@ export default function PartnerPersonaStep({ onComplete, onBack, onSkip }: Partn
           <small className="text-[13px] text-chat-muted-foreground -mt-1">The organization they represent</small>
         </div>
 
-        <div className="flex items-center justify-end gap-3 mt-2 pt-6 border-t border-chat-border">
+        <div className="flex flex-col gap-2">
+          <label htmlFor="communication_style" className="text-[14px] font-medium text-chat-foreground">
+            Their communication style
+          </label>
+          <textarea
+            id="communication_style"
+            name="communication_style"
+            value={formData.communication_style}
+            onChange={handleChange}
+            placeholder="How they negotiate — e.g., 'aggressive opener, anchors high, goes quiet under pressure'"
+            rows={2}
+            className="px-3 py-2 text-[14px] border border-chat-border rounded focus:border-chat-primary focus:ring-2 focus:ring-chat-primary/10 outline-none resize-y"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label htmlFor="known_interests" className="text-[14px] font-medium text-chat-foreground">
+            Known interests / priorities
+          </label>
+          <textarea
+            id="known_interests"
+            name="known_interests"
+            value={formData.known_interests}
+            onChange={handleChange}
+            placeholder="What they actually want — price, speed, certainty, status?"
+            rows={2}
+            className="px-3 py-2 text-[14px] border border-chat-border rounded focus:border-chat-primary focus:ring-2 focus:ring-chat-primary/10 outline-none resize-y"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label htmlFor="batna_estimate" className="text-[14px] font-medium text-chat-foreground">
+            Their BATNA estimate
+          </label>
+          <textarea
+            id="batna_estimate"
+            name="batna_estimate"
+            value={formData.batna_estimate}
+            onChange={handleChange}
+            placeholder="Their best alternative if this deal falls through"
+            rows={2}
+            className="px-3 py-2 text-[14px] border border-chat-border rounded focus:border-chat-primary focus:ring-2 focus:ring-chat-primary/10 outline-none resize-y"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label htmlFor="relationship_notes" className="text-[14px] font-medium text-chat-foreground">
+            Relationship notes
+          </label>
+          <textarea
+            id="relationship_notes"
+            name="relationship_notes"
+            value={formData.relationship_notes}
+            onChange={handleChange}
+            placeholder="History, leverage, constraints, anything else that matters"
+            rows={2}
+            className="px-3 py-2 text-[14px] border border-chat-border rounded focus:border-chat-primary focus:ring-2 focus:ring-chat-primary/10 outline-none resize-y"
+          />
+        </div>
+
+        <div className="flex items-center gap-3 mt-2 pt-6 border-t border-chat-border">
           <button type="button" className="px-4 py-2 rounded border border-chat-border text-chat-muted-foreground bg-chat-card hover:bg-chat-muted" onClick={onBack}>
             Back
           </button>
+          <span className={`text-[13px] ${meetsMin ? 'text-chat-muted-foreground' : 'text-danger'}`}>
+            {contextLen}/{MIN_PERSONA_CHARS} chars
+          </span>
           <div className="flex-1" />
           <button type="button" className="px-3 py-2 rounded bg-transparent text-chat-muted-foreground hover:text-chat-foreground" onClick={onSkip}>
             Skip for now
           </button>
-          <button type="submit" className="px-5 py-2.5 rounded-md bg-chat-primary text-white disabled:opacity-50" disabled={!formData.name.trim()}>
+          <button type="submit" className="px-5 py-2.5 rounded-md bg-chat-primary text-white disabled:opacity-50" disabled={!formData.name.trim() || !meetsMin}>
             Continue
           </button>
         </div>

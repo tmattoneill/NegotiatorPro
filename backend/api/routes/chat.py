@@ -10,6 +10,7 @@ from ..models.requests import ChatRequest
 from ..models.responses import ChatResponse
 from ...rag_engine import EnhancedNegotiationRAG, LLMGenerationError
 from ... import db_operations as db_ops
+from ...persona_text import is_placeholder
 from ..middleware.auth import get_current_user
 from ...user_profile import UserProfileManager
 
@@ -88,19 +89,15 @@ async def resolve_provider_preferences(
     return None, None, "system_default"
 
 
-# Placeholder strings users type into persona fields when they have nothing to
-# say. Treat these as empty so they never leak into the prompt as "Role: N/A".
-_PLACEHOLDER_VALUES = {"n/a", "na", "n.a.", "-", "—", "none", "tbd"}
-
-
 def _format_kv(label: str, value: Optional[str]) -> Optional[str]:
-    """Return '- **Label**: value' if value is meaningful, else None."""
-    if value is None:
+    """Return '- **Label**: value' if value is meaningful, else None.
+
+    Placeholder values (N/A, -, none, ...) are treated as empty so they never
+    leak into the prompt as "Role: N/A". See backend.persona_text.
+    """
+    if is_placeholder(value):
         return None
-    v = str(value).strip()
-    if not v or v.lower() in _PLACEHOLDER_VALUES:
-        return None
-    return f"- **{label}**: {v}"
+    return f"- **{label}**: {value.strip()}"
 
 
 async def build_negotiation_briefing(conversation_id: Optional[str]) -> str:

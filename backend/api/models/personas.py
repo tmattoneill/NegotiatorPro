@@ -1,8 +1,10 @@
 """Persona models for FastAPI endpoints"""
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List
 from datetime import datetime
 from uuid import UUID
+
+from ...persona_text import meaningful_len, MIN_PERSONA_CHARS
 
 
 # ============================================================================
@@ -22,7 +24,20 @@ class UserPersonaBase(BaseModel):
 
 class UserPersonaCreate(UserPersonaBase):
     """Request model for creating user persona"""
-    pass
+
+    @model_validator(mode="after")
+    def _require_min_context(self):
+        total = meaningful_len(
+            self.role_title, self.organization, self.communication_style,
+            self.negotiation_strengths, self.notes,
+        )
+        if total < MIN_PERSONA_CHARS:
+            raise ValueError(
+                f"Add at least {MIN_PERSONA_CHARS} characters of context across "
+                f"role, organisation, communication style, strengths and notes "
+                f"(currently {total}) so advice can be tailored to you."
+            )
+        return self
 
 
 class UserPersonaUpdate(BaseModel):
@@ -65,7 +80,20 @@ class PartnerPersonaBase(BaseModel):
 
 class PartnerPersonaCreate(PartnerPersonaBase):
     """Request model for creating partner persona"""
-    pass
+
+    @model_validator(mode="after")
+    def _require_min_context(self):
+        total = meaningful_len(
+            self.role_title, self.company, self.communication_style,
+            self.known_interests, self.batna_estimate, self.relationship_notes,
+        )
+        if total < MIN_PERSONA_CHARS:
+            raise ValueError(
+                f"Add at least {MIN_PERSONA_CHARS} characters of context across "
+                f"role, company, communication style, known interests, BATNA and "
+                f"relationship notes (currently {total}) so strategy can be tailored."
+            )
+        return self
 
 
 class PartnerPersonaUpdate(BaseModel):
