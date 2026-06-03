@@ -92,6 +92,7 @@ export default function ChatContainer() {
         use_preprocessing: usePreprocessing,
         provider: usePremiumModel ? undefined : selectedProvider || undefined,
         model: usePremiumModel ? undefined : selectedModel || undefined,
+        mode: 'negotiation',
       }, files);
 
       // Add assistant response

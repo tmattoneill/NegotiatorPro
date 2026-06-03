@@ -70,6 +70,10 @@ export const sendChatMessage = async (request: ChatRequest, files?: File[]): Pro
     formData.append('model', request.model);
   }
 
+  // NegotiatorPro runs in negotiation mode by default — scopes RAG to
+  // negotiation-tagged chunks and loads the negotiation strategist persona.
+  formData.append('mode', request.mode || 'negotiation');
+
   // Append files if provided
   if (files && files.length > 0) {
     files.forEach((file) => {

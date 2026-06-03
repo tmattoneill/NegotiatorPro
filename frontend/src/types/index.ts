@@ -10,6 +10,10 @@ export interface ChatRequest {
   use_preprocessing: boolean;
   provider?: string;
   model?: string;
+  // Retrieval + persona mode: 'negotiation' | 'sales' | 'auto'. NegotiatorPro
+  // sends 'negotiation' so the negotiation persona and negotiation-scoped RAG
+  // engage; without it the backend falls back to its default.
+  mode?: string;
 }
 
 export interface ChatResponse {

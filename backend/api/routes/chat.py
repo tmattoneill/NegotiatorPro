@@ -341,7 +341,10 @@ async def process_chat(
             use_preprocessing=use_preprocessing,
             override_backend=resolved_provider,
             override_model=resolved_model,
-            mode=mode or "auto",
+            # NegotiatorPro is the negotiator surface, so default to negotiation
+            # mode (scoped RAG + negotiation persona) when the client omits it.
+            # Revisit when SalesPro shares this endpoint.
+            mode=mode or "negotiation",
             user_api_keys=user_api_keys,
         )
 
