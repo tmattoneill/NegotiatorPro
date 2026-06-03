@@ -37,6 +37,25 @@ logger = logging.getLogger(__name__)
 SUPPORTED_EXTENSIONS = {".pdf", ".txt", ".docx"}
 
 
+def check_embedding_credentials(embedding_model: str) -> Optional[str]:
+    """
+    Pre-flight check that the credentials an embedding model needs are present.
+
+    Returns a human-readable error string if credentials are missing, or None
+    if everything required is in place. All currently-supported embedding
+    models are OpenAI-hosted and need OPENAI_API_KEY. Checking up front avoids
+    loading and chunking the whole corpus only to fail at the embedding step.
+    """
+    import os
+    if not os.getenv("OPENAI_API_KEY"):
+        return (
+            f"OPENAI_API_KEY is not set, but the embedding model "
+            f"'{embedding_model}' requires it. Set OPENAI_API_KEY in the "
+            f"environment (.env) and restart the backend, then rebuild."
+        )
+    return None
+
+
 @dataclass
 class BuildResult:
     files_attempted: int = 0
@@ -116,6 +135,15 @@ async def build_index(
     """
     result = BuildResult(embedding_model=embedding_model)
     t0 = time.monotonic()
+
+    # Fail fast if embedding credentials are missing, before the expensive
+    # load/chunk pass (otherwise the build dies at the final embedding step
+    # after processing the whole corpus).
+    cred_error = check_embedding_credentials(embedding_model)
+    if cred_error:
+        result.errors.append(cred_error)
+        result.duration_seconds = time.monotonic() - t0
+        return result
 
     if sources_dir is None:
         import os
@@ -255,10 +283,18 @@ def promote_staging(
     live_dir: str = "vectorstore",
 ) -> str:
     """
-    Atomically swap staging into the live vectorstore directory.
+    Swap staging into the live vectorstore directory by moving its *contents*.
 
-    1. Rename live_dir → vectorstore_backup_<timestamp> (if it exists)
-    2. Rename staging_dir → live_dir
+    The live dir is commonly a Docker bind mount (./data/vectorstore →
+    /app/vectorstore). A mount point cannot be renamed or removed, so the old
+    approach of `shutil.move(live, backup)` raised [Errno 16] Device or
+    resource busy — and worse, shutil.move's copy+rmtree fallback deleted the
+    live contents before failing, leaving an empty index. We therefore operate
+    on files inside the directory and never touch the directory node itself.
+
+    1. Move each existing live file into vectorstore_backup_<timestamp>/
+    2. Move each staging file into the live dir (overwriting)
+    3. Remove the now-empty staging dir (best-effort)
 
     Returns the backup directory path (empty string if no backup was needed).
     """
@@ -277,15 +313,34 @@ def promote_staging(
             "This usually means the embedding step failed; check build logs."
         )
 
+    live.mkdir(parents=True, exist_ok=True)
+
+    # 1. Back up existing live files (move the files, not the directory node).
     backup_path = ""
-    if live.exists():
+    live_files = [p for p in live.iterdir() if p.is_file()]
+    if live_files:
         ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
         backup = live.parent / f"vectorstore_backup_{ts}"
-        shutil.move(str(live), str(backup))
+        backup.mkdir(parents=True, exist_ok=True)
+        for f in live_files:
+            shutil.move(str(f), str(backup / f.name))
         backup_path = str(backup)
-        logger.info(f"Backed up live vectorstore to {backup}")
+        logger.info(f"Backed up {len(live_files)} live file(s) to {backup}")
 
-    shutil.move(str(staging), str(live))
+    # 2. Move staging contents into the live directory, replacing any leftover.
+    for f in staging.iterdir():
+        dest = live / f.name
+        if dest.exists():
+            dest.unlink()
+        shutil.move(str(f), str(dest))
+
+    # 3. Remove the now-empty staging dir. Best-effort: staging is a plain dir,
+    #    but tolerate failure (e.g. if it were ever itself a mount point).
+    try:
+        staging.rmdir()
+    except OSError as exc:
+        logger.warning(f"Could not remove staging dir {staging}: {exc}")
+
     logger.info(f"Promoted {staging} → {live}")
     return backup_path
 

@@ -17,7 +17,12 @@ from pydantic import BaseModel
 from backend.document_manager import DocumentManager
 from backend.embedding_config import EmbeddingConfig
 from backend.source_metadata import SourceMetadataManager
-from backend.vectorstore_builder import BuildResult, build_index, promote_staging
+from backend.vectorstore_builder import (
+    BuildResult,
+    build_index,
+    check_embedding_credentials,
+    promote_staging,
+)
 from ..middleware.auth import get_current_user
 from .admin import verify_admin  # reuse existing admin auth dependency
 
@@ -356,6 +361,13 @@ async def trigger_rebuild(
 
     Returns a job_id to poll with GET /api/admin/vectorstore/jobs/{job_id}.
     """
+    # Pre-flight: refuse up front if embedding credentials are missing, rather
+    # than creating a job that loads the whole corpus and dies at the embedding
+    # step (the confusing "92% — promoting" failure).
+    cred_error = check_embedding_credentials(request.embedding_model)
+    if cred_error:
+        raise HTTPException(status_code=400, detail=cred_error)
+
     job = await SourceMetadataManager.create_job(request.model_dump())
     background_tasks.add_task(_run_rebuild, str(job.id), request)
     return {"job_id": str(job.id), "status": "pending"}
