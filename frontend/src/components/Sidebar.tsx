@@ -7,9 +7,11 @@ import { useChatStore } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
 import { usePersonaStore } from '../store/personaStore';
 import { useNegotiationStore } from '../store/negotiationStore';
+import { useSettingsStore } from '../store/settingsStore';
 import SettingsModal from './SettingsModal';
 import ModelSelector from './ModelSelector';
 import NegotiationModal from './NegotiationModal';
+import Portal from './Portal';
 import { useAdminStore } from '../store/adminStore';
 import { FaRegUser, FaHandshake, FaFlask, FaShieldAlt, FaTerminal, FaCog, FaSignOutAlt, FaTrash, FaComments } from 'react-icons/fa';
 
@@ -20,6 +22,7 @@ export default function Sidebar() {
   const { userPersonas, partnerPersonas: _partnerPersonas, fetchUserPersonas, fetchPartnerPersonas } = usePersonaStore();
   void _partnerPersonas; // Available for future use
   const { negotiations, loadNegotiations, setCurrentNegotiation, currentNegotiationId } = useNegotiationStore();
+  const { availableModels, setProviderModel } = useSettingsStore();
   // Compute currentNegotiation from negotiations and currentNegotiationId
   const currentNegotiation = negotiations.find(n => n.id === currentNegotiationId) || null;
 
@@ -51,6 +54,26 @@ export default function Sidebar() {
       loadConversations(currentNegotiation.id, user.id);
     }
   }, [currentNegotiation?.id, user?.id]);
+
+  // The active negotiation drives the model selector: load its saved provider/
+  // model so the per-negotiation choice persists. Fall back to the user's
+  // profile default when the negotiation has no override (or it's unavailable).
+  const modelKeyCount = Object.keys(availableModels).length;
+  useEffect(() => {
+    if (!currentNegotiation?.id || modelKeyCount === 0) return;
+    const settings = (currentNegotiation.settings ?? {}) as { provider?: string; model?: string };
+    if (settings.provider && availableModels[settings.provider]) {
+      setProviderModel(settings.provider, settings.model ?? null);
+    } else {
+      const pref = (user as { preferred_provider?: string | null })?.preferred_provider ?? null;
+      const prefModel = (user as { preferred_model?: string | null })?.preferred_model ?? null;
+      if (pref && availableModels[pref]) {
+        setProviderModel(pref, prefModel);
+      }
+      // else: leave the current selection untouched
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentNegotiation?.id, modelKeyCount]);
 
   // Get active personas. The "You" persona is the one BOUND to the current
   // negotiation (user_persona_id) — that is what the server-side briefing uses
@@ -596,6 +619,7 @@ export default function Sidebar() {
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
+        <Portal>
         <div style={{
           position: 'fixed',
           top: 0,
@@ -687,10 +711,12 @@ export default function Sidebar() {
             </div>
           </div>
         </div>
+        </Portal>
       )}
 
       {/* Delete Conversation Confirmation Modal */}
       {showDeleteModal && (
+        <Portal>
         <div style={{
           position: 'fixed',
           top: 0,
@@ -783,6 +809,7 @@ export default function Sidebar() {
             </div>
           </div>
         </div>
+        </Portal>
       )}
 
       {/* Settings Modal */}

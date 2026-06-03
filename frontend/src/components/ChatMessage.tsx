@@ -67,44 +67,74 @@ export default function ChatMessage({ message }: ChatMessageProps) {
       </div>
       <div className={`message-content chat-message-prose ${isUser ? '' : 'prose prose-sm dark:prose-invert'}`}>
         {!isUser && <CopyButton content={message.content} />}
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            code(props) {
-              const { children, className } = props;
-              const match = /language-(\w+)/.exec(className || '');
-              const language = match ? match[1] : '';
-              const isInline = !className;
-              const codeValue = String(children).replace(/\n$/, '');
+        {isUser ? (
+          // User input: render markdown so fenced ``` blocks become monospace
+          // (and the fence markers are consumed), but keep code light and
+          // bubble-friendly — inherit the bubble's text colour, no dark IDE
+          // theme, no syntax-highlighter chrome.
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              pre: ({ children }) => (
+                <pre className="whitespace-pre-wrap break-words font-mono text-[0.9em] leading-relaxed my-2">
+                  {children}
+                </pre>
+              ),
+              code: ({ className, children }) => {
+                const text = String(children);
+                const isBlock = text.includes('\n') || /language-/.test(className || '');
+                // Block code is wrapped by <pre> above; render plain so the
+                // pre styling applies. Inline code gets a subtle monospace chip.
+                return isBlock ? (
+                  <code className="font-mono">{children}</code>
+                ) : (
+                  <code className="font-mono text-[0.9em] bg-black/10 rounded px-1 py-0.5">{children}</code>
+                );
+              },
+            }}
+          >
+            {message.content}
+          </ReactMarkdown>
+        ) : (
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              code(props) {
+                const { children, className } = props;
+                const match = /language-(\w+)/.exec(className || '');
+                const language = match ? match[1] : '';
+                const isInline = !className;
+                const codeValue = String(children).replace(/\n$/, '');
 
-              // Handle Mermaid diagrams
-              if (!isInline && (language === 'mermaid' || language === 'mmd')) {
-                return <MermaidDiagram chart={codeValue} />;
-              }
+                // Handle Mermaid diagrams
+                if (!isInline && (language === 'mermaid' || language === 'mmd')) {
+                  return <MermaidDiagram chart={codeValue} />;
+                }
 
-              // Handle regular code blocks
-              if (!isInline && language) {
+                // Handle regular code blocks
+                if (!isInline && language) {
+                  return (
+                    <CodeBlock
+                      language={language}
+                      value={codeValue}
+                    />
+                  );
+                }
+
+                // Handle inline code
                 return (
                   <CodeBlock
-                    language={language}
-                    value={codeValue}
+                    language="text"
+                    value={String(children)}
+                    inline={true}
                   />
                 );
-              }
-
-              // Handle inline code
-              return (
-                <CodeBlock
-                  language="text"
-                  value={String(children)}
-                  inline={true}
-                />
-              );
-            },
-          }}
-        >
-          {message.content}
-        </ReactMarkdown>
+              },
+            }}
+          >
+            {message.content}
+          </ReactMarkdown>
+        )}
       </div>
       {!isUser && message.model_used && (
         <div className="message-meta">

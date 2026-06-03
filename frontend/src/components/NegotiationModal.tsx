@@ -12,6 +12,7 @@ import { useAuthStore } from '../store/authStore';
 import { useNegotiationStore } from '../store/negotiationStore';
 import { usePersonaStore } from '../store/personaStore';
 import ProviderSelector from './ProviderSelector';
+import Portal from './Portal';
 
 interface NegotiationModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ interface NegotiationModalProps {
 }
 
 type PersonaMode = 'existing' | 'create' | 'skip';
+type PartnerMode = 'existing' | 'create';
 
 export default function NegotiationModal({ isOpen, onClose }: NegotiationModalProps) {
   // Basics
@@ -38,6 +40,13 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
   const [newPersonaNotes, setNewPersonaNotes] = useState('');
   const [makeDefault, setMakeDefault] = useState(true);
 
+  // Partner step
+  const [partnerMode, setPartnerMode] = useState<PartnerMode>('create');
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string>('');
+  const [newPartnerName, setNewPartnerName] = useState('');
+  const [newPartnerRole, setNewPartnerRole] = useState('');
+  const [newPartnerCompany, setNewPartnerCompany] = useState('');
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -47,6 +56,7 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
     partnerPersonas,
     userPersonas,
     fetchUserPersonas,
+    fetchPartnerPersonas,
     createUserPersona,
   } = usePersonaStore();
 
@@ -62,7 +72,8 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
   useEffect(() => {
     if (!isOpen || !user?.id) return;
     fetchUserPersonas(user.id);
-  }, [isOpen, user?.id, fetchUserPersonas]);
+    fetchPartnerPersonas(user.id);
+  }, [isOpen, user?.id, fetchUserPersonas, fetchPartnerPersonas]);
 
   useEffect(() => {
     if (userPersonas.length > 0 && !selectedPersonaId) {
@@ -74,6 +85,16 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
     // We deliberately don't reset state when the user has already interacted.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userPersonas.length, defaultPersona?.id]);
+
+  useEffect(() => {
+    if (partnerPersonas.length > 0 && !selectedPartnerId) {
+      setPartnerMode('existing');
+      setSelectedPartnerId(partnerPersonas[0].id);
+    } else if (partnerPersonas.length === 0) {
+      setPartnerMode('create');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [partnerPersonas.length]);
 
   const resetForm = () => {
     setTitle('');
@@ -89,6 +110,11 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
     setNewPersonaStrengths('');
     setNewPersonaNotes('');
     setMakeDefault(true);
+    setPartnerMode(partnerPersonas.length > 0 ? 'existing' : 'create');
+    setSelectedPartnerId(partnerPersonas[0]?.id ?? '');
+    setNewPartnerName('');
+    setNewPartnerRole('');
+    setNewPartnerCompany('');
     setError('');
   };
 
@@ -108,13 +134,10 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
     setIsSubmitting(true);
 
     try {
-      // Step 1: resolve user persona ID
+      // Step 1: resolve user persona ID from the picker
       let userPersonaId: string | undefined;
 
-      if (defaultPersona) {
-        // Auto-link the default — no UI step shown
-        userPersonaId = defaultPersona.id;
-      } else if (personaMode === 'existing' && selectedPersonaId) {
+      if (personaMode === 'existing' && selectedPersonaId) {
         userPersonaId = selectedPersonaId;
       } else if (personaMode === 'create') {
         if (!newPersonaName.trim()) {
@@ -134,17 +157,26 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
         userPersonaId = created.id;
       } // personaMode === 'skip' leaves userPersonaId undefined
 
-      // Step 2: ensure at least one partner persona exists
+      // Step 2: resolve the negotiation partner from the picker
+      const { createPartnerPersona } = usePersonaStore.getState();
       let partnerIds: string[];
-      if (partnerPersonas.length === 0) {
-        const { createPartnerPersona } = usePersonaStore.getState();
+      if (partnerMode === 'existing' && selectedPartnerId) {
+        partnerIds = [selectedPartnerId];
+      } else if (partnerMode === 'create' && newPartnerName.trim()) {
+        const createdPartner = await createPartnerPersona(user.id, {
+          name: newPartnerName.trim(),
+          role_title: newPartnerRole.trim() || undefined,
+          company: newPartnerCompany.trim() || undefined,
+          is_shared: false,
+        });
+        partnerIds = [createdPartner.id];
+      } else {
+        // Fallback: no partner chosen and none to reuse — create a placeholder
         const defaultPartner = await createPartnerPersona(user.id, {
           name: 'Partner',
           is_shared: false,
         });
         partnerIds = [defaultPartner.id];
-      } else {
-        partnerIds = [partnerPersonas[0].id];
       }
 
       // Step 3: create the negotiation
@@ -181,12 +213,10 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
 
   if (!isOpen) return null;
 
-  // Show the persona section unless a default already exists (then it's silent)
-  const showPersonaSection = !defaultPersona;
-
   return (
+    <Portal>
     <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center" onClick={handleClose}>
-      <div className="bg-chat-card border border-chat-border rounded-lg w-[90%] max-w-[560px] max-h-[90vh] overflow-auto shadow-lg" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-chat-card text-chat-foreground border border-chat-border rounded-lg w-[90%] max-w-[560px] max-h-[90vh] overflow-auto shadow-lg" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-5 border-b border-chat-border">
           <h2 className="text-xl font-semibold text-chat-foreground m-0">Create New Negotiation</h2>
           <button
@@ -203,13 +233,6 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
           <div className="px-6 py-5">
             {error && (
               <div className="px-3 py-2 mb-4 rounded border border-danger/30 bg-danger/10 text-danger">{error}</div>
-            )}
-
-            {defaultPersona && (
-              <div className="px-3 py-2 mb-4 rounded border border-chat-border bg-chat-muted/40 text-[13px] text-chat-muted-foreground">
-                Using your default profile: <strong className="text-chat-foreground">{defaultPersona.name}</strong>
-                {defaultPersona.role_title ? ` — ${defaultPersona.role_title}` : ''}
-              </div>
             )}
 
             {/* Negotiation name */}
@@ -262,13 +285,14 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
                 providerLabel=""
                 modelLabel=""
                 showUseDefault={true}
+                defaultOptionLabel="Use Profile Default"
                 compact={true}
                 disabled={isSubmitting}
               />
             </div>
 
-            {/* Persona step — hidden when a default already exists */}
-            {showPersonaSection && (
+            {/* Your profile — always selectable */}
+            {(
               <div className="mb-2 pt-4 border-t border-chat-border">
                 <label className="block text-[14px] font-medium text-chat-foreground mb-1">
                   Your Profile
@@ -401,6 +425,92 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
                 )}
               </div>
             )}
+
+            {/* Negotiation partner — pick an existing one or create a new one */}
+            <div className="mb-2 pt-4 border-t border-chat-border">
+              <label className="block text-[14px] font-medium text-chat-foreground mb-1">
+                Negotiation Partner
+              </label>
+              <p className="text-xs text-chat-muted-foreground mb-3">
+                Who are you negotiating <em>with</em>? Used to tailor strategy and language.
+              </p>
+
+              <div className="flex flex-col gap-2 mb-3">
+                {partnerPersonas.length > 0 && (
+                  <label className="flex items-center gap-2 text-[14px] text-chat-foreground">
+                    <input
+                      type="radio"
+                      name="partnerMode"
+                      value="existing"
+                      checked={partnerMode === 'existing'}
+                      onChange={() => setPartnerMode('existing')}
+                      disabled={isSubmitting}
+                    />
+                    Use an existing partner
+                  </label>
+                )}
+                <label className="flex items-center gap-2 text-[14px] text-chat-foreground">
+                  <input
+                    type="radio"
+                    name="partnerMode"
+                    value="create"
+                    checked={partnerMode === 'create'}
+                    onChange={() => setPartnerMode('create')}
+                    disabled={isSubmitting}
+                  />
+                  Create a new partner
+                </label>
+              </div>
+
+              {partnerMode === 'existing' && partnerPersonas.length > 0 && (
+                <select
+                  value={selectedPartnerId}
+                  onChange={(e) => setSelectedPartnerId(e.target.value)}
+                  disabled={isSubmitting}
+                  className="w-full px-3 py-2 border border-chat-border rounded text-[14px] bg-chat-card"
+                >
+                  {partnerPersonas.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}{p.company ? ` — ${p.company}` : (p.role_title ? ` — ${p.role_title}` : '')}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {partnerMode === 'create' && (
+                <div className="grid grid-cols-1 gap-3">
+                  <input
+                    type="text"
+                    value={newPartnerName}
+                    onChange={(e) => setNewPartnerName(e.target.value)}
+                    placeholder="Partner name (e.g. 'Acme Corp', 'Jane Doe')"
+                    maxLength={255}
+                    disabled={isSubmitting}
+                    className="w-full px-3 py-2 border border-chat-border rounded text-[14px]"
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      value={newPartnerRole}
+                      onChange={(e) => setNewPartnerRole(e.target.value)}
+                      placeholder="Role / Title"
+                      maxLength={255}
+                      disabled={isSubmitting}
+                      className="px-3 py-2 border border-chat-border rounded text-[14px]"
+                    />
+                    <input
+                      type="text"
+                      value={newPartnerCompany}
+                      onChange={(e) => setNewPartnerCompany(e.target.value)}
+                      placeholder="Company"
+                      maxLength={255}
+                      disabled={isSubmitting}
+                      className="px-3 py-2 border border-chat-border rounded text-[14px]"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="px-6 py-4 border-t border-chat-border flex justify-end">
@@ -408,7 +518,7 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
               type="button"
               onClick={handleClose}
               disabled={isSubmitting}
-              className="px-4 py-2 text-[14px] bg-chat-card border border-chat-border rounded mr-3 disabled:opacity-50"
+              className="px-4 py-2 text-[14px] bg-chat-card text-chat-foreground border border-chat-border rounded mr-3 hover:bg-chat-muted disabled:opacity-50"
             >
               Cancel
             </button>
@@ -423,5 +533,6 @@ export default function NegotiationModal({ isOpen, onClose }: NegotiationModalPr
         </form>
       </div>
     </div>
+    </Portal>
   );
 }

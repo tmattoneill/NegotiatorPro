@@ -26,6 +26,8 @@ interface ProviderSelectorProps {
   modelLabel?: string;
   /** Show "Use Default" option */
   showUseDefault?: boolean;
+  /** Label for the empty "use default" option (context-dependent) */
+  defaultOptionLabel?: string;
   /** Compact mode for inline use */
   compact?: boolean;
   /** Disabled state */
@@ -42,6 +44,7 @@ export default function ProviderSelector({
   providerLabel = 'Provider',
   modelLabel = 'Model',
   showUseDefault = true,
+  defaultOptionLabel = 'Use System Default',
   compact = false,
   disabled = false,
   className = '',
@@ -172,7 +175,7 @@ export default function ProviderSelector({
             className={selectClass}
           >
             {showUseDefault && (
-              <option value="">Use System Default</option>
+              <option value="">{defaultOptionLabel}</option>
             )}
             {availableProviders.map(({ id, info }) => (
               <option key={id} value={id}>
