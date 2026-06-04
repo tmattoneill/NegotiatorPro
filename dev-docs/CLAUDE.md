@@ -778,7 +778,7 @@ enable_profiles = config.get("ui.features.enableUserProfiles")
 **Project:** Enhanced RAG-based negotiation guidance system with React frontend, FastAPI backend, multi-backend LLM support (OpenAI, Anthropic, Ollama), and document management.
 
 **Branch:** `main`
-**Last Updated:** 03/06/2026, 17:19:41
+**Last Updated:** 04/06/2026, 15:47:22
 
 ### Active Todos
 - [ ] [critical] Test vectorstore rebuild functionality end-to-end with the new bind mount fix to ensure no data loss (`main`)
@@ -789,6 +789,9 @@ enable_profiles = config.get("ui.features.enableUserProfiles")
 - [ ] [high] Implement delete negotiation confirmation dialog with backend integration (`ux/negotiation-management`)
 - [ ] [high] Admin Sources & RAG: make rebuild auto-register unregistered files on disk. The rebuild/source-list assume every file in DATA_SOURCES_DIR has a source_documents row, but the original corpus was built by a CLI that never registered sources or stamped tags. Reconcile disk -> registry: auto-create rows deriving tags from top-level folder (negotiation/, sales/), and warn in UI when files lack rows. Stopgap: scripts/backfill_source_registry.py. (`main`)
 - [ ] [high] Run the backfill_source_registry.py script to reconcile existing corpus files with the database registry (`main`)
+- [ ] [high] Don't let the text preprocessor strip the negotiation briefing: get_advice preprocesses the whole enhanced_question (which includes the persona briefing block), degrading the >=240-char persona context we now require. Preprocess only the raw user question, not the briefing/file context. (`main`)
+- [ ] [high] Test the complete deployment pipeline end-to-end using the new deploy.sh script (`main`)
+- [ ] [high] Return to the original session plan: create and work on ux/negotiation-management branch to fix UI issues around creating, selecting, editing, and deleting negotiations (`main`)
 - [ ] [medium] Verify admin login route works correctly with the new authentication changes (`main`)
 - [ ] [medium] Replace 'YOU' label with the active Persona Name in chat messages (`main`)
 - [ ] [medium] Show RAG source citations in right margin of chat messages, with hover tooltip revealing the relevant source text (`main`)
@@ -797,7 +800,15 @@ enable_profiles = config.get("ui.features.enableUserProfiles")
 - [ ] [medium] Test the complete negotiation lifecycle: create, edit, delete with the new UI components (`ux/negotiation-management`)
 - [ ] [medium] Verify the negotiation modal improvements work correctly across different screen sizes and browsers (`main`)
 - [ ] [medium] Test chat message rendering fixes with various markdown content types including code blocks and lists (`main`)
+- [ ] [medium] Fix per-model pricing units then compute real cost in metering: cost_per_1k_input/output in llm_backend_config.py actually hold per-1M values, so log_usage cost stays 0.0. Relabel to per-1M (or divide by 1000) and populate cost in EnhancedNegotiationRAG.get_advice usage logging. (`main`)
+- [ ] [medium] Sales-mode retrieval returns 0 chunks for negotiation-themed queries (minority tag: top fetch_k candidates are all negotiation before the sales filter). Raise/auto-scale fetch_k or rebalance before SalesPro ships. Negotiation mode is unaffected. (`main`)
+- [ ] [medium] Complete or revert the uncommitted changes to dev-docs/CLAUDE.md (`main`)
+- [ ] [medium] Test the provider-aware prompt caching performance improvements across OpenAI, Anthropic, and Ollama backends (`main`)
+- [ ] [medium] Verify the slimmed negotiation persona (~0.7k tokens) maintains quality while improving performance (`main`)
+- [ ] [medium] Apply migrations 006 (partner_personas.negotiation_id) and 007 (partner_personas.cloned_from) to any existing non-dev database on deploy. They auto-run only on a fresh DB via docker-entrypoint-initdb; an existing DB needs them run manually (docker exec psql). (`main`)
+- [ ] [medium] Build deploy.sh: deploy the app to dev (dev.amfonica.com). Rsync/build the Docker services (frontend, backend, Postgres) to the dev host and bring them up. Must run pending DB migrations (see todo to apply 006/007). This is stage 1 of the two-stage release in the meta CLAUDE.md. (`main`)
+- [ ] [medium] Build promote.sh: promote dev -> prod, from dev.amfonica.com to www.amfonica.com (live). Ship the dev-verified build/images to the prod host, run DB migrations, and cut over with minimal downtime (and a rollback path). This is stage 2 of the two-stage release in the meta CLAUDE.md. Document the exact hosts, paths, and flow here once written. (`main`)
 - [ ] [low] Document the new admin features and LLM configuration capabilities in user documentation (`main`)
-- [ ] [low] Commit the 4 modified files in working tree (CLAUDE.md, embedding_config.json, llm_backend_config.json, usage_stats.json) (`ux/negotiation-management`)
+- [ ] [low] Partner copy-on-write: private partner copies created before migration 007 (e.g. "Partner - Buyer") have a NULL cloned_from, so the modal's "also update the shared template" option silently no-ops for them. Decide whether to backfill cloned_from for pre-existing copies or accept it (re-cloning fixes it going forward). (`main`)
 
 <!-- DEVCTX:END -->
