@@ -8,8 +8,8 @@ interface User {
   id: string;
   username: string;
   email: string;
-  first_name?: string;
-  last_name?: string;
+  first_name?: string | null;
+  last_name?: string | null;
   role: string;
   has_openai_key?: boolean;
   has_anthropic_key?: boolean;
