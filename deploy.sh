@@ -58,7 +58,7 @@ rsync -az --delete --delete-excluded \
   --filter='protect /data' --filter='protect /data-sources' \
   --filter='protect /public' --filter='protect /.env' \
   --exclude='__pycache__/' --exclude='*.pyc' --exclude='.DS_Store' \
-  --include='/backend/***' --include='/deploy/***' \
+  --include='/backend/***' --include='/deploy/***' --include='/scripts/***' \
   --include='/migrations/***' --include='/prompts/***' \
   --include='/Dockerfile' --include='/requirements.txt' \
   --include='/config.json' --include='/llm_backend_config.json' \
