@@ -41,12 +41,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Stage 3: Final runtime image
 FROM python:3.11-slim
 
-# Install Node.js for serving React frontend
-RUN apt-get update && apt-get install -y \
-    nodejs \
-    npm \
-    && rm -rf /var/lib/apt/lists/*
-
 # Set working directory
 WORKDIR /app
 

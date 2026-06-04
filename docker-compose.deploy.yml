@@ -1,0 +1,108 @@
+# Production-ish compose for the Amfonica dev site (dev.amfonica.com).
+#
+# Differs from docker-compose.yml (local dev): no source hot-reload, no Vite dev
+# container (the built SPA is served by the host nginx), Postgres has no host
+# port (internal only), and the backend binds to 127.0.0.1 so only the host
+# nginx can reach it. Used by deploy.sh on the remote host.
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-negotiatorpro}
+      - POSTGRES_USER=${POSTGRES_USER:-negotiatorpro}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Runs every migration on a FRESH volume only; re-deploys are handled by
+      # deploy.sh applying incremental migrations explicitly.
+      - ./migrations:/docker-entrypoint-initdb.d
+    networks:
+      - amfonica-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-negotiatorpro}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: amfonica-dev-backend
+    restart: unless-stopped
+
+    # Loopback only — the host nginx reverse-proxies /api here.
+    ports:
+      - "127.0.0.1:${API_HOST_PORT:-8090}:8000"
+
+    # All secrets/config come from the project .env (rsynced from .env.dev).
+    env_file:
+      - .env
+
+    environment:
+      # Container-internal Postgres hostname (the compose service name).
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      # Blank DATABASE_URL so the code falls back to POSTGRES_HOST/PORT/USER/PASSWORD
+      # (the .env value points at localhost, which is wrong inside the container).
+      - DATABASE_URL=
+      - DATA_SOURCES_DIR=/app/data-sources
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    # No command override -> uses the Dockerfile CMD (uvicorn, no --reload).
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    # Data only — no source bind mounts (the image is the source of truth).
+    volumes:
+      - ./data/vectorstore:/app/vectorstore
+      - ./data/uploads:/app/uploads
+      - ./data-sources:/app/data-sources
+      - ./prompts:/app/prompts
+      - ./data/config:/app/config
+      - ./config.json:/app/config.json
+      - ./llm_backend_config.json:/app/llm_backend_config.json
+      - ./migrations:/app/migrations
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    networks:
+      - amfonica-network
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/api/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  amfonica-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

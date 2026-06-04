@@ -38,6 +38,10 @@ env/
 .env.production
 .env.staging
 .env.dev
+.env.prod
+
+# Registrar DNS export (reference only, not source)
+amfonica.com_dns_records.csv
 
 # Vector Store — build artifact, not tracked. Regenerate from sources/ via the
 # admin Sources & RAG rebuild (or scripts/rebuild_vectordb.py). The running
