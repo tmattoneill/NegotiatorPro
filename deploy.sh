@@ -52,11 +52,12 @@ docker run --rm -v "$PWD/frontend":/app -v /app/node_modules -w /app node:20-alp
 say "Syncing to $REMOTE:$DEPLOY_DIR"
 ssh "$REMOTE" "mkdir -p '$DEPLOY_DIR/data/uploads' '$DEPLOY_DIR/data/config' '$DEPLOY_DIR/data/vectorstore' '$DEPLOY_DIR/data-sources' '$DEPLOY_DIR/public'"
 
-# App: allowlist only the backend build context + runtime config, protect the
-# data/state dirs, and purge everything else on the box (cleans old junk).
-rsync -az --delete --delete-excluded \
-  --filter='protect /data' --filter='protect /data-sources' \
-  --filter='protect /public' --filter='protect /.env' \
+# App: allowlist only the backend build context + runtime config. Use --delete
+# (NOT --delete-excluded) so rsync only removes stale files INSIDE the synced
+# code dirs; excluded top-level paths (data/, data-sources/, public/, .env) are
+# left untouched. --delete-excluded would wipe those state/data dirs — the
+# earlier `protect` filters did not actually prevent that, so they are gone.
+rsync -az --delete \
   --exclude='__pycache__/' --exclude='*.pyc' --exclude='.DS_Store' \
   --include='/backend/***' --include='/deploy/***' --include='/scripts/***' \
   --include='/migrations/***' --include='/prompts/***' \
