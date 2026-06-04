@@ -36,6 +36,23 @@ _PARTNER_CONTEXT_FIELDS = (
 )
 
 
+def _context_edited(existing: dict, update_data: dict, fields: tuple) -> bool:
+    """True if the update changes any context field's value versus what's stored.
+
+    The frontend sends the whole persona form on every save, so a field being
+    present in update_data doesn't mean it changed. We compare values (treating
+    empty string and NULL as equal) so a pure provider/model change — which
+    leaves context untouched — skips the minimum-context gate, while a real edit
+    to any context field still triggers it.
+    """
+    for field in fields:
+        if field not in update_data:
+            continue
+        if (update_data[field] or None) != (existing.get(field) or None):
+            return True
+    return False
+
+
 def _enforce_min_context(merged: dict, fields: tuple, what: str) -> None:
     """Raise 422 if the merged persona has < MIN_PERSONA_CHARS of real context.
 
@@ -89,7 +106,9 @@ async def create_user_persona(
             communication_style=data.communication_style,
             negotiation_strengths=data.negotiation_strengths,
             notes=data.notes,
-            is_default=data.is_default
+            is_default=data.is_default,
+            preferred_provider=data.preferred_provider,
+            preferred_model=data.preferred_model
         )
         return UserPersonaResponse(**persona)
     except Exception as e:
@@ -122,10 +141,13 @@ async def update_user_persona(persona_id: str, user_id: str, data: UserPersonaUp
         raise HTTPException(status_code=404, detail="Persona not found")
 
     update_data = data.model_dump(exclude_unset=True)
-    _enforce_min_context(
-        {**existing, **update_data}, _USER_CONTEXT_FIELDS,
-        "role, organisation, communication style, strengths and notes",
-    )
+    # Only gate on context length when a context field is actually being edited.
+    # A provider/model (or name/is_default) change leaves existing context untouched.
+    if _context_edited(existing, update_data, _USER_CONTEXT_FIELDS):
+        _enforce_min_context(
+            {**existing, **update_data}, _USER_CONTEXT_FIELDS,
+            "role, organisation, communication style, strengths and notes",
+        )
     persona = await db_ops.update_user_persona(UUID(persona_id), **update_data)
     return UserPersonaResponse(**persona)
 
@@ -200,10 +222,11 @@ async def update_partner_persona(persona_id: str, user_id: str, data: PartnerPer
         raise HTTPException(status_code=404, detail="Persona not found or not authorized")
 
     update_data = data.model_dump(exclude_unset=True)
-    _enforce_min_context(
-        {**existing, **update_data}, _PARTNER_CONTEXT_FIELDS,
-        "role, company, communication style, known interests, BATNA and relationship notes",
-    )
+    if _context_edited(existing, update_data, _PARTNER_CONTEXT_FIELDS):
+        _enforce_min_context(
+            {**existing, **update_data}, _PARTNER_CONTEXT_FIELDS,
+            "role, company, communication style, known interests, BATNA and relationship notes",
+        )
     persona = await db_ops.update_partner_persona(UUID(persona_id), **update_data)
     return PartnerPersonaResponse(**persona)
 

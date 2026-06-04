@@ -41,6 +41,7 @@ export default function UserProfile() {
   // Persona state
   const [showPersonaForm, setShowPersonaForm] = useState(false);
   const [editingPersona, setEditingPersona] = useState<UserPersona | null>(null);
+  const [personaError, setPersonaError] = useState<string | null>(null);
   const [personaForm, setPersonaForm] = useState<UserPersonaCreate>({
     name: '', role_title: '', organization: '', communication_style: '', negotiation_strengths: '', notes: '', is_default: false, preferred_provider: null, preferred_model: null
   });
@@ -74,6 +75,7 @@ export default function UserProfile() {
 
   // Persona handlers
   const handleEditPersona = (persona: UserPersona) => {
+    setPersonaError(null);
     setEditingPersona(persona);
     setPersonaForm({
       name: persona.name,
@@ -91,6 +93,7 @@ export default function UserProfile() {
 
   const handleSavePersona = async () => {
     if (!user) return;
+    setPersonaError(null);
     try {
       if (editingPersona) {
         await updateUserPersona(user.id, editingPersona.id, personaForm);
@@ -100,8 +103,9 @@ export default function UserProfile() {
       setShowPersonaForm(false);
       setEditingPersona(null);
       setPersonaForm({ name: '', role_title: '', organization: '', communication_style: '', negotiation_strengths: '', notes: '', is_default: false, preferred_provider: null, preferred_model: null });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to save persona:', err);
+      setPersonaError(err.response?.data?.detail || 'Failed to save persona. Please try again.');
     }
   };
 
@@ -480,6 +484,7 @@ export default function UserProfile() {
             </div>
             <Button
               onClick={() => {
+                setPersonaError(null);
                 setEditingPersona(null);
                 setPersonaForm({ name: '', role_title: '', organization: '', communication_style: '', negotiation_strengths: '', notes: '', is_default: false, preferred_provider: null, preferred_model: null });
                 setShowPersonaForm(true);
@@ -621,8 +626,13 @@ export default function UserProfile() {
                     Set as default persona
                   </label>
                 </div>
+                {personaError && (
+                  <div className="mb-4 rounded-md border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+                    {personaError}
+                  </div>
+                )}
                 <div className="flex gap-3 justify-end">
-                  <Button variant="outline" onClick={() => { setShowPersonaForm(false); setEditingPersona(null); }}>
+                  <Button variant="outline" onClick={() => { setShowPersonaForm(false); setEditingPersona(null); setPersonaError(null); }}>
                     Cancel
                   </Button>
                   <Button onClick={handleSavePersona} disabled={!personaForm.name}>

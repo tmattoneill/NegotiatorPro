@@ -20,6 +20,8 @@ class UserPersonaBase(BaseModel):
     negotiation_strengths: Optional[str] = None
     notes: Optional[str] = None
     is_default: bool = False
+    preferred_provider: Optional[str] = Field(None, max_length=50)
+    preferred_model: Optional[str] = Field(None, max_length=100)
 
 
 class UserPersonaCreate(UserPersonaBase):
@@ -49,6 +51,8 @@ class UserPersonaUpdate(BaseModel):
     negotiation_strengths: Optional[str] = None
     notes: Optional[str] = None
     is_default: Optional[bool] = None
+    preferred_provider: Optional[str] = Field(None, max_length=50)
+    preferred_model: Optional[str] = Field(None, max_length=100)
 
 
 class UserPersonaResponse(UserPersonaBase):

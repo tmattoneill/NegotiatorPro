@@ -20,7 +20,9 @@ async def create_user_persona(
     communication_style: Optional[str] = None,
     negotiation_strengths: Optional[str] = None,
     notes: Optional[str] = None,
-    is_default: bool = False
+    is_default: bool = False,
+    preferred_provider: Optional[str] = None,
+    preferred_model: Optional[str] = None
 ) -> dict:
     """Create a new user persona."""
     # If setting as default, clear existing default
@@ -34,12 +36,12 @@ async def create_user_persona(
         """
         INSERT INTO user_personas
         (user_id, name, role_title, organization, communication_style,
-         negotiation_strengths, notes, is_default)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         negotiation_strengths, notes, is_default, preferred_provider, preferred_model)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
         """,
         user_id, name, role_title, organization, communication_style,
-        negotiation_strengths, notes, is_default
+        negotiation_strengths, notes, is_default, preferred_provider, preferred_model
     )
     return dict(row)
 
