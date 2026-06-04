@@ -1,23 +1,8 @@
-# Multi-stage build for optimized image size
+# Backend-only image. The React app is built separately and served as static
+# files by the host nginx (see deploy.sh / deploy/nginx), so there is no frontend
+# stage here.
 
-# Stage 1: Build React frontend
-FROM node:20-alpine AS frontend-builder
-
-WORKDIR /app/frontend
-
-# Copy frontend package files
-COPY frontend/package*.json ./
-
-# Install frontend dependencies
-RUN npm ci
-
-# Copy frontend source
-COPY frontend/ ./
-
-# Build frontend for production
-RUN npm run build
-
-# Stage 2: Build Python backend
+# Stage 1: Build Python backend
 FROM python:3.11-slim AS backend-builder
 
 # Set working directory
@@ -38,7 +23,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Stage 3: Final runtime image
+# Stage 2: Final runtime image
 FROM python:3.11-slim
 
 # Set working directory
@@ -47,9 +32,6 @@ WORKDIR /app
 # Copy virtual environment from backend builder
 COPY --from=backend-builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
-
-# Copy React build from frontend builder
-COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
 
 # Copy backend application code
 COPY backend/ /app/backend/

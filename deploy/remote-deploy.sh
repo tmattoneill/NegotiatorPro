@@ -38,13 +38,10 @@ for f in migrations/0*.sql; do
      -f "/docker-entrypoint-initdb.d/$base" </dev/null >/dev/null 2>&1 || true
 done
 
-echo "==> Extracting frontend build -> $WEBROOT"
-docker rm -f amf-extract >/dev/null 2>&1 || true
-docker create --name amf-extract "$IMAGE" >/dev/null
-rm -rf "$WEBROOT"; mkdir -p "$WEBROOT"
-docker cp amf-extract:/app/frontend/dist/. "$WEBROOT/"
-docker rm amf-extract >/dev/null
-chmod -R a+rX "$WEBROOT"   # nginx (www-data) reads the static build in-place
+# The SPA is rsynced to $WEBROOT (public/) by deploy.sh; just make sure nginx
+# (www-data) can read it.
+echo "==> Preparing web root $WEBROOT"
+chmod -R a+rX "$WEBROOT" 2>/dev/null || true
 
 echo "==> Installing nginx vhost"
 sed -e "s#__WEBROOT__#$WEBROOT#g" -e "s#__APP_PORT__#$APP_PORT#g" -e "s#__DOMAIN__#$DOMAIN#g" \

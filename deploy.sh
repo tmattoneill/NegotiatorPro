@@ -37,19 +37,38 @@ say "Preflight"
 ssh -o ConnectTimeout=10 "$REMOTE" true || die "cannot ssh to $REMOTE"
 echo "ok: local artifacts present, ssh reachable"
 
+# ---- build the SPA (in Docker, off-box) -------------------------------------
+# Built here and shipped as static files; the frontend source never goes to the
+# box. Output lands in ./frontend/dist via the bind mount.
+say "Building frontend (dist)"
+# Anonymous volume on /app/node_modules shadows the host's, so npm ci installs
+# linux deps inside the container and never clobbers the host's node_modules;
+# only dist/ is written back through the bind mount.
+docker run --rm -v "$PWD/frontend":/app -v /app/node_modules -w /app node:20-alpine \
+  sh -lc 'npm ci && npm run build'
+[ -d frontend/dist ] || die "frontend build produced no dist/"
+
 # ---- sync -------------------------------------------------------------------
 say "Syncing to $REMOTE:$DEPLOY_DIR"
-ssh "$REMOTE" "mkdir -p '$DEPLOY_DIR/data/uploads' '$DEPLOY_DIR/data/config' '$DEPLOY_DIR/data/vectorstore' '$DEPLOY_DIR/data-sources'"
+ssh "$REMOTE" "mkdir -p '$DEPLOY_DIR/data/uploads' '$DEPLOY_DIR/data/config' '$DEPLOY_DIR/data/vectorstore' '$DEPLOY_DIR/data-sources' '$DEPLOY_DIR/public'"
 
-# Project tree (build context + runtime config). Exclude heavy/secret/runtime.
-rsync -az --delete \
-  --exclude '.git' --exclude 'node_modules' --exclude 'frontend/node_modules' \
-  --exclude '.venv' --exclude '__pycache__' --exclude '*.pyc' --exclude '.DS_Store' \
-  --exclude 'data' --exclude 'public' --exclude '.env' --exclude '.env.dev' --exclude '.env.prod' \
-  --exclude '.pytest_cache' --exclude 'htmlcov' --exclude '*.log' \
+# App: allowlist only the backend build context + runtime config, protect the
+# data/state dirs, and purge everything else on the box (cleans old junk).
+rsync -az --delete --delete-excluded \
+  --filter='protect /data' --filter='protect /data-sources' \
+  --filter='protect /public' --filter='protect /.env' \
+  --exclude='__pycache__/' --exclude='*.pyc' --exclude='.DS_Store' \
+  --include='/backend/***' --include='/deploy/***' \
+  --include='/migrations/***' --include='/prompts/***' \
+  --include='/Dockerfile' --include='/requirements.txt' \
+  --include='/config.json' --include='/llm_backend_config.json' \
+  --include='/run-api.sh' --include='/.dockerignore' \
+  --include='/docker-compose.deploy.yml' \
+  --exclude='*' \
   ./ "$REMOTE:$DEPLOY_DIR/"
 
-# Corpus (skip _archive — not ingested), prebuilt vectorstore, and the env file.
+# Built SPA -> nginx web root; corpus + prebuilt vectorstore; env file.
+rsync -az --delete frontend/dist/      "$REMOTE:$DEPLOY_DIR/public/"
 rsync -az --delete --exclude '_archive' --exclude '.DS_Store' ../data-sources/ "$REMOTE:$DEPLOY_DIR/data-sources/"
 rsync -az --delete data/vectorstore/   "$REMOTE:$DEPLOY_DIR/data/vectorstore/"
 rsync -az .env.dev                      "$REMOTE:$DEPLOY_DIR/.env"

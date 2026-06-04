@@ -72,6 +72,15 @@ CONTRIBUTING.md
 .travis.yml
 Jenkinsfile
 
+# Runtime data + built artifacts — mounted/served at runtime, never built into the
+# backend image. Keep them out of the build context so it stays tiny.
+data/
+data-sources/
+public/
+vectorstore/
+prompts/
+frontend/
+
 # Docker files (don't need in the image)
 Dockerfile
 docker-compose.yml
