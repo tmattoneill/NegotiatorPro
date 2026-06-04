@@ -49,13 +49,15 @@ class ObjectStore:
         rw_key: Optional[str] = None,
         cdn_url: Optional[str] = None,
     ):
-        self.base_url = (base_url or os.getenv("BUNNY_NET_URL", "")).rstrip("/")
-        self.ro_key = ro_key or os.getenv("BUNNY_NET_RO_PASSWORD", "")
-        self.rw_key = rw_key or os.getenv("BUNNY_NET_RW_PASSWORD", "")
-        # Pull-zone for browser-facing URLs: accept a full URL (BUNNY_NET_CDN_URL)
-        # or a bare hostname / custom domain (BUNNY_NET_PULL_ZONE, e.g.
-        # data.amfonica.com), normalising the latter to https://<host>.
-        cdn = (cdn_url or os.getenv("BUNNY_NET_CDN_URL") or os.getenv("BUNNY_NET_PULL_ZONE", "")).strip().rstrip("/")
+        # Config comes from the explicit args only. Env reading (and any legacy
+        # fallback) lives in _make_store, so an unconfigured zone stays
+        # unconfigured rather than silently resolving to another zone.
+        self.base_url = (base_url or "").rstrip("/")
+        self.ro_key = ro_key or ""
+        self.rw_key = rw_key or ""
+        # Pull-zone for browser-facing URLs: accept a full URL or a bare host /
+        # custom domain (e.g. data.amfonica.com), normalising to https://<host>.
+        cdn = (cdn_url or "").strip().rstrip("/")
         if cdn and not cdn.startswith(("http://", "https://")):
             cdn = f"https://{cdn}"
         self.cdn_base = cdn
@@ -174,5 +176,31 @@ class ObjectStore:
         return f"{self.cdn_base}/{remote_path.lstrip('/')}"
 
 
-# Module-level singleton built from the environment.
-store = ObjectStore()
+def _make_store(prefix: str, *, legacy_corpus: bool = False) -> ObjectStore:
+    """Build an ObjectStore from BUNNY_<prefix>_{URL,RO_PASSWORD,RW_PASSWORD}.
+
+    The corpus store also accepts the legacy BUNNY_NET_* names so existing
+    config keeps working.
+    """
+    def g(suffix: str) -> Optional[str]:
+        val = os.getenv(f"{prefix}_{suffix}")
+        if not val and legacy_corpus:
+            val = os.getenv(f"BUNNY_NET_{suffix}")
+        return val
+
+    return ObjectStore(
+        base_url=g("URL"),
+        ro_key=g("RO_PASSWORD"),
+        rw_key=g("RW_PASSWORD"),
+        cdn_url=os.getenv("BUNNY_NET_PULL_ZONE"),
+    )
+
+
+# One store per Bunny zone. Each degrades to "not configured" if its env is
+# absent, so partial setup (e.g. corpus only) is fine.
+corpus = _make_store("BUNNY_CORPUS", legacy_corpus=True)   # amfonica-data-sources
+uploads = _make_store("BUNNY_UPLOADS")                     # amfonica-user-data
+vectorstores = _make_store("BUNNY_VECTORSTORES")           # amfonica-vectorstores
+
+# Backwards-compatible alias for the corpus store.
+store = corpus
