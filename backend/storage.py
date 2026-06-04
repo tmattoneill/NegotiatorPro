@@ -204,3 +204,21 @@ vectorstores = _make_store("BUNNY_VECTORSTORES")           # amfonica-vectorstor
 
 # Backwards-compatible alias for the corpus store.
 store = corpus
+
+
+def vectorstore_prefix() -> str:
+    """Path prefix inside the vectorstores zone, keyed by environment.
+
+    dev/prod/local share one zone, so each writes under its own prefix
+    (dev/, prod/, local/) to avoid clobbering the others' index.
+    """
+    return os.getenv("DEPLOY_ENV", "dev")
+
+
+def should_push_vectorstore() -> bool:
+    """Whether a rebuild should push the new index to the vectorstores zone.
+
+    Only when the zone is writable AND we're not a throwaway local env — a
+    laptop (DEPLOY_ENV=local) must never overwrite the box's shared index.
+    """
+    return vectorstores.can_write() and os.getenv("DEPLOY_ENV", "dev") != "local"

@@ -4,6 +4,7 @@ Admin RAG API Routes
 Source document management and vectorstore administration.
 All endpoints require admin role (via verify_admin dependency).
 """
+import asyncio
 import json
 import logging
 import os
@@ -17,6 +18,13 @@ from pydantic import BaseModel
 from backend.document_manager import DocumentManager
 from backend.embedding_config import EmbeddingConfig
 from backend.source_metadata import SourceMetadataManager
+from backend.storage import (
+    StorageError,
+    corpus,
+    should_push_vectorstore,
+    vectorstore_prefix,
+    vectorstores,
+)
 from backend.vectorstore_builder import (
     BuildResult,
     build_index,
@@ -172,6 +180,25 @@ async def upload_source(
         size_bytes = save_result["info"]["size"]
         ext = Path(saved_name).suffix.lower()
 
+        # Write through to the canonical corpus store (Bunny) so the upload is
+        # visible from any machine, not just this box. Fail-closed: if the
+        # remote write fails, remove the local copy and don't register a row —
+        # otherwise the file would exist only here and silently break "admin
+        # from any machine". When Bunny is unconfigured, this is a no-op.
+        if corpus.is_configured() and corpus.can_write():
+            try:
+                await asyncio.to_thread(corpus.put_file, saved_name, saved_path)
+            except StorageError as e:
+                logger.error(f"Corpus upload to storage failed for {saved_name}: {e}")
+                try:
+                    saved_path.unlink()
+                except OSError:
+                    pass
+                raise HTTPException(
+                    status_code=502,
+                    detail="Could not save the file to canonical storage. Please try again.",
+                )
+
         # Extract page/word count in the background (can be slow for large PDFs)
         info = _doc_manager.get_document_info(saved_name)
         page_count = info.get("pages") if info else None
@@ -229,10 +256,23 @@ async def delete_source(filename: str, admin=Depends(verify_admin)):
     if not deleted_meta and not deleted_file["success"]:
         raise HTTPException(status_code=404, detail=f"Source not found: {filename}")
 
+    # Remove from canonical storage too. Fail-open: the local + DB delete already
+    # succeeded, so a remote failure shouldn't 500 — just report it so the admin
+    # can retry. A dangling remote object is recoverable. No-op if unconfigured.
+    remote_deleted = None
+    if corpus.is_configured() and corpus.can_write():
+        try:
+            await asyncio.to_thread(corpus.delete, filename)
+            remote_deleted = True
+        except StorageError as e:
+            logger.warning(f"Corpus delete from storage failed for {filename}: {e}")
+            remote_deleted = False
+
     return {
         "success": True,
         "metadata_deleted": deleted_meta,
         "file_deleted": deleted_file["success"],
+        "remote_deleted": remote_deleted,
     }
 
 
