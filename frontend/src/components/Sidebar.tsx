@@ -11,16 +11,16 @@ import { useSettingsStore } from '../store/settingsStore';
 import SettingsModal from './SettingsModal';
 import ModelSelector from './ModelSelector';
 import NegotiationModal from './NegotiationModal';
+import PartnerPersonaModal from './PartnerPersonaModal';
 import Portal from './Portal';
 import { useAdminStore } from '../store/adminStore';
-import { FaRegUser, FaHandshake, FaFlask, FaShieldAlt, FaTerminal, FaCog, FaSignOutAlt, FaTrash, FaComments } from 'react-icons/fa';
+import { FaRegUser, FaHandshake, FaFlask, FaShieldAlt, FaTerminal, FaCog, FaSignOutAlt, FaTrash, FaComments, FaPen } from 'react-icons/fa';
 
 export default function Sidebar() {
   const navigate = useNavigate();
   const { sessions, currentSessionId, createNewSession, switchSession, loadConversations, deleteSession, renameSession } = useChatStore();
   const { user, logout } = useAuthStore();
-  const { userPersonas, partnerPersonas: _partnerPersonas, fetchUserPersonas, fetchPartnerPersonas } = usePersonaStore();
-  void _partnerPersonas; // Available for future use
+  const { userPersonas, fetchUserPersonas, fetchPartnerPersonas } = usePersonaStore();
   const { negotiations, loadNegotiations, setCurrentNegotiation, currentNegotiationId, updateNegotiation } = useNegotiationStore();
   const { availableModels, setProviderModel } = useSettingsStore();
   // Compute currentNegotiation from negotiations and currentNegotiationId
@@ -29,6 +29,7 @@ export default function Sidebar() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showNegotiationModal, setShowNegotiationModal] = useState(false);
+  const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
@@ -246,19 +247,28 @@ export default function Sidebar() {
             <div style={{ fontSize: '10px', color: '#9fadbd', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
               Partner
             </div>
-            <div style={{ fontSize: '13px', color: '#fff', fontWeight: 500 }}>
-              {activePartnerPersona ? (
-                <>
+            {activePartnerPersona ? (
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <div style={{ flex: 1, minWidth: 0, fontSize: '13px', color: '#fff', fontWeight: 500 }}>
                   <FaHandshake style={{ marginRight: '6px', opacity: 0.7, display: 'inline' }} />
                   {activePartnerPersona.name}
                   {activePartnerPersona.company && (
                     <span style={{ opacity: 0.6, fontWeight: 400 }}> · {activePartnerPersona.company}</span>
                   )}
-                </>
-              ) : (
+                </div>
+                <button
+                  onClick={() => setShowPartnerModal(true)}
+                  title="Edit this negotiation's partner"
+                  className="shrink-0 rounded-md border border-white/20 bg-black/30 px-2 py-2 text-white/80 hover:bg-white/10"
+                >
+                  <FaPen style={{ fontSize: '11px' }} />
+                </button>
+              </div>
+            ) : (
+              <div style={{ fontSize: '13px', color: '#fff', fontWeight: 500 }}>
                 <span style={{ opacity: 0.5, fontStyle: 'italic' }}>Select a negotiation</span>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -884,6 +894,18 @@ export default function Sidebar() {
 
       {/* Negotiation Modal */}
       <NegotiationModal isOpen={showNegotiationModal} onClose={() => setShowNegotiationModal(false)} />
+
+      {/* Partner Persona Edit Modal */}
+      <PartnerPersonaModal
+        isOpen={showPartnerModal}
+        partner={activePartnerPersona ?? null}
+        negotiationId={currentNegotiation?.id ?? null}
+        onClose={() => setShowPartnerModal(false)}
+        onSaved={() => {
+          setShowPartnerModal(false);
+          if (user?.id) loadNegotiations(user.id);
+        }}
+      />
     </div>
   );
 }

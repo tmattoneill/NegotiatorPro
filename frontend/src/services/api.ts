@@ -176,6 +176,22 @@ export const deletePartnerPersona = async (userId: string, id: string): Promise<
   await api.delete(`/personas/partner/${id}?user_id=${userId}`);
 };
 
+// Edit this negotiation's partner with copy-on-write. The backend clones a shared
+// template into a private, negotiation-scoped copy on first edit so the template
+// and other negotiations are never touched; later edits update that copy in place.
+export const editNegotiationPartner = async (
+  userId: string,
+  negotiationId: string,
+  data: PartnerPersonaUpdate,
+  updateParent = false
+): Promise<PartnerPersona> => {
+  const response = await api.put<PartnerPersona>(
+    `/negotiations/${negotiationId}/partner?user_id=${userId}&update_parent=${updateParent}`,
+    data
+  );
+  return response.data;
+};
+
 // ============================================================================
 // CONVERSATIONS
 // ============================================================================

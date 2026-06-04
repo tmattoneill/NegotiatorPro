@@ -24,8 +24,10 @@ from ..models.negotiations import (
     NegotiationPartnerAdd,
     NegotiationStatus
 )
+from ..models.personas import PartnerPersonaUpdate, PartnerPersonaResponse
 from ..middleware.auth import get_current_user
 from ... import db_operations as db_ops
+from .personas import _enforce_min_context, _PARTNER_CONTEXT_FIELDS
 
 logger = logging.getLogger(__name__)
 
@@ -329,6 +331,99 @@ async def add_partner_to_negotiation(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to add partner"
+        )
+
+
+_PARTNER_CONTEXT_HINT = (
+    "role, company, communication style, known interests, BATNA and relationship notes"
+)
+
+
+@negotiations_router.put("/{negotiation_id}/partner", response_model=PartnerPersonaResponse)
+async def edit_negotiation_partner(
+    negotiation_id: UUID,
+    user_id: UUID,
+    data: PartnerPersonaUpdate,
+    update_parent: bool = False
+):
+    """
+    Edit this negotiation's primary partner with copy-on-write.
+
+    By default a shared library template is cloned into a private copy scoped to
+    this negotiation before the edit is applied, so the template (and any other
+    negotiation using it) is never modified. An existing private copy is edited
+    in place.
+
+    When update_parent is true the edit is also pushed to the template: on a
+    not-yet-cloned partner the template is edited directly (no private copy); on a
+    private copy the same fields are written back to the template it was cloned
+    from (when that link is known).
+    """
+    try:
+        existing = await db_ops.get_negotiation(negotiation_id)
+        if not existing or str(existing.get('user_id')) != str(user_id):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Negotiation not found or you don't have access"
+            )
+
+        detail = await db_ops.get_negotiation_detail(negotiation_id)
+        partners = detail.get('partners') if detail else None
+        if not partners:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This negotiation has no partner to edit"
+            )
+        primary = partners[0]
+
+        update_data = data.model_dump(exclude_unset=True)
+        merged = {**primary, **update_data}
+        _enforce_min_context(merged, _PARTNER_CONTEXT_FIELDS, _PARTNER_CONTEXT_HINT)
+
+        # Already private to this negotiation -> edit in place, and optionally
+        # push the same change back to the template it was cloned from.
+        if primary.get('negotiation_id') == negotiation_id:
+            partner = await db_ops.update_partner_persona(primary['id'], **update_data)
+            if update_parent and primary.get('cloned_from'):
+                parent = await db_ops.get_partner_persona(primary['cloned_from'])
+                if parent:
+                    parent_merged = {**parent, **update_data}
+                    _enforce_min_context(parent_merged, _PARTNER_CONTEXT_FIELDS, _PARTNER_CONTEXT_HINT)
+                    await db_ops.update_partner_persona(parent['id'], **update_data)
+            return PartnerPersonaResponse(**partner)
+
+        # Shared template + "update parent" -> edit the template directly, no copy.
+        if update_parent:
+            partner = await db_ops.update_partner_persona(primary['id'], **update_data)
+            return PartnerPersonaResponse(**partner)
+
+        # Shared template -> clone into a private copy bound to this negotiation,
+        # rebind the negotiation to the clone, and detach the template here.
+        clone = await db_ops.create_partner_persona(
+            created_by=user_id,
+            name=merged['name'],
+            role_title=merged.get('role_title'),
+            company=merged.get('company'),
+            communication_style=merged.get('communication_style'),
+            known_interests=merged.get('known_interests'),
+            batna_estimate=merged.get('batna_estimate'),
+            relationship_notes=merged.get('relationship_notes'),
+            is_shared=False,
+            negotiation_id=negotiation_id,
+            cloned_from=primary['id'],
+        )
+        await db_ops.add_negotiation_partner(negotiation_id, clone['id'], is_primary=True)
+        await db_ops.remove_negotiation_partner(negotiation_id, primary['id'])
+
+        logger.info(f"Copy-on-write partner {clone['id']} for negotiation {negotiation_id}")
+        return PartnerPersonaResponse(**clone)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to edit negotiation partner: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to edit partner"
         )
 
 

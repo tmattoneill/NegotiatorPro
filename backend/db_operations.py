@@ -109,37 +109,50 @@ async def create_partner_persona(
     known_interests: Optional[str] = None,
     batna_estimate: Optional[str] = None,
     relationship_notes: Optional[str] = None,
-    is_shared: bool = False
+    is_shared: bool = False,
+    negotiation_id: Optional[UUID] = None,
+    cloned_from: Optional[UUID] = None
 ) -> dict:
-    """Create a new partner persona."""
+    """Create a new partner persona.
+
+    Pass negotiation_id to create a private copy scoped to a single negotiation
+    (hidden from the partner library); leave it None for a reusable template.
+    cloned_from records the template a private copy was seeded from.
+    """
     row = await db.fetchrow(
         """
         INSERT INTO partner_personas
         (created_by, name, role_title, company, communication_style,
-         known_interests, batna_estimate, relationship_notes, is_shared)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         known_interests, batna_estimate, relationship_notes, is_shared,
+         negotiation_id, cloned_from)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING *
         """,
         created_by, name, role_title, company, communication_style,
-        known_interests, batna_estimate, relationship_notes, is_shared
+        known_interests, batna_estimate, relationship_notes, is_shared,
+        negotiation_id, cloned_from
     )
     return dict(row)
 
 
 async def get_partner_personas(user_id: UUID, include_shared: bool = True) -> List[dict]:
-    """Get all partner personas accessible to a user."""
+    """Get all partner personas accessible to a user.
+
+    Excludes per-negotiation private copies (negotiation_id IS NOT NULL) so the
+    partner library only ever lists reusable templates.
+    """
     if include_shared:
         rows = await db.fetch(
             """
             SELECT * FROM partner_personas
-            WHERE created_by = $1 OR is_shared = TRUE
+            WHERE (created_by = $1 OR is_shared = TRUE) AND negotiation_id IS NULL
             ORDER BY name
             """,
             user_id
         )
     else:
         rows = await db.fetch(
-            "SELECT * FROM partner_personas WHERE created_by = $1 ORDER BY name",
+            "SELECT * FROM partner_personas WHERE created_by = $1 AND negotiation_id IS NULL ORDER BY name",
             user_id
         )
     return [dict(r) for r in rows]
