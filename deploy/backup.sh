@@ -3,11 +3,13 @@
 # backup.sh — snapshot the CURRENT deployment before a deploy overwrites it.
 #
 # Runs ON the remote box (invoked by deploy.sh / promote.sh before they sync).
-# Writes ~/backups/amfonica_<env>_<timestamp>.tar.gz containing EVERYTHING:
-# the whole deploy dir (backend code, built SPA in public/, data/ with the
-# vectorstore + uploads + config, the data-sources corpus, and .env) PLUS a
-# pg_dump of the Postgres database (which lives in a Docker volume, not on disk,
-# so a file copy alone would miss it).
+# Writes ~/backups/amfonica_<env>_<timestamp>.tar.gz containing the whole
+# deploy dir (backend code, built SPA in public/, data/ with the vectorstore +
+# uploads + config, and .env) PLUS a pg_dump of the Postgres database (which
+# lives in a Docker volume, not on disk, so a file copy alone would miss it).
+#
+# The data-sources corpus is deliberately NOT backed up: it is large, static,
+# and reproducible from the repo (../data-sources on the dev machine).
 #
 # Keeps the newest BACKUP_KEEP (default 10) backups per env; older ones pruned.
 #
@@ -52,8 +54,8 @@ else
   echo "    postgres not running; backing up files only"
 fi
 
-# Tar EVERYTHING in the deploy dir (+ the db dump if it was written).
-if tar czf "$OUT" -C "$DEPLOY_DIR" .; then
+# Tar the deploy dir (+ the db dump if written), minus the static corpus.
+if tar czf "$OUT" -C "$DEPLOY_DIR" --exclude='./data-sources' .; then
   echo "    backup: $OUT ($(du -h "$OUT" | cut -f1))"
 else
   echo "    ERROR: backup failed"; rm -f "$DB_DUMP" "$OUT"; exit 1
