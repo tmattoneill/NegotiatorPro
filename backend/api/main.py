@@ -4,9 +4,11 @@ FastAPI Main Application
 This is the entry point for the FastAPI backend that replaces Gradio.
 It provides REST API endpoints for the NegotiatorPro system.
 """
+import asyncio
 import os
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,6 +35,47 @@ logger = logging.getLogger(__name__)
 load_dotenv(override=True)
 
 
+# These must match the paths rag_engine/admin_rag read (CWD-relative: repo root
+# locally, /app in Docker), so a hydrate writes exactly where load_vectorstore reads.
+_SOURCES_DIR = os.getenv("DATA_SOURCES_DIR", "../data-sources")
+_VECTORSTORE_DIR = "vectorstore"
+_SUPPORTED_EXTS = {".pdf", ".txt", ".docx", ".doc"}
+
+
+def _hydrate_from_storage() -> None:
+    """Populate local corpus + vectorstore dirs from Bunny if missing.
+
+    Synchronous (urllib); call via asyncio.to_thread. Fail-open: any error is
+    logged and swallowed so Bunny being unreachable can never block startup —
+    the app falls through to whatever is on local disk (and ultimately the
+    rebuild-from-corpus fallback in setup_system). No-op when unconfigured.
+    """
+    from ..storage import corpus, vectorstores, vectorstore_prefix
+
+    # Corpus: hydrate only if the local sources dir has no ingestable files.
+    try:
+        src = Path(_SOURCES_DIR)
+        has_sources = src.is_dir() and any(
+            p.suffix.lower() in _SUPPORTED_EXTS for p in src.rglob("*") if p.is_file()
+        )
+        if corpus.is_configured() and not has_sources:
+            n = corpus.sync_down("", src, False)
+            logger.info(f"Hydrated {n} corpus file(s) from storage into {src}")
+    except Exception as e:
+        logger.warning(f"Corpus hydrate skipped (continuing with local): {e}")
+
+    # Vectorstore: hydrate only if the live index is absent.
+    try:
+        vs = Path(_VECTORSTORE_DIR)
+        if vectorstores.is_configured() and not (vs / "index.faiss").exists():
+            n = vectorstores.sync_down(vectorstore_prefix(), vs, False)
+            logger.info(
+                f"Hydrated {n} index file(s) from vectorstores/{vectorstore_prefix()} into {vs}"
+            )
+    except Exception as e:
+        logger.warning(f"Vectorstore hydrate skipped (continuing with local): {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -57,6 +100,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Failed to connect to database: {e}")
         logger.warning("Application will continue but database features will be unavailable")
+
+    # Hydrate local corpus + vectorstore from Bunny if missing, before the RAG
+    # system lazily loads them on the first request. Off-thread so it never
+    # blocks the event loop; fail-open so a storage outage can't block startup.
+    logger.info("Checking offsite storage for corpus/vectorstore hydration...")
+    await asyncio.to_thread(_hydrate_from_storage)
 
     logger.info("Initializing RAG system on first request...")
 
