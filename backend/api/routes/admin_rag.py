@@ -339,6 +339,19 @@ async def _run_rebuild(job_id: str, params: RebuildRequest):
     try:
         await SourceMetadataManager.update_job(job_id, status="running", percent=0)
 
+        # Pull the canonical corpus down first so the build sees source files
+        # uploaded from other machines. Fail-closed: if we can't sync, abort
+        # rather than promote an index built from a stale local corpus.
+        if corpus.is_configured():
+            await SourceMetadataManager.update_job(
+                job_id, status="running", percent=0, current_file="syncing corpus..."
+            )
+            try:
+                pulled = await asyncio.to_thread(corpus.sync_down, "", SOURCES_DIR, False)
+                logger.info(f"Rebuild {job_id}: synced {pulled} corpus file(s) from storage")
+            except StorageError as e:
+                raise RuntimeError(f"Could not sync corpus from storage: {e}") from e
+
         result: BuildResult = await build_index(
             sources_dir=SOURCES_DIR,
             target_dir=STAGING_VECTORSTORE,
@@ -365,6 +378,23 @@ async def _run_rebuild(job_id: str, params: RebuildRequest):
 
         # Mark all indexed files as having been indexed now
         await SourceMetadataManager.mark_indexed(result.indexed_filenames)
+
+        # Push the freshly promoted index to the vectorstores zone under this
+        # environment's prefix so other boxes can hydrate it. Fail-open: the live
+        # local index is already good, so a push failure is recorded on the job
+        # (for retry) but does not fail the rebuild. Skipped on local/unwritable.
+        if should_push_vectorstore():
+            try:
+                pushed = await asyncio.to_thread(
+                    vectorstores.sync_up, LIVE_VECTORSTORE, vectorstore_prefix()
+                )
+                logger.info(
+                    f"Rebuild {job_id}: pushed {pushed} index file(s) to "
+                    f"vectorstores/{vectorstore_prefix()}"
+                )
+            except StorageError as e:
+                logger.warning(f"Rebuild {job_id}: index push to storage failed: {e}")
+                errors.append(f"Index built and promoted locally, but push to storage failed: {e}")
 
         await SourceMetadataManager.update_job(
             job_id,
