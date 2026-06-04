@@ -20,6 +20,7 @@ REMOTE="${REMOTE:-webdev@134.209.189.154}"
 SERVER_IP="${SERVER_IP:-134.209.189.154}"
 DEPLOY_DIR="${DEPLOY_DIR:-/home/webdev/sites/amfonica.com/dev}"
 DOMAIN="${DOMAIN:-dev.amfonica.com}"
+DEPLOY_ENV="${DEPLOY_ENV:-dev}"                   # used to name backups (amfonica_<env>_<ts>.tar.gz)
 APP_PORT="${APP_PORT:-8090}"                      # host loopback port for the API
 WEBROOT="${WEBROOT:-$DEPLOY_DIR/public}"          # nginx static root for the SPA (inside the deploy dir)
 EMAIL="${CERTBOT_EMAIL:-tmattoneill@gmail.com}"   # Let's Encrypt account email
@@ -36,6 +37,14 @@ say "Preflight"
 [ -d ../data-sources ]     || die "missing ../data-sources (RAG corpus)"
 ssh -o ConnectTimeout=10 "$REMOTE" true || die "cannot ssh to $REMOTE"
 echo "ok: local artifacts present, ssh reachable"
+
+# ---- backup the current deployment (before we touch anything) ---------------
+# Snapshots the whole deploy dir + a DB dump to ~/backups on the box, so a bad
+# deploy can be rolled back. Skips cleanly on a first deploy (nothing there).
+say "Backing up current deployment on $REMOTE"
+ssh "$REMOTE" "mkdir -p '$DEPLOY_DIR/deploy'"
+rsync -az deploy/backup.sh "$REMOTE:$DEPLOY_DIR/deploy/backup.sh"
+ssh "$REMOTE" bash "$DEPLOY_DIR/deploy/backup.sh" "$DEPLOY_ENV" "$DEPLOY_DIR" "$COMPOSE"
 
 # ---- build the SPA (in Docker, off-box) -------------------------------------
 # Built here and shipped as static files; the frontend source never goes to the
