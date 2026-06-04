@@ -39,6 +39,15 @@ class LLMGenerationError(Exception):
     """
 
 
+class MissingAPIKeyError(LLMGenerationError):
+    """Raised when the selected provider has no usable key in the user's profile.
+
+    This is a user-configuration problem, not an upstream failure, so the chat
+    route maps it to a 400 (with the provider-specific message) rather than a
+    502. Subclasses LLMGenerationError so existing handlers still catch it.
+    """
+
+
 # =============================================================================
 # Global Model Configuration
 # =============================================================================
@@ -583,7 +592,7 @@ class EnhancedNegotiationRAG:
             key = (user_api_keys or {}).get(backend_id)
             backend = self.backend_manager.get_backend(backend_id)
             if backend and backend.requires_api_key and not key:
-                raise LLMGenerationError(
+                raise MissingAPIKeyError(
                     f"No {backend.name} API key found in your profile. "
                     f"Add one in Settings to use this provider."
                 )

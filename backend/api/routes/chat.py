@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, status, File, UploadFile, Form, De
 
 from ..models.requests import ChatRequest
 from ..models.responses import ChatResponse
-from ...rag_engine import EnhancedNegotiationRAG, LLMGenerationError
+from ...rag_engine import EnhancedNegotiationRAG, LLMGenerationError, MissingAPIKeyError
 from ... import db_operations as db_ops
 from ...persona_text import is_placeholder
 from ..middleware.auth import get_current_user
@@ -428,14 +428,25 @@ async def process_chat(
         # status code, not be masked as a 500 by the generic handler below.
         raise
 
+    except MissingAPIKeyError as e:
+        # User-configuration problem, not an upstream failure: the selected
+        # provider has no usable key in the profile. Return 400 with the
+        # provider-specific message so the frontend tells the user exactly
+        # what to fix (e.g. "add a DeepSeek key in Settings"), not "Bad Gateway".
+        logger.info(f"Chat rejected — missing API key: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
     except LLMGenerationError as e:
-        # LLM/upstream failure (bad key, provider down, etc.). Log details
-        # server-side; return a clean 502 the frontend renders as an error state
-        # rather than letting the exception text surface as an assistant message.
+        # Genuine LLM/upstream failure (provider down, network, bad response).
+        # Log details server-side; return a 502 the frontend renders as an error
+        # state rather than letting the exception text surface as an assistant message.
         logger.error(f"LLM generation failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="The AI model could not generate a response. Check your provider/API key and try again."
+            detail="The AI model could not generate a response. The provider may be down or the request timed out. Please try again."
         )
 
     except Exception as e:
