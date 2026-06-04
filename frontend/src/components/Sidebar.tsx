@@ -55,25 +55,46 @@ export default function Sidebar() {
     }
   }, [currentNegotiation?.id, user?.id]);
 
-  // The active negotiation drives the model selector: load its saved provider/
-  // model so the per-negotiation choice persists. Fall back to the user's
-  // profile default when the negotiation has no override (or it's unavailable).
+  // Resolve a preferred provider/model against the available list. Keeps the
+  // preferred model only if that provider actually offers it, else falls back to
+  // the provider's first model. Returns null when the provider isn't available.
+  const resolvePreferredModel = (
+    provider?: string | null,
+    model?: string | null,
+  ): { provider: string; model: string | null } | null => {
+    if (!provider || !availableModels[provider]) return null;
+    const models = availableModels[provider].models;
+    const keep = model && models.some((m) => m.id === model);
+    return { provider, model: keep ? model! : (models[0]?.id ?? null) };
+  };
+
+  // The active negotiation drives the model selector. Precedence on load:
+  // negotiation.settings (explicit per-negotiation override) → the bound "You"
+  // persona's preferred provider/model → the user's profile default → leave as is.
   const modelKeyCount = Object.keys(availableModels).length;
   useEffect(() => {
     if (!currentNegotiation?.id || modelKeyCount === 0) return;
     const settings = (currentNegotiation.settings ?? {}) as { provider?: string; model?: string };
     if (settings.provider && availableModels[settings.provider]) {
       setProviderModel(settings.provider, settings.model ?? null);
-    } else {
-      const pref = (user as { preferred_provider?: string | null })?.preferred_provider ?? null;
-      const prefModel = (user as { preferred_model?: string | null })?.preferred_model ?? null;
-      if (pref && availableModels[pref]) {
-        setProviderModel(pref, prefModel);
-      }
-      // else: leave the current selection untouched
+      return;
     }
+    const persona = userPersonas.find((p) => p.id === currentNegotiation.user_persona_id);
+    const fromPersona = resolvePreferredModel(persona?.preferred_provider, persona?.preferred_model);
+    if (fromPersona) {
+      setProviderModel(fromPersona.provider, fromPersona.model);
+      return;
+    }
+    const fromUser = resolvePreferredModel(
+      (user as { preferred_provider?: string | null })?.preferred_provider,
+      (user as { preferred_model?: string | null })?.preferred_model,
+    );
+    if (fromUser) {
+      setProviderModel(fromUser.provider, fromUser.model);
+    }
+    // else: leave the current selection untouched
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentNegotiation?.id, modelKeyCount]);
+  }, [currentNegotiation?.id, currentNegotiation?.user_persona_id, modelKeyCount, userPersonas.length]);
 
   // Get active personas. The "You" persona is the one BOUND to the current
   // negotiation (user_persona_id) — that is what the server-side briefing uses
@@ -167,9 +188,24 @@ export default function Sidebar() {
                 <select
                   value={currentNegotiation.user_persona_id ?? ''}
                   onChange={(e) => {
-                    if (user?.id && currentNegotiation?.id && e.target.value) {
-                      updateNegotiation(user.id, currentNegotiation.id, { user_persona_id: e.target.value });
+                    const personaId = e.target.value;
+                    if (!user?.id || !currentNegotiation?.id || !personaId) return;
+                    // Follow the persona: re-point the model to its preferred
+                    // provider/model and persist that onto the negotiation.
+                    const persona = userPersonas.find((p) => p.id === personaId);
+                    const patch: { user_persona_id: string; settings?: Record<string, unknown> } = {
+                      user_persona_id: personaId,
+                    };
+                    const picked = resolvePreferredModel(persona?.preferred_provider, persona?.preferred_model);
+                    if (picked) {
+                      setProviderModel(picked.provider, picked.model);
+                      patch.settings = {
+                        ...(currentNegotiation.settings ?? {}),
+                        provider: picked.provider,
+                        model: picked.model,
+                      };
                     }
+                    updateNegotiation(user.id, currentNegotiation.id, patch);
                   }}
                   title="Who you are in this negotiation — used to tailor advice"
                   className="np-select w-full appearance-none bg-none py-2 bg-black/30 border border-white/20 rounded-md text-white text-[13px] cursor-pointer"
