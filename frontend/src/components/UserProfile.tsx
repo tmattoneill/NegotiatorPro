@@ -380,17 +380,15 @@ export default function UserProfile() {
                         placeholder={user.has_openai_key && !keyModified.openai ? '••••••••' : 'sk-...'}
                         className="flex-1"
                       />
-                      {user.has_openai_key && !keyModified.openai ? (
-                        testingOpenAI ? (
-                          <span className="text-xs text-chat-muted-foreground px-2">Testing...</span>
-                        ) : openAITestResult ? (
-                          <span className={openAITestResult.valid ? 'text-success text-lg font-bold' : 'text-danger text-lg font-bold'} title={openAITestResult.message}>
-                            {openAITestResult.valid ? '✓' : '✗'}
-                          </span>
-                        ) : null
-                      ) : (
-                        <Button type="button" onClick={() => handleTestAPIKey('openai')} disabled={testingOpenAI || !formData.openai_api_key}>
-                          {testingOpenAI ? 'Testing...' : 'Test Key'}
+                      {testingOpenAI ? (
+                        <span className="text-xs text-chat-muted-foreground px-2">Testing...</span>
+                      ) : openAITestResult ? (
+                        <span className={openAITestResult.valid ? 'text-success text-lg font-bold' : 'text-danger text-lg font-bold'} title={openAITestResult.message}>
+                          {openAITestResult.valid ? '✓' : '✗'}
+                        </span>
+                      ) : (user.has_openai_key && !keyModified.openai) ? null : (
+                        <Button type="button" onClick={() => handleTestAPIKey('openai')} disabled={!formData.openai_api_key}>
+                          Test Key
                         </Button>
                       )}
                     </div>
@@ -413,17 +411,15 @@ export default function UserProfile() {
                         placeholder={user.has_anthropic_key && !keyModified.anthropic ? '••••••••' : 'sk-ant-...'}
                         className="flex-1"
                       />
-                      {user.has_anthropic_key && !keyModified.anthropic ? (
-                        testingAnthropic ? (
-                          <span className="text-xs text-chat-muted-foreground px-2">Testing...</span>
-                        ) : anthropicTestResult ? (
-                          <span className={anthropicTestResult.valid ? 'text-success text-lg font-bold' : 'text-danger text-lg font-bold'} title={anthropicTestResult.message}>
-                            {anthropicTestResult.valid ? '✓' : '✗'}
-                          </span>
-                        ) : null
-                      ) : (
-                        <Button type="button" onClick={() => handleTestAPIKey('anthropic')} disabled={testingAnthropic || !formData.anthropic_api_key}>
-                          {testingAnthropic ? 'Testing...' : 'Test Key'}
+                      {testingAnthropic ? (
+                        <span className="text-xs text-chat-muted-foreground px-2">Testing...</span>
+                      ) : anthropicTestResult ? (
+                        <span className={anthropicTestResult.valid ? 'text-success text-lg font-bold' : 'text-danger text-lg font-bold'} title={anthropicTestResult.message}>
+                          {anthropicTestResult.valid ? '✓' : '✗'}
+                        </span>
+                      ) : (user.has_anthropic_key && !keyModified.anthropic) ? null : (
+                        <Button type="button" onClick={() => handleTestAPIKey('anthropic')} disabled={!formData.anthropic_api_key}>
+                          Test Key
                         </Button>
                       )}
                     </div>
@@ -445,17 +441,15 @@ export default function UserProfile() {
                         }}
                         placeholder={(user as any).has_deepseek_key && !keyModified.deepseek ? '••••••••' : 'sk-...'}
                       />
-                      {(user as any).has_deepseek_key && !keyModified.deepseek ? (
-                        testingDeepSeek ? (
-                          <span className="text-xs text-chat-muted-foreground px-2">Testing...</span>
-                        ) : deepSeekTestResult ? (
-                          <span className={deepSeekTestResult.valid ? 'text-success text-lg font-bold' : 'text-danger text-lg font-bold'} title={deepSeekTestResult.message}>
-                            {deepSeekTestResult.valid ? '✓' : '✗'}
-                          </span>
-                        ) : null
-                      ) : (
-                        <Button type="button" onClick={() => handleTestAPIKey('deepseek')} disabled={testingDeepSeek || !formData.deepseek_api_key}>
-                          {testingDeepSeek ? 'Testing...' : 'Test Key'}
+                      {testingDeepSeek ? (
+                        <span className="text-xs text-chat-muted-foreground px-2">Testing...</span>
+                      ) : deepSeekTestResult ? (
+                        <span className={deepSeekTestResult.valid ? 'text-success text-lg font-bold' : 'text-danger text-lg font-bold'} title={deepSeekTestResult.message}>
+                          {deepSeekTestResult.valid ? '✓' : '✗'}
+                        </span>
+                      ) : ((user as any).has_deepseek_key && !keyModified.deepseek) ? null : (
+                        <Button type="button" onClick={() => handleTestAPIKey('deepseek')} disabled={!formData.deepseek_api_key}>
+                          Test Key
                         </Button>
                       )}
                     </div>
