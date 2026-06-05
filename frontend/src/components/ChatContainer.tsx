@@ -9,6 +9,7 @@ import { useAuthStore } from '../store/authStore';
 import { sendChatMessage } from '../services/api';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
+import NegotiationModal from './NegotiationModal';
 import type { Message } from '../types';
 
 export default function ChatContainer() {
@@ -30,6 +31,7 @@ export default function ChatContainer() {
   // State for editing conversation title
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
+  const [showNegotiationModal, setShowNegotiationModal] = useState(false);
 
   // Reset editing state when session changes
   useEffect(() => {
@@ -212,10 +214,29 @@ export default function ChatContainer() {
           <div className="welcome-message">
             <div>
               <h3>Welcome to NegotiatorPro</h3>
-              {currentNegotiation
-                ? <p>Start a conversation to get expert negotiation guidance</p>
-                : <p>Create a negotiation in the sidebar to get started</p>
-              }
+              {currentNegotiation ? (
+                <p>Start a conversation to get expert negotiation guidance</p>
+              ) : (
+                <>
+                  <p style={{ marginBottom: '20px' }}>Create a negotiation to get started</p>
+                  <button
+                    onClick={() => setShowNegotiationModal(true)}
+                    style={{
+                      padding: '10px 24px',
+                      background: '#2c3e50',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      letterSpacing: '0.3px',
+                    }}
+                  >
+                    + New Negotiation
+                  </button>
+                </>
+              )}
             </div>
           </div>
         ) : (
@@ -243,6 +264,11 @@ export default function ChatContainer() {
         isLoading={isLoading}
         disabled={!currentNegotiation && !isSuperAdmin}
         disabledPlaceholder="Create a negotiation to start a session"
+      />
+
+      <NegotiationModal
+        isOpen={showNegotiationModal}
+        onClose={() => setShowNegotiationModal(false)}
       />
     </div>
   );
