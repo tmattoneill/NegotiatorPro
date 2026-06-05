@@ -39,6 +39,9 @@ env/
 .env.staging
 .env.dev
 .env.prod
+# Shared Bunny Storage secrets — gitignored but Syncthing-synced (carries across
+# machines). scripts/setup-local-env.sh stamps these into .env. See that script.
+.env.bunny
 
 # Registrar DNS export (reference only, not source)
 amfonica.com_dns_records.csv
