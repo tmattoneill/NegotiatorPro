@@ -778,7 +778,7 @@ enable_profiles = config.get("ui.features.enableUserProfiles")
 **Project:** Enhanced RAG-based negotiation guidance system with React frontend, FastAPI backend, multi-backend LLM support (OpenAI, Anthropic, Ollama), and document management.
 
 **Branch:** `main`
-**Last Updated:** 6/5/2026, 11:16:29 AM
+**Last Updated:** 6/5/2026, 12:44:35 PM
 
 ### Active Todos
 - [ ] [critical] Test vectorstore rebuild functionality end-to-end with the new bind mount fix to ensure no data loss (`main`)
@@ -793,6 +793,7 @@ enable_profiles = config.get("ui.features.enableUserProfiles")
 - [ ] [high] Test the complete deployment pipeline end-to-end using the new deploy.sh script (`main`)
 - [ ] [high] Return to the original session plan: create and work on ux/negotiation-management branch to fix UI issues around creating, selecting, editing, and deleting negotiations (`main`)
 - [ ] [high] Implement Phase 4: route chat-uploads to amfonica-user-data zone in Bunny Storage (`main`)
+- [ ] [high] Create and switch to ux/negotiation-management branch to address the original session plan (`main`)
 - [ ] [medium] Verify admin login route works correctly with the new authentication changes (`main`)
 - [ ] [medium] Replace 'YOU' label with the active Persona Name in chat messages (`main`)
 - [ ] [medium] Show RAG source citations in right margin of chat messages, with hover tooltip revealing the relevant source text (`main`)
@@ -811,6 +812,7 @@ enable_profiles = config.get("ui.features.enableUserProfiles")
 - [ ] [medium] Build promote.sh: promote dev -> prod, from dev.amfonica.com to www.amfonica.com (live). Ship the dev-verified build/images to the prod host, run DB migrations, and cut over with minimal downtime (and a rollback path). This is stage 2 of the two-stage release in the meta CLAUDE.md. Document the exact hosts, paths, and flow here once written. (`main`)
 - [ ] [medium] Trim deploy.sh to remove corpus/vectorstore shipping once clean-boot hydrate stability is confirmed (`main`)
 - [ ] [medium] Monitor Bunny Storage hydrate performance on next deployment to validate clean-boot stability (`main`)
+- [ ] [medium] Push commit 1c33063 (HTTP Basic Auth nginx template) to remote (`main`)
 - [ ] [low] Document the new admin features and LLM configuration capabilities in user documentation (`main`)
 - [ ] [low] Partner copy-on-write: private partner copies created before migration 007 (e.g. "Partner - Buyer") have a NULL cloned_from, so the modal's "also update the shared template" option silently no-ops for them. Decide whether to backfill cloned_from for pre-existing copies or accept it (re-cloning fixes it going forward). (`main`)
 
