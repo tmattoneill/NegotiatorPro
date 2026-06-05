@@ -269,33 +269,38 @@ export default function UserProfile() {
                   const preferredProvider = (user as any).preferred_provider;
                   const badgeBase = 'inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm ';
                   const preferredRing = ' ring-2 ring-green-700 ring-offset-1';
+                  // A stored key that auto-tested and failed should show grey, not green.
+                  // When no test has run (null), trust the DB value.
+                  const openaiOk = user.has_openai_key && (openAITestResult === null || openAITestResult.valid);
+                  const anthropicOk = user.has_anthropic_key && (anthropicTestResult === null || anthropicTestResult.valid);
+                  const deepseekOk = (user as any).has_deepseek_key && (deepSeekTestResult === null || deepSeekTestResult.valid);
                   return (
                     <>
                       <div className={
                         badgeBase +
-                        (user.has_openai_key ? 'border-success/30 bg-success/10' : 'border-chat-border bg-transparent') +
+                        (openaiOk ? 'border-success/30 bg-success/10' : 'border-chat-border bg-transparent') +
                         (preferredProvider === 'openai' ? preferredRing : '')
                       }>
-                        <span className={user.has_openai_key ? 'h-2 w-2 rounded-full bg-success inline-block' : 'h-2 w-2 rounded-full bg-chat-muted-foreground inline-block'} />
-                        <span className={user.has_openai_key ? 'font-medium text-success' : 'font-medium text-chat-muted-foreground'}>OpenAI</span>
+                        <span className={openaiOk ? 'h-2 w-2 rounded-full bg-success inline-block' : 'h-2 w-2 rounded-full bg-chat-muted-foreground inline-block'} />
+                        <span className={openaiOk ? 'font-medium text-success' : 'font-medium text-chat-muted-foreground'}>OpenAI</span>
                       </div>
 
                       <div className={
                         badgeBase +
-                        (user.has_anthropic_key ? 'border-success/30 bg-success/10' : 'border-chat-border bg-transparent') +
+                        (anthropicOk ? 'border-success/30 bg-success/10' : 'border-chat-border bg-transparent') +
                         (preferredProvider === 'anthropic' ? preferredRing : '')
                       }>
-                        <span className={user.has_anthropic_key ? 'h-2 w-2 rounded-full bg-success inline-block' : 'h-2 w-2 rounded-full bg-chat-muted-foreground inline-block'} />
-                        <span className={user.has_anthropic_key ? 'font-medium text-success' : 'font-medium text-chat-muted-foreground'}>Anthropic</span>
+                        <span className={anthropicOk ? 'h-2 w-2 rounded-full bg-success inline-block' : 'h-2 w-2 rounded-full bg-chat-muted-foreground inline-block'} />
+                        <span className={anthropicOk ? 'font-medium text-success' : 'font-medium text-chat-muted-foreground'}>Anthropic</span>
                       </div>
 
                       <div className={
                         badgeBase +
-                        ((user as any).has_deepseek_key ? 'border-success/30 bg-success/10' : 'border-chat-border bg-transparent') +
+                        (deepseekOk ? 'border-success/30 bg-success/10' : 'border-chat-border bg-transparent') +
                         (preferredProvider === 'deepseek' ? preferredRing : '')
                       }>
-                        <span className={(user as any).has_deepseek_key ? 'h-2 w-2 rounded-full bg-success inline-block' : 'h-2 w-2 rounded-full bg-chat-muted-foreground inline-block'} />
-                        <span className={(user as any).has_deepseek_key ? 'font-medium text-success' : 'font-medium text-chat-muted-foreground'}>DeepSeek</span>
+                        <span className={deepseekOk ? 'h-2 w-2 rounded-full bg-success inline-block' : 'h-2 w-2 rounded-full bg-chat-muted-foreground inline-block'} />
+                        <span className={deepseekOk ? 'font-medium text-success' : 'font-medium text-chat-muted-foreground'}>DeepSeek</span>
                       </div>
                     </>
                   );
