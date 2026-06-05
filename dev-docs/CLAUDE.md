@@ -778,7 +778,7 @@ enable_profiles = config.get("ui.features.enableUserProfiles")
 **Project:** Enhanced RAG-based negotiation guidance system with React frontend, FastAPI backend, multi-backend LLM support (OpenAI, Anthropic, Ollama), and document management.
 
 **Branch:** `main`
-**Last Updated:** 04/06/2026, 15:47:22
+**Last Updated:** 6/5/2026, 11:16:29 AM
 
 ### Active Todos
 - [ ] [critical] Test vectorstore rebuild functionality end-to-end with the new bind mount fix to ensure no data loss (`main`)
@@ -792,6 +792,7 @@ enable_profiles = config.get("ui.features.enableUserProfiles")
 - [ ] [high] Don't let the text preprocessor strip the negotiation briefing: get_advice preprocesses the whole enhanced_question (which includes the persona briefing block), degrading the >=240-char persona context we now require. Preprocess only the raw user question, not the briefing/file context. (`main`)
 - [ ] [high] Test the complete deployment pipeline end-to-end using the new deploy.sh script (`main`)
 - [ ] [high] Return to the original session plan: create and work on ux/negotiation-management branch to fix UI issues around creating, selecting, editing, and deleting negotiations (`main`)
+- [ ] [high] Implement Phase 4: route chat-uploads to amfonica-user-data zone in Bunny Storage (`main`)
 - [ ] [medium] Verify admin login route works correctly with the new authentication changes (`main`)
 - [ ] [medium] Replace 'YOU' label with the active Persona Name in chat messages (`main`)
 - [ ] [medium] Show RAG source citations in right margin of chat messages, with hover tooltip revealing the relevant source text (`main`)
@@ -808,6 +809,8 @@ enable_profiles = config.get("ui.features.enableUserProfiles")
 - [ ] [medium] Apply migrations 006 (partner_personas.negotiation_id) and 007 (partner_personas.cloned_from) to any existing non-dev database on deploy. They auto-run only on a fresh DB via docker-entrypoint-initdb; an existing DB needs them run manually (docker exec psql). (`main`)
 - [ ] [medium] Build deploy.sh: deploy the app to dev (dev.amfonica.com). Rsync/build the Docker services (frontend, backend, Postgres) to the dev host and bring them up. Must run pending DB migrations (see todo to apply 006/007). This is stage 1 of the two-stage release in the meta CLAUDE.md. (`main`)
 - [ ] [medium] Build promote.sh: promote dev -> prod, from dev.amfonica.com to www.amfonica.com (live). Ship the dev-verified build/images to the prod host, run DB migrations, and cut over with minimal downtime (and a rollback path). This is stage 2 of the two-stage release in the meta CLAUDE.md. Document the exact hosts, paths, and flow here once written. (`main`)
+- [ ] [medium] Trim deploy.sh to remove corpus/vectorstore shipping once clean-boot hydrate stability is confirmed (`main`)
+- [ ] [medium] Monitor Bunny Storage hydrate performance on next deployment to validate clean-boot stability (`main`)
 - [ ] [low] Document the new admin features and LLM configuration capabilities in user documentation (`main`)
 - [ ] [low] Partner copy-on-write: private partner copies created before migration 007 (e.g. "Partner - Buyer") have a NULL cloned_from, so the modal's "also update the shared template" option silently no-ops for them. Decide whether to backfill cloned_from for pre-existing copies or accept it (re-cloning fixes it going forward). (`main`)
 
