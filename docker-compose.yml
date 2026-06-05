@@ -1,42 +1,4 @@
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    restart: unless-stopped
-
-    # Environment variables
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB:-negotiatorpro}
-      - POSTGRES_USER=${POSTGRES_USER:-negotiatorpro}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-
-    # Volume for persistent data - mapped to /data/db
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./migrations:/docker-entrypoint-initdb.d
-
-    # Port mapping (optional, for external access during development)
-    ports:
-      - "${POSTGRES_HOST_PORT:-5432}:5432"
-
-    # Networking
-    networks:
-      - negotiator-network
-
-    # Health check
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-negotiatorpro}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-    # Logging configuration
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
   # FastAPI Backend
   backend:
     build:
@@ -57,17 +19,6 @@ services:
     # Only set values that must differ inside the container vs .env.
     # Everything else (API keys, secrets, ports etc.) flows from env_file.
     environment:
-      # Container-internal hostnames — postgres is the compose service name
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-
-      # IMPORTANT: blank out DATABASE_URL inside the container. The .env file
-      # has it set to localhost (correct for running uvicorn directly on the
-      # host), but parsed inside the container it points at the container
-      # itself, not the postgres service. With DATABASE_URL empty, the code
-      # falls back to POSTGRES_HOST/PORT/USER/PASSWORD individually.
-      - DATABASE_URL=
-
       # Canonical corpus location inside the container (bind-mounted from host)
       - DATA_SOURCES_DIR=/app/data-sources
 
@@ -77,11 +28,6 @@ services:
 
     # Override CMD to enable hot-reload in development
     command: ["uvicorn", "backend.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
-
-    # Depends on database
-    depends_on:
-      postgres:
-        condition: service_healthy
 
     # Volume mounts for persistent data - all in /data
     volumes:
@@ -178,6 +124,3 @@ services:
 networks:
   negotiator-network:
     driver: bridge
-
-volumes:
-  postgres_data:

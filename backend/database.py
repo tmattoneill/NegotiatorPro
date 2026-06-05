@@ -39,6 +39,7 @@ class Database:
         self.database = os.getenv("POSTGRES_DB", "negotiatorpro")
         self.user = os.getenv("POSTGRES_USER", "negotiatorpro")
         self.password = os.getenv("POSTGRES_PASSWORD", "")
+        self._ssl_mode: Optional[str] = None
 
         # Parse DATABASE_URL if provided (overrides individual settings)
         database_url = os.getenv("DATABASE_URL")
@@ -50,12 +51,11 @@ class Database:
     def _parse_database_url(self, url: str):
         """
         Parse DATABASE_URL in the format:
-        postgresql://user:password@host:port/database
+        postgresql://user:password@host:port/database[?sslmode=require&...]
         """
-        if url.startswith("postgresql://"):
-            url = url.replace("postgresql://", "")
+        if url.startswith("postgresql://") or url.startswith("postgres://"):
+            url = url.split("://", 1)[1]
 
-            # Extract credentials and connection info
             if "@" in url:
                 credentials, connection = url.split("@", 1)
                 if ":" in credentials:
@@ -63,9 +63,18 @@ class Database:
                 else:
                     self.user = credentials
 
-                # Extract host, port, database
                 if "/" in connection:
-                    host_port, self.database = connection.split("/", 1)
+                    host_port, db_and_params = connection.split("/", 1)
+                    # Strip query string (e.g. ?sslmode=require&channel_binding=require)
+                    # and capture sslmode for use in create_pool
+                    if "?" in db_and_params:
+                        self.database, qs = db_and_params.split("?", 1)
+                        params = dict(
+                            p.split("=", 1) for p in qs.split("&") if "=" in p
+                        )
+                        self._ssl_mode = params.get("sslmode")
+                    else:
+                        self.database = db_and_params
                     if ":" in host_port:
                         self.host, port_str = host_port.split(":", 1)
                         self.port = int(port_str)
@@ -87,6 +96,7 @@ class Database:
                 pool_max = config.get("database.pool_max_size", 10)
                 cmd_timeout = config.get("database.command_timeout_seconds", 60)
 
+                ssl_arg = True if self._ssl_mode == "require" else None
                 self._pool = await asyncpg.create_pool(
                     host=self.host,
                     port=self.port,
@@ -96,6 +106,7 @@ class Database:
                     min_size=pool_min,
                     max_size=pool_max,
                     command_timeout=cmd_timeout,
+                    **({"ssl": ssl_arg} if ssl_arg else {}),
                 )
                 logger.info("Database connection pool created successfully")
             except Exception as e:

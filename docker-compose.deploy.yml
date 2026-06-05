@@ -6,31 +6,6 @@
 # nginx can reach it. Used by deploy.sh on the remote host.
 
 services:
-  postgres:
-    image: postgres:15-alpine
-    restart: unless-stopped
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB:-negotiatorpro}
-      - POSTGRES_USER=${POSTGRES_USER:-negotiatorpro}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      # Runs every migration on a FRESH volume only; re-deploys are handled by
-      # deploy.sh applying incremental migrations explicitly.
-      - ./migrations:/docker-entrypoint-initdb.d
-    networks:
-      - amfonica-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-negotiatorpro}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
   backend:
     build:
       context: .
@@ -47,22 +22,12 @@ services:
       - .env
 
     environment:
-      # Container-internal Postgres hostname (the compose service name).
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      # Blank DATABASE_URL so the code falls back to POSTGRES_HOST/PORT/USER/PASSWORD
-      # (the .env value points at localhost, which is wrong inside the container).
-      - DATABASE_URL=
       - DATA_SOURCES_DIR=/app/data-sources
 
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
     # No command override -> uses the Dockerfile CMD (uvicorn, no --reload).
-
-    depends_on:
-      postgres:
-        condition: service_healthy
 
     # Data only — no source bind mounts (the image is the source of truth).
     volumes:
@@ -103,6 +68,3 @@ services:
 networks:
   amfonica-network:
     driver: bridge
-
-volumes:
-  postgres_data:

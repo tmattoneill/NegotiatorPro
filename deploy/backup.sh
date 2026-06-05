@@ -11,6 +11,9 @@
 # The data-sources corpus is deliberately NOT backed up: it is large, static,
 # and reproducible from the repo (../data-sources on the dev machine).
 #
+# NOTE: The database (PostgreSQL) is hosted on Neon. Neon provides point-in-time
+# restore (PITR) natively — no pg_dump needed here.
+#
 # Keeps the newest BACKUP_KEEP (default 10) backups per env; older ones pruned.
 #
 # Args: ENV_NAME DEPLOY_DIR COMPOSE
@@ -18,8 +21,7 @@
 # Restore (manual):
 #   mkdir -p /tmp/restore && tar xzf ~/backups/amfonica_dev_<ts>.tar.gz -C /tmp/restore
 #   # files: rsync /tmp/restore/ back into the deploy dir
-#   # database: cat /tmp/restore/db_backup_<ts>.sql | \
-#   #   docker compose -f <compose> exec -T postgres psql -U <user> -d <db>
+#   # database: restore via Neon dashboard (branch restore / PITR)
 
 set -euo pipefail
 ENV_NAME="$1"; DEPLOY_DIR="$2"; COMPOSE="$3"
@@ -37,30 +39,12 @@ cd "$DEPLOY_DIR"
 TS=$(date +%Y%m%d-%H%M%S)
 OUT="$BACKUP_DIR/amfonica_${ENV_NAME}_${TS}.tar.gz"
 
-# DB creds from the box's own .env.
-set -a; . ./.env; set +a
-PGUSER="${POSTGRES_USER:-negotiatorpro}"; PGDB="${POSTGRES_DB:-negotiatorpro}"
-
-# Dump the database into the deploy dir so the single tarball captures it too.
-# stdin from /dev/null so `exec -T` never competes for this script's stdin.
-DB_DUMP="db_backup_${TS}.sql"
-if docker compose -f "$COMPOSE" exec -T postgres pg_isready -U "$PGUSER" </dev/null >/dev/null 2>&1; then
-  if docker compose -f "$COMPOSE" exec -T postgres pg_dump -U "$PGUSER" "$PGDB" </dev/null > "$DB_DUMP"; then
-    echo "    db dumped: $(du -h "$DB_DUMP" | cut -f1)"
-  else
-    echo "    WARNING: db dump failed; backing up files only"; rm -f "$DB_DUMP"
-  fi
-else
-  echo "    postgres not running; backing up files only"
-fi
-
-# Tar the deploy dir (+ the db dump if written), minus the static corpus.
+# Tar the deploy dir minus the static corpus. Database is on Neon (PITR via dashboard).
 if tar czf "$OUT" -C "$DEPLOY_DIR" --exclude='./data-sources' .; then
   echo "    backup: $OUT ($(du -h "$OUT" | cut -f1))"
 else
-  echo "    ERROR: backup failed"; rm -f "$DB_DUMP" "$OUT"; exit 1
+  echo "    ERROR: backup failed"; rm -f "$OUT"; exit 1
 fi
-rm -f "$DB_DUMP"
 
 # Retention: keep the newest $KEEP backups for this env, prune the rest.
 ls -1t "$BACKUP_DIR"/amfonica_${ENV_NAME}_*.tar.gz 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -f

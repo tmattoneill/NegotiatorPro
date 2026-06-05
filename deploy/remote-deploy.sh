@@ -12,31 +12,14 @@ set -euo pipefail
 DEPLOY_DIR="$1"; DOMAIN="$2"; APP_PORT="$3"; WEBROOT="$4"; EMAIL="$5"; SERVER_IP="$6"; IMAGE="$7"; COMPOSE="$8"
 cd "$DEPLOY_DIR"
 
-# Load POSTGRES_USER/DB for the migration step (values come from the .env).
 set -a; . ./.env; set +a
-PGUSER="${POSTGRES_USER:-negotiatorpro}"; PGDB="${POSTGRES_DB:-negotiatorpro}"
 dc() { docker compose -f "$COMPOSE" "$@"; }
 
 echo "==> Building image & starting containers"
 dc up -d --build
 
-echo "==> Waiting for Postgres"
-for _ in $(seq 1 30); do
-  dc exec -T postgres pg_isready -U "$PGUSER" </dev/null >/dev/null 2>&1 && break
-  sleep 2
-done
-
-# Fresh volumes run every migration via docker-entrypoint-initdb. This applies
-# incremental migrations on re-deploys (skips 001 base schema, which initdb owns
-# and is not idempotent). Guarded ALTERs (003-007) are safe to re-run.
-echo "==> Applying incremental migrations"
-for f in migrations/0*.sql; do
-  base=$(basename "$f")
-  case "$base" in 001_*) continue;; esac
-  echo "    - $base"
-  dc exec -T postgres psql -v ON_ERROR_STOP=0 -U "$PGUSER" -d "$PGDB" \
-     -f "/docker-entrypoint-initdb.d/$base" </dev/null >/dev/null 2>&1 || true
-done
+# Database is on Neon (external). No local postgres container to wait for.
+# Migrations are applied once directly against Neon; not on every deploy.
 
 # Sync the 'admin' user's password to ADMIN_PASSWORD (idempotent). migration 001
 # seeds a placeholder hash that matches no known password; this makes login work
@@ -48,11 +31,7 @@ async def main():
     pw = os.environ.get("ADMIN_PASSWORD")
     if not pw:
         print("    ADMIN_PASSWORD not set; skipping"); return
-    conn = await asyncpg.connect(
-        host=os.environ.get("POSTGRES_HOST", "postgres"),
-        port=int(os.environ.get("POSTGRES_PORT", 5432)),
-        user=os.environ["POSTGRES_USER"], password=os.environ["POSTGRES_PASSWORD"],
-        database=os.environ["POSTGRES_DB"])
+    conn = await asyncpg.connect(os.environ["DATABASE_URL"])
     h = await conn.fetchval("SELECT password_hash FROM users WHERE username='admin'")
     if h and bcrypt.checkpw(pw.encode(), h.encode()):
         print("    admin password already in sync")
@@ -64,11 +43,17 @@ async def main():
 asyncio.run(main())
 PY
 
-# Register the corpus in source_documents if the registry is empty (the original
-# vectorstore was built by a CLI that never registered sources). Idempotent guard
-# on count so admin edits to metadata are preserved on later deploys.
+# Register the corpus in source_documents if the registry is empty.
 echo "==> Source registry backfill (if empty)"
-count=$(dc exec -T postgres psql -tA -U "$PGUSER" -d "$PGDB" -c "SELECT count(*) FROM source_documents" </dev/null 2>/dev/null | tr -d '[:space:]')
+count=$(dc exec -T backend python3 -c "
+import asyncio, os, asyncpg
+async def main():
+    conn = await asyncpg.connect(os.environ['DATABASE_URL'])
+    n = await conn.fetchval('SELECT count(*) FROM source_documents')
+    await conn.close()
+    print(n)
+asyncio.run(main())
+" </dev/null 2>/dev/null | tr -d '[:space:]')
 if [ "${count:-0}" = "0" ]; then
   dc exec -T backend python3 - --apply < scripts/backfill_source_registry.py \
     && echo "    sources registered" || echo "    backfill failed (non-fatal)"
