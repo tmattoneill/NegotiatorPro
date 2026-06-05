@@ -38,6 +38,10 @@ export default function UserProfile() {
   const [anthropicTestResult, setAnthropicTestResult] = useState<{ valid: boolean; message: string } | null>(null);
   const [deepSeekTestResult, setDeepSeekTestResult] = useState<{ valid: boolean; message: string } | null>(null);
 
+  // Tracks whether the user has typed in each key field — when false and has_key is true,
+  // we show the stored-key mask and the test result from the auto-check.
+  const [keyModified, setKeyModified] = useState({ openai: false, anthropic: false, deepseek: false });
+
   // Persona state
   const [showPersonaForm, setShowPersonaForm] = useState(false);
   const [editingPersona, setEditingPersona] = useState<UserPersona | null>(null);
@@ -115,6 +119,33 @@ export default function UserProfile() {
       await deleteUserPersona(user.id, id);
     }
   };
+
+  const handleTestStoredKey = async (provider: 'openai' | 'anthropic' | 'deepseek') => {
+    const setTesting = { openai: setTestingOpenAI, anthropic: setTestingAnthropic, deepseek: setTestingDeepSeek };
+    const setResult = { openai: setOpenAITestResult, anthropic: setAnthropicTestResult, deepseek: setDeepSeekTestResult };
+    setTesting[provider](true);
+    setResult[provider](null);
+    try {
+      const response = await api.post('/users/test-stored-key', { provider });
+      setResult[provider]({ valid: true, message: response.data.message });
+    } catch (err: any) {
+      setResult[provider]({ valid: false, message: err.response?.data?.detail || 'Key validation failed' });
+    } finally {
+      setTesting[provider](false);
+    }
+  };
+
+  // Auto-test stored keys whenever the user enters edit mode.
+  useEffect(() => {
+    if (!isEditing || !user) return;
+    setKeyModified({ openai: false, anthropic: false, deepseek: false });
+    setOpenAITestResult(null);
+    setAnthropicTestResult(null);
+    setDeepSeekTestResult(null);
+    if (user.has_openai_key) handleTestStoredKey('openai');
+    if (user.has_anthropic_key) handleTestStoredKey('anthropic');
+    if ((user as any).has_deepseek_key) handleTestStoredKey('deepseek');
+  }, [isEditing]);
 
   const handleTestAPIKey = async (provider: 'openai' | 'anthropic' | 'deepseek') => {
     const keyMap = { openai: formData.openai_api_key, anthropic: formData.anthropic_api_key, deepseek: formData.deepseek_api_key };
@@ -234,28 +265,41 @@ export default function UserProfile() {
                 API Keys Status
               </h3>
               <div className="flex gap-4 flex-wrap">
-                <div className={
-                  'inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm ' +
-                  (user.has_openai_key ? 'border-success/30 bg-success/10' : 'border-chat-border bg-transparent')
-                }>
-                  <span className={user.has_openai_key ? 'h-2 w-2 rounded-full bg-success inline-block' : 'h-2 w-2 rounded-full bg-chat-muted-foreground inline-block'} />
-                  <span className={user.has_openai_key ? 'font-medium text-success' : 'font-medium text-chat-muted-foreground'}>OpenAI</span>
-                </div>
+                {(() => {
+                  const preferredProvider = (user as any).preferred_provider;
+                  const badgeBase = 'inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm ';
+                  const preferredRing = ' ring-2 ring-green-700 ring-offset-1';
+                  return (
+                    <>
+                      <div className={
+                        badgeBase +
+                        (user.has_openai_key ? 'border-success/30 bg-success/10' : 'border-chat-border bg-transparent') +
+                        (preferredProvider === 'openai' ? preferredRing : '')
+                      }>
+                        <span className={user.has_openai_key ? 'h-2 w-2 rounded-full bg-success inline-block' : 'h-2 w-2 rounded-full bg-chat-muted-foreground inline-block'} />
+                        <span className={user.has_openai_key ? 'font-medium text-success' : 'font-medium text-chat-muted-foreground'}>OpenAI</span>
+                      </div>
 
-                <div className={
-                  'inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm ' +
-                  (user.has_anthropic_key ? 'border-success/30 bg-success/10' : 'border-chat-border bg-transparent')
-                }>
-                  <span className={user.has_anthropic_key ? 'h-2 w-2 rounded-full bg-success inline-block' : 'h-2 w-2 rounded-full bg-chat-muted-foreground inline-block'} />
-                  <span className={user.has_anthropic_key ? 'font-medium text-success' : 'font-medium text-chat-muted-foreground'}>Anthropic</span>
-                </div>
-                <div className={
-                  'inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm ' +
-                  ((user as any).has_deepseek_key ? 'border-success/30 bg-success/10' : 'border-chat-border bg-transparent')
-                }>
-                  <span className={(user as any).has_deepseek_key ? 'h-2 w-2 rounded-full bg-success inline-block' : 'h-2 w-2 rounded-full bg-chat-muted-foreground inline-block'} />
-                  <span className={(user as any).has_deepseek_key ? 'font-medium text-success' : 'font-medium text-chat-muted-foreground'}>DeepSeek</span>
-                </div>
+                      <div className={
+                        badgeBase +
+                        (user.has_anthropic_key ? 'border-success/30 bg-success/10' : 'border-chat-border bg-transparent') +
+                        (preferredProvider === 'anthropic' ? preferredRing : '')
+                      }>
+                        <span className={user.has_anthropic_key ? 'h-2 w-2 rounded-full bg-success inline-block' : 'h-2 w-2 rounded-full bg-chat-muted-foreground inline-block'} />
+                        <span className={user.has_anthropic_key ? 'font-medium text-success' : 'font-medium text-chat-muted-foreground'}>Anthropic</span>
+                      </div>
+
+                      <div className={
+                        badgeBase +
+                        ((user as any).has_deepseek_key ? 'border-success/30 bg-success/10' : 'border-chat-border bg-transparent') +
+                        (preferredProvider === 'deepseek' ? preferredRing : '')
+                      }>
+                        <span className={(user as any).has_deepseek_key ? 'h-2 w-2 rounded-full bg-success inline-block' : 'h-2 w-2 rounded-full bg-chat-muted-foreground inline-block'} />
+                        <span className={(user as any).has_deepseek_key ? 'font-medium text-success' : 'font-medium text-chat-muted-foreground'}>DeepSeek</span>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -315,7 +359,7 @@ export default function UserProfile() {
                   API Keys
                 </h2>
                 <p className="text-xs text-chat-muted-foreground mb-4">
-                  Leave blank to keep existing keys unchanged
+                  Stored keys are tested automatically. Type a new key to replace one.
                 </p>
 
                 <div className="flex flex-col gap-4">
@@ -324,28 +368,32 @@ export default function UserProfile() {
                     <label className="block text-sm font-medium text-chat-foreground mb-1.5">
                       OpenAI API Key
                     </label>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       <Input
                         type="password"
                         value={formData.openai_api_key}
                         onChange={(e) => {
                           setFormData({ ...formData, openai_api_key: e.target.value });
+                          setKeyModified(prev => ({ ...prev, openai: true }));
                           setOpenAITestResult(null);
                         }}
-                        placeholder="sk-..."
+                        placeholder={user.has_openai_key && !keyModified.openai ? '••••••••' : 'sk-...'}
                         className="flex-1"
                       />
-                      <Button type="button" onClick={() => handleTestAPIKey('openai')} disabled={testingOpenAI || !formData.openai_api_key}>
-                        {testingOpenAI ? 'Testing...' : 'Test Key'}
-                      </Button>
+                      {user.has_openai_key && !keyModified.openai ? (
+                        testingOpenAI ? (
+                          <span className="text-xs text-chat-muted-foreground px-2">Testing...</span>
+                        ) : openAITestResult ? (
+                          <span className={openAITestResult.valid ? 'text-success text-lg font-bold' : 'text-danger text-lg font-bold'} title={openAITestResult.message}>
+                            {openAITestResult.valid ? '✓' : '✗'}
+                          </span>
+                        ) : null
+                      ) : (
+                        <Button type="button" onClick={() => handleTestAPIKey('openai')} disabled={testingOpenAI || !formData.openai_api_key}>
+                          {testingOpenAI ? 'Testing...' : 'Test Key'}
+                        </Button>
+                      )}
                     </div>
-                    {openAITestResult && (
-                      <div className={openAITestResult.valid
-                        ? 'mt-2 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-xs text-success'
-                        : 'mt-2 rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger'}>
-                        {openAITestResult.message}
-                      </div>
-                    )}
                   </div>
 
                   {/* Anthropic API Key */}
@@ -353,28 +401,32 @@ export default function UserProfile() {
                     <label className="block text-sm font-medium text-chat-foreground mb-1.5">
                       Anthropic API Key
                     </label>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       <Input
                         type="password"
                         value={formData.anthropic_api_key}
                         onChange={(e) => {
                           setFormData({ ...formData, anthropic_api_key: e.target.value });
+                          setKeyModified(prev => ({ ...prev, anthropic: true }));
                           setAnthropicTestResult(null);
                         }}
-                        placeholder="sk-ant-..."
+                        placeholder={user.has_anthropic_key && !keyModified.anthropic ? '••••••••' : 'sk-ant-...'}
                         className="flex-1"
                       />
-                      <Button type="button" onClick={() => handleTestAPIKey('anthropic')} disabled={testingAnthropic || !formData.anthropic_api_key}>
-                        {testingAnthropic ? 'Testing...' : 'Test Key'}
-                      </Button>
+                      {user.has_anthropic_key && !keyModified.anthropic ? (
+                        testingAnthropic ? (
+                          <span className="text-xs text-chat-muted-foreground px-2">Testing...</span>
+                        ) : anthropicTestResult ? (
+                          <span className={anthropicTestResult.valid ? 'text-success text-lg font-bold' : 'text-danger text-lg font-bold'} title={anthropicTestResult.message}>
+                            {anthropicTestResult.valid ? '✓' : '✗'}
+                          </span>
+                        ) : null
+                      ) : (
+                        <Button type="button" onClick={() => handleTestAPIKey('anthropic')} disabled={testingAnthropic || !formData.anthropic_api_key}>
+                          {testingAnthropic ? 'Testing...' : 'Test Key'}
+                        </Button>
+                      )}
                     </div>
-                    {anthropicTestResult && (
-                      <div className={anthropicTestResult.valid
-                        ? 'mt-2 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-xs text-success'
-                        : 'mt-2 rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger'}>
-                        {anthropicTestResult.message}
-                      </div>
-                    )}
                   </div>
 
                   {/* DeepSeek API Key */}
@@ -382,24 +434,31 @@ export default function UserProfile() {
                     <label className="block text-sm font-medium text-chat-foreground mb-1.5">
                       DeepSeek API Key
                     </label>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       <Input
                         type="password"
-                        placeholder="sk-..."
                         value={formData.deepseek_api_key}
-                        onChange={(e) => setFormData({ ...formData, deepseek_api_key: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, deepseek_api_key: e.target.value });
+                          setKeyModified(prev => ({ ...prev, deepseek: true }));
+                          setDeepSeekTestResult(null);
+                        }}
+                        placeholder={(user as any).has_deepseek_key && !keyModified.deepseek ? '••••••••' : 'sk-...'}
                       />
-                      <Button type="button" onClick={() => handleTestAPIKey('deepseek')} disabled={testingDeepSeek || !formData.deepseek_api_key}>
-                        {testingDeepSeek ? 'Testing...' : 'Test Key'}
-                      </Button>
+                      {(user as any).has_deepseek_key && !keyModified.deepseek ? (
+                        testingDeepSeek ? (
+                          <span className="text-xs text-chat-muted-foreground px-2">Testing...</span>
+                        ) : deepSeekTestResult ? (
+                          <span className={deepSeekTestResult.valid ? 'text-success text-lg font-bold' : 'text-danger text-lg font-bold'} title={deepSeekTestResult.message}>
+                            {deepSeekTestResult.valid ? '✓' : '✗'}
+                          </span>
+                        ) : null
+                      ) : (
+                        <Button type="button" onClick={() => handleTestAPIKey('deepseek')} disabled={testingDeepSeek || !formData.deepseek_api_key}>
+                          {testingDeepSeek ? 'Testing...' : 'Test Key'}
+                        </Button>
+                      )}
                     </div>
-                    {deepSeekTestResult && (
-                      <div className={deepSeekTestResult.valid
-                        ? 'mt-2 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-xs text-success'
-                        : 'mt-2 rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger'}>
-                        {deepSeekTestResult.message}
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -449,13 +508,17 @@ export default function UserProfile() {
                   onClick={() => {
                     setIsEditing(false);
                     setError('');
+                    setKeyModified({ openai: false, anthropic: false, deepseek: false });
+                    setOpenAITestResult(null);
+                    setAnthropicTestResult(null);
+                    setDeepSeekTestResult(null);
                     setFormData({
                       first_name: user.first_name || '',
                       last_name: user.last_name || '',
                       email: user.email || '',
                       openai_api_key: '',
                       anthropic_api_key: '',
-        deepseek_api_key: '',
+                      deepseek_api_key: '',
                       preferred_provider: (user as any).preferred_provider || null,
                       preferred_model: (user as any).preferred_model || null,
                     });

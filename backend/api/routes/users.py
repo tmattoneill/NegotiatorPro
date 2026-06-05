@@ -19,6 +19,7 @@ from ...user_profile import (
     UserProfileCreate,
     UserProfileUpdate
 )
+from ..middleware.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -405,3 +406,33 @@ async def test_api_key(request: TestAPIKeyRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to test API key"
         )
+
+
+class TestStoredKeyRequest(BaseModel):
+    provider: str
+
+
+@users_router.post("/test-stored-key")
+async def test_stored_api_key(
+    request: TestStoredKeyRequest,
+    current_user: Optional[dict] = Depends(get_current_user)
+):
+    """Test the API key already stored for the authenticated user — no key in request body."""
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+
+    user_id = current_user.get("id")
+    provider = request.provider.lower()
+
+    try:
+        user_keys = await UserProfileManager.get_user_api_keys(user_id)
+        api_key = user_keys.get(provider)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not retrieve stored key")
+
+    if not api_key:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No {provider} key stored for this account")
+
+    # Reuse the same validation logic
+    test_req = TestAPIKeyRequest(provider=provider, api_key=api_key)
+    return await test_api_key(test_req)
