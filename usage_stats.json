@@ -74,5 +74,16 @@
         "cost": 0.0
       }
     }
+  },
+  "2026-06-05": {
+    "total_tokens": 3066,
+    "total_cost": 0.0,
+    "models": {
+      "anthropic/claude-sonnet-4-6": {
+        "tokens": 3066,
+        "requests": 1,
+        "cost": 0.0
+      }
+    }
   }
 }
