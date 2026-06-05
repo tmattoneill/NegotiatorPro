@@ -54,7 +54,17 @@ export default function ChatContainer() {
         await new Promise(resolve => setTimeout(resolve, 50));
       }
     } else {
-      if (!currentSession?.id && currentNegotiation?.id && user?.id) {
+      if (!currentNegotiation?.id) {
+        // No negotiation context — show a visible error rather than silently dropping the message
+        addMessage({
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: 'Please create a negotiation first using the sidebar, then start a conversation.',
+          timestamp: new Date(),
+        });
+        return;
+      }
+      if (!currentSession?.id && user?.id) {
         await createNewSession(currentNegotiation.id, user.id);
         await new Promise(resolve => setTimeout(resolve, 100));
       }
