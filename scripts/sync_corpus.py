@@ -5,7 +5,7 @@ Bunny Storage is the canonical home of the source PDFs. Build the vectorstore
 by pulling the corpus locally, building the index, then shipping only the index
 (the box is serving-only and never needs the PDFs).
 
-Auth + endpoint come from the environment, falling back to .env.local:
+Auth + endpoint come from the environment, falling back to .env:
   BUNNY_NET_URL          e.g. https://uk.storage.bunnycdn.com/amfonica-data-sources
   BUNNY_NET_RO_PASSWORD  read-only AccessKey (needed for `pull`)
   BUNNY_NET_RW_PASSWORD  read-write AccessKey (needed for `push`)
@@ -33,9 +33,9 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 
 
-def load_env_local() -> None:
-    """Load .env.local into os.environ without overriding existing values."""
-    env_file = REPO / ".env.local"
+def load_env() -> None:
+    """Load .env into os.environ without overriding existing values."""
+    env_file = REPO / ".env"
     if not env_file.exists():
         return
     for line in env_file.read_text().splitlines():
@@ -49,7 +49,7 @@ def load_env_local() -> None:
 def base_url() -> str:
     url = os.environ.get("BUNNY_NET_URL")
     if not url:
-        sys.exit("BUNNY_NET_URL not set (env or .env.local)")
+        sys.exit("BUNNY_NET_URL not set (env or .env)")
     return url.rstrip("/")
 
 
@@ -135,12 +135,12 @@ def require_key(kind: str) -> str:
     var = "BUNNY_NET_RO_PASSWORD" if kind == "ro" else "BUNNY_NET_RW_PASSWORD"
     key = os.environ.get(var)
     if not key:
-        sys.exit(f"{var} not set — needed for this operation (env or .env.local)")
+        sys.exit(f"{var} not set — needed for this operation (env or .env)")
     return key
 
 
 def main() -> None:
-    load_env_local()
+    load_env()
     ap = argparse.ArgumentParser(description="Sync the RAG corpus with Bunny Storage")
     sub = ap.add_subparsers(dest="cmd", required=True)
 

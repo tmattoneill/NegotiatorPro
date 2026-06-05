@@ -10,7 +10,7 @@ It degrades gracefully: if Bunny is not configured (no env), `is_configured()`
 returns False and callers fall back to plain local-filesystem behaviour, so
 local dev and tests keep working without any cloud credentials.
 
-Config (environment, or .env.local for local dev):
+Config (environment, or .env for local dev):
   BUNNY_NET_URL          https://<region>.storage.bunnycdn.com/<zone>
   BUNNY_NET_RO_PASSWORD  read-only AccessKey  (get, list)
   BUNNY_NET_RW_PASSWORD  read-write AccessKey (put, delete)
