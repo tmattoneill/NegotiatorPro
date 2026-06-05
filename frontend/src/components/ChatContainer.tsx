@@ -54,16 +54,7 @@ export default function ChatContainer() {
         await new Promise(resolve => setTimeout(resolve, 50));
       }
     } else {
-      if (!currentNegotiation?.id) {
-        // No negotiation context — show a visible error rather than silently dropping the message
-        addMessage({
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: 'Please create a negotiation first using the sidebar, then start a conversation.',
-          timestamp: new Date(),
-        });
-        return;
-      }
+      if (!currentNegotiation?.id) return;
       if (!currentSession?.id && user?.id) {
         await createNewSession(currentNegotiation.id, user.id);
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -221,7 +212,10 @@ export default function ChatContainer() {
           <div className="welcome-message">
             <div>
               <h3>Welcome to NegotiatorPro</h3>
-              <p>Start a conversation to get expert negotiation guidance</p>
+              {currentNegotiation
+                ? <p>Start a conversation to get expert negotiation guidance</p>
+                : <p>Create a negotiation in the sidebar to get started</p>
+              }
             </div>
           </div>
         ) : (
@@ -244,7 +238,12 @@ export default function ChatContainer() {
         )}
       </div>
 
-      <ChatInput onSend={handleSendMessage} isLoading={isLoading} />
+      <ChatInput
+        onSend={handleSendMessage}
+        isLoading={isLoading}
+        disabled={!currentNegotiation && !isSuperAdmin}
+        disabledPlaceholder="Create a negotiation to start a session"
+      />
     </div>
   );
 }

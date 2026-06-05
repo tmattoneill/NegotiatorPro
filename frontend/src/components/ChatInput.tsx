@@ -9,6 +9,8 @@ import type { FileWithMetadata } from '../types/files';
 interface ChatInputProps {
   onSend: (message: string, files?: File[]) => void;
   isLoading: boolean;
+  disabled?: boolean;
+  disabledPlaceholder?: string;
 }
 
 const MAX_FILE_SIZE_MB = 10;
@@ -18,7 +20,7 @@ const COMPRESSION_OPTIONS = {
   useWebWorker: true,
 };
 
-export default function ChatInput({ onSend, isLoading }: ChatInputProps) {
+export default function ChatInput({ onSend, isLoading, disabled = false, disabledPlaceholder }: ChatInputProps) {
   const [input, setInput] = useState('');
   const [attachedFiles, setAttachedFiles] = useState<FileWithMetadata[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -27,7 +29,7 @@ export default function ChatInput({ onSend, isLoading }: ChatInputProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if ((input.trim() || attachedFiles.length > 0) && !isLoading) {
+    if ((input.trim() || attachedFiles.length > 0) && !isLoading && !disabled) {
       const files = attachedFiles
         .filter(af => !af.error)
         .map(af => af.file);
@@ -220,7 +222,7 @@ export default function ChatInput({ onSend, isLoading }: ChatInputProps) {
             type="button"
             className="attachment-button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={isLoading}
+            disabled={isLoading || disabled}
             title="Attach files (images, PDFs, documents)"
             aria-label="Attach files"
           >
@@ -239,18 +241,18 @@ export default function ChatInput({ onSend, isLoading }: ChatInputProps) {
           <textarea
             ref={textareaRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => !disabled && setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            placeholder={isDragging ? "Drop files here..." : "Ask a negotiation question... (Ctrl+V to paste images)"}
-            disabled={isLoading}
+            placeholder={disabled && disabledPlaceholder ? disabledPlaceholder : isDragging ? "Drop files here..." : "Ask a negotiation question... (Ctrl+V to paste images)"}
+            disabled={isLoading || disabled}
             rows={2}
             className=""
           />
           <button
             type="submit"
             className="send-button"
-            disabled={isLoading || (!input.trim() && attachedFiles.filter(af => !af.error).length === 0)}
+            disabled={isLoading || disabled || (!input.trim() && attachedFiles.filter(af => !af.error).length === 0)}
           >
             {isLoading ? (
               <>
