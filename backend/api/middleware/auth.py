@@ -126,6 +126,9 @@ async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] =
     Returns:
         Dictionary with user information, or None if not authenticated
     """
+    import logging
+    _log = logging.getLogger(__name__)
+
     # If no credentials provided, return None (user not authenticated)
     if credentials is None:
         return None
@@ -139,6 +142,7 @@ async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] =
 
         user_id = payload.get("sub")
         if user_id is None:
+            _log.warning("[auth] JWT decoded but sub claim missing — token malformed")
             return None
 
         # Return user information from token
@@ -148,8 +152,8 @@ async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] =
             "role": payload.get("role", "user"),
             "is_super_admin": payload.get("is_super_admin", False)
         }
-    except JWTError:
-        # Invalid token, return None instead of raising exception
+    except JWTError as e:
+        _log.warning(f"[auth] JWT decode failed (stale or invalid token): {e}")
         return None
 
 

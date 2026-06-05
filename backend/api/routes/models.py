@@ -167,10 +167,11 @@ async def get_available_providers_for_user(user_id: Optional[str] = Query(None))
         rag = get_rag_system()
         backend_manager = rag.backend_manager
 
-        # Get user's API keys if user_id provided
+        # Get user's API keys and role if user_id provided
         user_has_openai_key = False
         user_has_anthropic_key = False
         user_has_deepseek_key = False
+        user_is_admin = False
 
         if user_id:
             try:
@@ -178,6 +179,8 @@ async def get_available_providers_for_user(user_id: Optional[str] = Query(None))
                 user_has_openai_key = bool(user_keys.get("openai"))
                 user_has_anthropic_key = bool(user_keys.get("anthropic"))
                 user_has_deepseek_key = bool(user_keys.get("deepseek"))
+                user_profile = await UserProfileManager.get_user_by_id(user_id)
+                user_is_admin = getattr(user_profile, 'role', None) == 'admin'
             except Exception as e:
                 logger.warning(f"Could not fetch user API keys: {e}")
 
@@ -185,6 +188,11 @@ async def get_available_providers_for_user(user_id: Optional[str] = Query(None))
         system_has_openai_key = bool(os.getenv("OPENAI_API_KEY"))
         system_has_anthropic_key = bool(os.getenv("ANTHROPIC_API_KEY"))
         system_has_runpod_key = bool(os.getenv("RUNPOD_API_KEY"))
+
+        # Regular users must have their own key — system keys are admin-only.
+        # This matches the chat endpoint which only accepts user keys for non-admins.
+        def key_available(user_has: bool, system_has: bool) -> bool:
+            return user_has or (user_is_admin and system_has)
 
         # Check if Ollama is running locally
         ollama_available = False
@@ -205,8 +213,7 @@ async def get_available_providers_for_user(user_id: Optional[str] = Query(None))
             provider_error = None
 
             if backend.id == "openai":
-                # OpenAI available if user or system has key
-                provider_available = user_has_openai_key or system_has_openai_key
+                provider_available = key_available(user_has_openai_key, system_has_openai_key)
                 if provider_available:
                     provider_models = [
                         {"id": model.id, "name": model.name, "description": model.description}
@@ -214,8 +221,7 @@ async def get_available_providers_for_user(user_id: Optional[str] = Query(None))
                     ]
 
             elif backend.id == "anthropic":
-                # Anthropic available if user or system has key
-                provider_available = user_has_anthropic_key or system_has_anthropic_key
+                provider_available = key_available(user_has_anthropic_key, system_has_anthropic_key)
                 if provider_available:
                     provider_models = [
                         {"id": model.id, "name": model.name, "description": model.description}
@@ -246,7 +252,7 @@ async def get_available_providers_for_user(user_id: Optional[str] = Query(None))
 
             elif backend.id == "deepseek":
                 system_has_deepseek_key = bool(os.getenv("DEEPSEEK_API_KEY"))
-                provider_available = user_has_deepseek_key or system_has_deepseek_key
+                provider_available = key_available(user_has_deepseek_key, system_has_deepseek_key)
                 if provider_available:
                     provider_models = [
                         {"id": model.id, "name": model.name, "description": model.description}

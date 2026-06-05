@@ -278,6 +278,12 @@ async def process_chat(
     """
     start_time = time.time()
 
+    # If a conversation is provided, authentication is required. A stale or
+    # missing JWT with a conversation_id means the session has expired — return
+    # 401 so the frontend clears the token and redirects to login.
+    if conversation_id and not current_user:
+        raise HTTPException(status_code=401, detail="Authentication required to continue a conversation")
+
     try:
         # Get RAG system instance
         rag = get_rag_system()

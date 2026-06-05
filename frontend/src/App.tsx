@@ -183,13 +183,14 @@ function App() {
     );
   }
 
-  // Render appropriate view based on admin state
+  const isAdmin = user?.role === 'admin';
+
   const renderMainContent = () => {
     switch (adminView) {
       case 'system-prompt':
-        return <SystemPromptEditor />;
+        return isAdmin ? <SystemPromptEditor /> : <ChatContainer />;
       case 'admin-panel':
-        return <AdminPanel />;
+        return isAdmin ? <AdminPanel /> : <ChatContainer />;
       default:
         return <ChatContainer />;
     }
