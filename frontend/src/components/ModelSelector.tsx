@@ -48,10 +48,12 @@ export default function ModelSelector() {
     persistChoice(selectedProvider, model);
   };
 
-  // Load available models on component mount
+  // Load available models on mount and whenever the logged-in user changes.
+  // loadAvailableModels has a stable reference so without user?.id in deps
+  // it only fires once — if auth hasn't hydrated yet that means an empty list.
   useEffect(() => {
     loadAvailableModels();
-  }, [loadAvailableModels]);
+  }, [loadAvailableModels, user?.id]);
 
   // Get models for currently selected provider
   const currentProviderModels = selectedProvider
