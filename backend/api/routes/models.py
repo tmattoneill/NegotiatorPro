@@ -241,9 +241,10 @@ async def get_available_providers_for_user(user_id: Optional[str] = Query(None))
                     provider_error = "Ollama is not running locally. Start Ollama to use local models."
 
             elif backend.id == "ollama-cloud":
-                # Ollama cloud available if API key set
-                ollama_cloud_key = bool(os.getenv("OLLAMA_API_KEY"))
-                provider_available = ollama_cloud_key
+                # Ollama cloud: system key is admin-only, same as OpenAI/Anthropic.
+                # No per-user Ollama cloud key support yet.
+                system_has_ollama_cloud_key = bool(os.getenv("OLLAMA_API_KEY"))
+                provider_available = key_available(False, system_has_ollama_cloud_key)
                 if provider_available:
                     provider_models = [
                         {"id": model.id, "name": model.name, "description": model.description}
@@ -268,32 +269,12 @@ async def get_available_providers_for_user(user_id: Optional[str] = Query(None))
                         for model in backend.models
                     ]
 
-            # Always include RunPod as fallback option (marked as fallback)
-            if backend.id == "runpod":
-                available_providers[backend.id] = {
-                    "name": backend.name,
-                    "available": provider_available,
-                    "models": provider_models if provider_available else [
-                        {"id": "basic", "name": "Basic Model", "description": "Basic fallback model via RunPod"}
-                    ],
-                    "is_fallback": True,
-                    "requires_key": not provider_available
-                }
-            elif provider_available:
+            if provider_available:
                 available_providers[backend.id] = {
                     "name": backend.name,
                     "available": True,
                     "models": provider_models,
                     "is_fallback": False
-                }
-            elif backend.id == "ollama" and not ollama_available:
-                # Include Ollama with error message so users know why it's not available
-                available_providers[backend.id] = {
-                    "name": backend.name,
-                    "available": False,
-                    "models": [],
-                    "is_fallback": False,
-                    "error": provider_error
                 }
 
         # Add metadata about what keys the user has

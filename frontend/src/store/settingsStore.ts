@@ -84,16 +84,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const { providers } = await fetchAvailableProviders(userId);
 
       // Map the provider response into the ModelsResponse shape the pickers
-      // expect. Include providers that are usable now (available) or offered as
-      // a fallback; carry through any connection error (e.g. Ollama offline).
+      // expect. Only include providers that are actually usable (available) or
+      // offered as a fallback. Skip unavailable providers even if they carry
+      // an error message — showing a broken option just confuses users.
       const models: ModelsResponse = {};
       for (const [id, info] of Object.entries(providers)) {
-        if (info.available || info.is_fallback || info.error) {
+        if (info.available || info.is_fallback) {
           models[id] = {
             name: info.name,
             enabled: true,
             models: info.models || [],
-            error: info.error,
           };
         }
       }
