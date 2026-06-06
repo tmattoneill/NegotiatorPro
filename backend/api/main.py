@@ -20,7 +20,8 @@ from dotenv import load_dotenv
 from .routes import (
     chat_router, auth_router, health_router, models_router,
     users_router, config_router, negotiations_router,
-    personas_router, conversations_router, admin_router, admin_rag_router
+    personas_router, conversations_router, admin_router, admin_rag_router,
+    dev_auth_router,
 )
 
 # Set up logging
@@ -224,6 +225,7 @@ app.include_router(personas_router)
 app.include_router(conversations_router)
 app.include_router(admin_router)
 app.include_router(admin_rag_router)
+app.include_router(dev_auth_router)
 
 
 @app.get("/")
