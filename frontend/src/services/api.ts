@@ -291,6 +291,11 @@ export const adminDeleteUser = async (userId: string): Promise<{ success: boolea
   return response.data;
 };
 
+export const adminResetUserPassword = async (userId: string): Promise<{ new_password: string }> => {
+  const response = await api.post<{ new_password: string }>(`/admin/users/${userId}/reset-password`);
+  return response.data;
+};
+
 /**
  * Admin: List all negotiations
  */

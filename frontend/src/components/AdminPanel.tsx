@@ -53,6 +53,8 @@ const AdminPanel = () => {
   // Users tab state
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [resetPasswordModal, setResetPasswordModal] = useState<{ username: string; password: string } | null>(null);
+  const [passwordCopied, setPasswordCopied] = useState(false);
 
   // Negotiations tab state
   const [negotiations, setNegotiations] = useState<Negotiation[]>([]);
@@ -135,6 +137,20 @@ const AdminPanel = () => {
     setUsageStats(data);
   };
 
+  const handleResetPassword = async (userId: string, username: string) => {
+    if (!window.confirm(`Reset password for "${username}"? A new password will be generated.`)) return;
+    try {
+      setLoading(true);
+      const { new_password } = await api.adminResetUserPassword(userId);
+      setPasswordCopied(false);
+      setResetPasswordModal({ username, password: new_password });
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to reset password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDeleteUser = async (userId: string, username: string) => {
     if (!window.confirm(`Are you sure you want to delete user "${username}"? This will also delete all their negotiations and conversations.`)) {
       return;
@@ -207,6 +223,7 @@ const AdminPanel = () => {
   };
 
   return (
+    <>
     <div className="flex-1 overflow-y-auto p-8 bg-chat-muted">
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-chat-foreground">🛡️ Admin Panel</h1>
@@ -303,9 +320,14 @@ const AdminPanel = () => {
                       </td>
                       <td className="p-3">
                         {u.role !== 'admin' ? (
-                          <Button variant="danger" size="sm" onClick={() => handleDeleteUser(u.id, u.username)} disabled={loading}>
-                            Delete
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm" onClick={() => handleResetPassword(u.id, u.username)} disabled={loading}>
+                              Reset Password
+                            </Button>
+                            <Button variant="danger" size="sm" onClick={() => handleDeleteUser(u.id, u.username)} disabled={loading}>
+                              Delete
+                            </Button>
+                          </div>
                         ) : (
                           <span className="text-sm text-chat-muted-foreground">Protected</span>
                         )}
@@ -517,6 +539,39 @@ const AdminPanel = () => {
         )}
       </div>
     </div>
+
+      {/* Reset Password Modal */}
+      {resetPasswordModal && (
+        <div className="fixed inset-0 bg-black/60 z-[1000] flex items-center justify-center" onClick={() => setResetPasswordModal(null)}>
+          <div className="bg-chat-card border border-chat-border rounded-xl w-full max-w-md p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold mb-1">Password Reset</h3>
+            <p className="text-sm text-chat-muted-foreground mb-4">
+              New password for <strong>{resetPasswordModal.username}</strong>. Copy it now — it won't be shown again.
+            </p>
+            <div className="flex items-center gap-2 bg-chat-muted rounded-lg px-4 py-3 font-mono text-base mb-4">
+              <span className="flex-1 select-all">{resetPasswordModal.password}</span>
+              <button
+                className="text-chat-muted-foreground hover:text-chat-foreground transition-colors"
+                onClick={() => {
+                  navigator.clipboard.writeText(resetPasswordModal.password);
+                  setPasswordCopied(true);
+                }}
+                title="Copy to clipboard"
+              >
+                {passwordCopied ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                )}
+              </button>
+            </div>
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={() => setResetPasswordModal(null)}>Done</Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

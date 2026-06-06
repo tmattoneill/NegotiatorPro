@@ -12,6 +12,8 @@ from datetime import datetime
 import os
 import json
 import logging
+import secrets
+import string
 
 from backend.prompt_manager import PromptManager
 from backend.user_profile import UserProfileManager, UserProfile
@@ -286,6 +288,40 @@ async def delete_user(user_id: str, admin: Dict = Depends(verify_admin)):
     except Exception as e:
         logger.error(f"Failed to delete user: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete user")
+
+
+@router.post("/users/{user_id}/reset-password")
+async def reset_user_password(user_id: str, admin: Dict = Depends(verify_admin)):
+    """Generate a new random password for a user (admin only). Returns the plaintext password once."""
+    try:
+        user = await UserProfileManager.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        if user.role == "admin":
+            raise HTTPException(status_code=400, detail="Cannot reset password for admin users.")
+
+        # Generate a readable random password: 3 words from a charset
+        alphabet = string.ascii_letters + string.digits
+        new_password = ''.join(secrets.choice(alphabet) for _ in range(12))
+
+        import bcrypt as _bcrypt
+        password_hash = _bcrypt.hashpw(new_password.encode(), _bcrypt.gensalt(12)).decode()
+
+        await db.execute(
+            "UPDATE users SET password_hash = $1 WHERE id = $2",
+            password_hash, user_id
+        )
+
+        logger.info(f"Admin {admin.get('username')} reset password for user {user.username} ({user_id})")
+
+        return {"new_password": new_password}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to reset password: {e}")
+        raise HTTPException(status_code=500, detail="Failed to reset password")
 
 
 # ============================================================================
