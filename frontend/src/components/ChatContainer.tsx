@@ -25,6 +25,12 @@ export default function ChatContainer() {
     : selectedProvider || 'Unknown';
   const modelDisplayName = selectedModel || 'Unknown';
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Tracks whether we've already done the initial snap for the current session,
+  // so that message reloads (navigation return) don't trigger the slow smooth scroll.
+  const scrollStateRef = useRef<{ sessionId: string | undefined; initialScrollDone: boolean }>({
+    sessionId: undefined,
+    initialScrollDone: false,
+  });
   const currentSession = getCurrentSession();
   const currentNegotiation = negotiations.find(n => n.id === currentNegotiationId);
 
@@ -43,9 +49,22 @@ export default function ChatContainer() {
   // and explicitly via the "New Conversation" button — never on mount/refresh,
   // which would otherwise spawn an empty conversation on every page load.
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom: instant snap on initial load / session change,
+  // smooth only when the user sends a new message.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const messages = currentSession?.messages ?? [];
+    if (messages.length === 0) return;
+
+    const sessionId = currentSession?.id;
+    const { sessionId: prevSessionId, initialScrollDone } = scrollStateRef.current;
+    const sessionChanged = sessionId !== prevSessionId;
+
+    if (sessionChanged || !initialScrollDone) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+      scrollStateRef.current = { sessionId, initialScrollDone: true };
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [currentSession?.messages]);
 
   const handleSendMessage = async (content: string, files?: File[]) => {

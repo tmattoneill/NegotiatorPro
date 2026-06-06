@@ -412,6 +412,7 @@ async def process_chat(
                             assistant_content=answer,
                             model=model_used,
                             preprocessing_applied=use_preprocessing,
+                            detected_intent=detected_intent,
                         )
                         logger.info(
                             "Messages saved to conversation %s (user=%s)",
