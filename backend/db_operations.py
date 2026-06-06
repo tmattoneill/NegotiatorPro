@@ -511,21 +511,33 @@ async def save_conversation_turn(
     assistant_content: str,
     model: Optional[str] = None,
     preprocessing_applied: bool = False,
+    detected_intent: Optional[str] = None,
 ) -> None:
     """Persist a user message and its assistant reply atomically.
 
     Both rows commit together or neither does, so a failed assistant insert
     never leaves an orphaned user message in the conversation.
     """
-    insert = """
-        INSERT INTO chat_messages
-        (conversation_id, user_id, session_id, role, content, model, tokens_used, preprocessing_applied)
-        VALUES ($1, $2, NULL, $3, $4, $5, NULL, $6)
-    """
     async with db.acquire() as conn:
         async with conn.transaction():
-            await conn.execute(insert, conversation_id, user_id, "user", user_content, None, preprocessing_applied)
-            await conn.execute(insert, conversation_id, user_id, "assistant", assistant_content, model, preprocessing_applied)
+            await conn.execute(
+                """
+                INSERT INTO chat_messages
+                (conversation_id, user_id, session_id, role, content, model, tokens_used, preprocessing_applied)
+                VALUES ($1, $2, NULL, $3, $4, $5, NULL, $6)
+                """,
+                conversation_id, user_id, "user", user_content, None, preprocessing_applied,
+            )
+            await conn.execute(
+                """
+                INSERT INTO chat_messages
+                (conversation_id, user_id, session_id, role, content, model, tokens_used,
+                 preprocessing_applied, detected_intent)
+                VALUES ($1, $2, NULL, $3, $4, $5, NULL, $6, $7)
+                """,
+                conversation_id, user_id, "assistant", assistant_content, model,
+                preprocessing_applied, detected_intent,
+            )
 
 
 async def get_conversation_messages(conversation_id: UUID, limit: Optional[int] = None) -> List[dict]:

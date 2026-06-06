@@ -10,6 +10,7 @@ class ChatResponse(BaseModel):
     model_used: str = Field(..., description="Name of the LLM model used")
     tokens_used: Optional[int] = Field(None, description="Total tokens used (if available)")
     processing_time: Optional[float] = Field(None, description="Processing time in seconds")
+    detected_intent: Optional[str] = Field(None, description="Classified query intent: ANALYSIS | TACTICAL | QUESTION | GENERAL")
 
     class Config:
         json_schema_extra = {
