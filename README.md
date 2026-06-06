@@ -280,6 +280,21 @@ NegotiatorPro supports multiple LLM backends:
 
 Configure active models via the Admin Panel in the web UI.
 
+## Adaptive Response System
+
+NegotiatorPro classifies each query by intent and selects a response format to match. A live tactical question gets a decisive move and word-for-word language; a conceptual question gets a principle with a cited source; a pasted email gets a full structured analysis. The format is shown as a badge on each message.
+
+| Mode | Triggered by | Response shape |
+|------|-------------|----------------|
+| **Tactical** | "they countered", "should I accept", real-time situations | Move + exact language + one contingency |
+| **Analysis** | Pasted transcript/email, "analyse this" | Full structured breakdown with scenario planning |
+| **Q&A** | "what is X", "when should I", conceptual questions | Principle + why it matters + one applied step |
+| **Advisory** | Open-ended, exploratory | Direct teaching, no rigid sections |
+
+Classification is pure regex — no extra LLM call. Format instructions are injected per-request into the non-cached context block, so the static system prompt stays byte-identical for prompt caching across all four modes.
+
+See `docs/features/INTENT_AWARE_PROMPTING.md` for the full architecture and extension guide.
+
 ## Troubleshooting
 
 ### Container won't start
