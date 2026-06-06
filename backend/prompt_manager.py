@@ -24,6 +24,7 @@ from typing import Dict, Optional, Tuple
 
 import yaml
 
+from .intent_classifier import FORMAT_INSTRUCTIONS, USER_TEMPLATES, QueryIntent
 from .prompt_renderer import render_yaml_to_markdown
 
 logger = logging.getLogger(__name__)
@@ -169,6 +170,7 @@ class PromptManager:
         question: str,
         context: str = "",
         mode: str = "auto",
+        intent: QueryIntent = "GENERAL",
     ) -> Tuple[str, str, str]:
         """
         Return (static_system, context_block, user_prompt) for cache-friendly
@@ -176,9 +178,9 @@ class PromptManager:
 
         - static_system = <meta> + <persona for mode>. Byte-identical across
           requests in a given mode, so it is the cacheable prefix.
-        - context_block = the per-request RAG material (varies every call). It
-          must follow the cache breakpoint, never precede it.
-        - user_prompt = the user template with the question filled in.
+        - context_block = RAG material + intent-specific format instructions
+          (both vary per request, so they follow the cache breakpoint).
+        - user_prompt = the intent-appropriate user template with question filled.
 
         Callers that don't care about caching can use get_prompts_for_chat,
         which simply concatenates static_system + context_block.
@@ -193,10 +195,16 @@ class PromptManager:
             static_parts.append(persona.rstrip())
         static_system = "\n\n".join(static_parts).rstrip() + "\n"
 
-        context_block = (
-            "## Reference Material from Knowledge Base\n\n" + context if context else ""
-        )
-        user_prompt = self._user_template.format(question=question)
+        # Build the non-cached suffix: RAG context + per-intent format instructions.
+        # Both go after the cache breakpoint so static_system stays byte-identical.
+        context_parts: list[str] = []
+        if context:
+            context_parts.append("## Reference Material from Knowledge Base\n\n" + context)
+        context_parts.append(FORMAT_INSTRUCTIONS.get(intent, FORMAT_INSTRUCTIONS["GENERAL"]))
+        context_block = "\n\n".join(context_parts)
+
+        template = USER_TEMPLATES.get(intent, self._user_template)
+        user_prompt = template.format(question=question)
         return static_system, context_block, user_prompt
 
     def get_prompts_for_chat(
@@ -204,6 +212,7 @@ class PromptManager:
         question: str,
         context: str = "",
         mode: str = "auto",
+        intent: QueryIntent = "GENERAL",
     ) -> Tuple[str, str]:
         """
         Build the per-request system and user prompts as a single concatenated
@@ -211,7 +220,7 @@ class PromptManager:
         that don't split the prompt for provider caching.
         """
         static_system, context_block, user_prompt = self.get_prompt_parts(
-            question, context, mode
+            question, context, mode, intent
         )
         if context_block:
             system_prompt = f"{static_system.rstrip()}\n\n{context_block}"

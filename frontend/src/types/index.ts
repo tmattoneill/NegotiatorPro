@@ -21,6 +21,7 @@ export interface ChatResponse {
   model_used: string;
   tokens_used?: number;
   processing_time?: number;
+  detected_intent?: 'ANALYSIS' | 'TACTICAL' | 'QUESTION' | 'GENERAL';
 }
 
 export interface LoginRequest {
@@ -51,6 +52,7 @@ export interface Message {
   timestamp: Date;
   model_used?: string;
   processing_time?: number;
+  detected_intent?: string;
 }
 
 export interface ModelInfo {

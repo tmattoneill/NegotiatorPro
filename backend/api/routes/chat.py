@@ -337,7 +337,7 @@ async def process_chat(
         # Process question using existing RAG system. get_advice is synchronous
         # and does a blocking llm.invoke() network call — run it in a worker
         # thread so it doesn't block the event loop and serialize all requests.
-        answer, usage = await asyncio.to_thread(
+        answer, usage, detected_intent = await asyncio.to_thread(
             rag.get_advice,
             question=enhanced_question,
             use_premium_model=use_premium_model,
@@ -350,6 +350,7 @@ async def process_chat(
             mode=mode or "negotiation",
             user_api_keys=user_api_keys,
             return_usage=True,
+            raw_question=question,
         )
 
         processing_time = time.time() - start_time
@@ -426,7 +427,8 @@ async def process_chat(
             answer=answer,
             model_used=model_used,
             tokens_used=usage.get("total_tokens") or None,
-            processing_time=round(processing_time, 2)
+            processing_time=round(processing_time, 2),
+            detected_intent=detected_intent,
         )
 
     except HTTPException:

@@ -106,6 +106,7 @@ export default function ChatContainer() {
         timestamp: new Date(),
         model_used: response.model_used,
         processing_time: response.processing_time,
+        detected_intent: response.detected_intent,
       };
       addMessage(assistantMessage);
     } catch (error) {

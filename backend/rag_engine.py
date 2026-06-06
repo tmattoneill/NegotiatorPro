@@ -22,6 +22,7 @@ from langchain_community.vectorstores import FAISS
 from .admin_config import AdminConfig
 from .document_manager import DocumentManager
 from .embedding_config import EmbeddingConfig
+from .intent_classifier import classify as classify_intent
 from .text_preprocessor import TextPreprocessor
 from .prompt_manager import PromptManager
 from .llm_backend_config import backend_manager
@@ -561,6 +562,7 @@ class EnhancedNegotiationRAG:
         mode: str = "auto",
         user_api_keys: Optional[Dict[str, str]] = None,
         return_usage: bool = False,
+        raw_question: Optional[str] = None,
     ):
         """
         Get negotiation advice based on the question using proper chat completion.
@@ -623,6 +625,12 @@ class EnhancedNegotiationRAG:
                 logger.error(f"Test prompt LLM call failed: {e}")
                 raise LLMGenerationError(f"Connection test failed: {e}") from e
 
+        # Classify intent from the raw question (before briefing is prepended).
+        # Must run before preprocessing so the original phrasing is intact.
+        classification_input = raw_question if raw_question else question
+        intent = classify_intent(classification_input)
+        logger.info("Intent: %s (input: %r)", intent, classification_input[:80])
+
         # Preprocess the question if enabled
         preprocessing_info = None
         if use_preprocessing and len(question.strip()) > 100:  # Only preprocess longer texts
@@ -670,6 +678,7 @@ class EnhancedNegotiationRAG:
                 question=question,
                 context=context,
                 mode=mode,
+                intent=intent,
             )
 
             # Provider-aware system message for prompt caching.
@@ -721,7 +730,7 @@ class EnhancedNegotiationRAG:
             )
 
             content = response.content if hasattr(response, 'content') else str(response)
-            return (content, usage) if return_usage else content
+            return (content, usage, intent) if return_usage else content
 
         except LLMGenerationError:
             raise

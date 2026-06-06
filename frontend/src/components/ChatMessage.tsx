@@ -151,6 +151,17 @@ export default function ChatMessage({ message }: ChatMessageProps) {
               <span className="message-meta-value">{message.processing_time.toFixed(2)}s</span>
             </div>
           )}
+          {message.detected_intent && (
+            <div className="message-meta-item">
+              <span className="message-meta-label">Mode:</span>
+              <span className="message-meta-value">
+                {message.detected_intent === 'ANALYSIS' ? 'Analysis'
+                  : message.detected_intent === 'TACTICAL' ? 'Tactical'
+                  : message.detected_intent === 'QUESTION' ? 'Q&A'
+                  : 'Advisory'}
+              </span>
+            </div>
+          )}
         </div>
       )}
       {!isUser && isExpanded && (
