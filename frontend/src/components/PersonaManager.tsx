@@ -106,7 +106,7 @@ export default function PersonaManager() {
       {error && (
         <div className="max-w-3xl mx-auto mt-2 px-4 py-3 rounded bg-danger/10 border border-danger/30 text-danger flex items-center justify-between">
           <span>{error}</span>
-          <button onClick={clearError} className="text-[#c00] text-lg">×</button>
+          <button onClick={clearError} className="text-danger text-lg">×</button>
         </div>
       )}
 

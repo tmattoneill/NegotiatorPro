@@ -116,19 +116,19 @@ export default function NegotiationStep({
           margin: 0 0 12px 0;
           font-size: 24px;
           font-weight: 600;
-          color: #2c3e50;
+          color: var(--color-heading);
         }
 
         .step-description {
           margin: 0;
           font-size: 15px;
-          color: #7f8c8d;
+          color: var(--color-muted);
           line-height: 1.5;
         }
 
         .persona-summary {
-          background: #f8f9fa;
-          border: 1px solid #e9ecef;
+          background: var(--color-background);
+          border: 1px solid var(--color-border);
           border-radius: 8px;
           padding: 16px;
           margin-bottom: 32px;
@@ -148,13 +148,13 @@ export default function NegotiationStep({
         .persona-label {
           font-size: 14px;
           font-weight: 500;
-          color: #7f8c8d;
+          color: var(--color-muted);
           min-width: 70px;
         }
 
         .persona-name {
           font-size: 14px;
-          color: #2c3e50;
+          color: var(--color-heading);
           font-weight: 500;
         }
 
@@ -173,15 +173,17 @@ export default function NegotiationStep({
         .form-group label {
           font-size: 14px;
           font-weight: 500;
-          color: #2c3e50;
+          color: var(--color-heading);
         }
 
         .form-group input,
         .form-group textarea {
           padding: 10px 12px;
           font-size: 14px;
-          border: 1px solid #dfe6e9;
+          border: 1px solid var(--color-border);
           border-radius: 6px;
+          background: var(--color-background);
+          color: var(--color-body);
           transition: border-color 0.2s;
           font-family: inherit;
         }
@@ -189,7 +191,7 @@ export default function NegotiationStep({
         .form-group input:focus,
         .form-group textarea:focus {
           outline: none;
-          border-color: #3498db;
+          border-color: var(--color-accent);
         }
 
         .form-group textarea {
@@ -198,24 +200,24 @@ export default function NegotiationStep({
         }
 
         .required {
-          color: #e74c3c;
+          color: var(--color-pop);
         }
 
         .optional {
-          color: #95a5a6;
+          color: var(--color-muted);
           font-weight: normal;
           font-size: 13px;
         }
 
         .field-hint {
           font-size: 13px;
-          color: #95a5a6;
+          color: var(--color-muted);
           margin-top: -4px;
         }
 
         .error-text {
           font-size: 13px;
-          color: #e74c3c;
+          color: var(--color-pop);
         }
 
         .step-actions {
@@ -225,14 +227,14 @@ export default function NegotiationStep({
           gap: 12px;
           margin-top: 8px;
           padding-top: 24px;
-          border-top: 1px solid #ecf0f1;
+          border-top: 1px solid var(--color-border);
         }
 
         .btn-primary {
           padding: 10px 24px;
           font-size: 14px;
           font-weight: 500;
-          background: #27ae60;
+          background: var(--color-accent);
           color: white;
           border: none;
           border-radius: 6px;
@@ -241,11 +243,11 @@ export default function NegotiationStep({
         }
 
         .btn-primary:hover:not(:disabled) {
-          background: #229954;
+          background: var(--color-accent-strong);
         }
 
         .btn-primary:disabled {
-          background: #bdc3c7;
+          background: var(--color-border);
           cursor: not-allowed;
         }
 
@@ -253,17 +255,17 @@ export default function NegotiationStep({
           padding: 10px 24px;
           font-size: 14px;
           font-weight: 500;
-          background: white;
-          color: #7f8c8d;
-          border: 1px solid #dfe6e9;
+          background: var(--color-surface);
+          color: var(--color-muted);
+          border: 1px solid var(--color-border);
           border-radius: 6px;
           cursor: pointer;
           transition: all 0.2s;
         }
 
         .btn-secondary:hover {
-          border-color: #bdc3c7;
-          background: #f8f9fa;
+          border-color: var(--color-muted);
+          background: var(--color-background);
         }
       `}</style>
     </div>

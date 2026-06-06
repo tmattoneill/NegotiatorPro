@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss'
 
 export default {
-  darkMode: 'class',
+  darkMode: ['selector', '[data-theme="dark"]'],
   content: [
     './index.html',
     './src/**/*.{ts,tsx,js,jsx}'
@@ -9,27 +9,28 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Design tokens mapped to CSS variables
-        'chat-primary': 'hsl(var(--chat-primary))',
-        'chat-primary-hover': 'hsl(var(--chat-primary-hover))',
-        'chat-bg': 'hsl(var(--chat-bg))',
-        'chat-foreground': 'hsl(var(--chat-foreground))',
-        'chat-muted': 'hsl(var(--chat-muted))',
-        'chat-muted-foreground': 'hsl(var(--chat-muted-foreground))',
-        'chat-border': 'hsl(var(--chat-border))',
-        'chat-sidebar': 'hsl(var(--chat-sidebar))',
-        'chat-card': 'hsl(var(--chat-card))',
-        // Messages
-        'message-user-bg': 'hsl(var(--message-user-bg))',
-        'message-user-text': 'hsl(var(--message-user-text))',
-        'message-assistant-bg': 'hsl(var(--message-assistant-bg))',
-        'message-assistant-text': 'hsl(var(--message-assistant-text))',
-        // Code blocks
+        // Design tokens — OKLCH relative colour syntax preserves palette portability.
+        // Swap palette.css and all colours update automatically.
+        'chat-primary': 'oklch(from var(--color-accent) l c h / <alpha-value>)',
+        'chat-primary-hover': 'oklch(from var(--color-accent-strong) l c h / <alpha-value>)',
+        'chat-bg': 'oklch(from var(--color-background) l c h / <alpha-value>)',
+        'chat-foreground': 'oklch(from var(--color-body) l c h / <alpha-value>)',
+        'chat-muted': 'oklch(from var(--color-surface) l c h / <alpha-value>)',
+        'chat-muted-foreground': 'oklch(from var(--color-muted) l c h / <alpha-value>)',
+        'chat-border': 'oklch(from var(--color-border) l c h / <alpha-value>)',
+        'chat-sidebar': 'oklch(from var(--color-heading) l c h / <alpha-value>)',
+        'chat-card': 'oklch(from var(--color-surface) l c h / <alpha-value>)',
+        'message-user-bg': 'oklch(from var(--color-accent) l c h / <alpha-value>)',
+        'message-user-text': 'oklch(100% 0 0 / <alpha-value>)',
+        'message-assistant-bg': 'oklch(from var(--color-surface) l c h / <alpha-value>)',
+        'message-assistant-text': 'oklch(from var(--color-body) l c h / <alpha-value>)',
+        // Pop/highlight colour
+        'pop': 'oklch(from var(--color-pop) l c h / <alpha-value>)',
+        // Code blocks and status — kept on their own HSL vars (fixed, not palette-driven)
         'code-bg': 'hsl(var(--code-bg))',
         'code-text': 'hsl(var(--code-text))',
         'code-border': 'hsl(var(--code-border))',
         'code-header': 'hsl(var(--code-header))',
-        // Status
         success: 'hsl(var(--success))',
         'success-foreground': 'hsl(var(--success-foreground))',
         danger: 'hsl(var(--danger))',
@@ -69,4 +70,3 @@ export default {
     require('@tailwindcss/typography'),
   ],
 } satisfies Config
-

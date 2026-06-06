@@ -106,15 +106,15 @@ export default function SystemPromptEditor() {
       flex: 1,
       display: 'flex',
       flexDirection: 'column',
-      background: '#f8f9fa',
+      background: 'var(--color-surface)',
       height: '100vh',
       overflow: 'hidden',
     }}>
       {/* Header */}
       <div style={{
         padding: '20px 32px',
-        background: '#fff',
-        borderBottom: '1px solid #e9ecef',
+        background: 'var(--color-background)',
+        borderBottom: '1px solid var(--color-border)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -126,7 +126,7 @@ export default function SystemPromptEditor() {
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#6c757d',
+                color: 'var(--color-muted)',
                 fontSize: '18px',
                 cursor: 'pointer',
                 padding: '4px 8px',
@@ -137,11 +137,11 @@ export default function SystemPromptEditor() {
             >
               <FaArrowLeft />
             </button>
-            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 600, color: '#191919' }}>
+            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 600, color: 'var(--color-heading)' }}>
               Amfonica Meta Prompt
             </h1>
           </div>
-          <div style={{ fontSize: '13px', color: '#6c757d', marginTop: '4px', marginLeft: '42px' }}>
+          <div style={{ fontSize: '13px', color: 'var(--color-muted)', marginTop: '4px', marginLeft: '42px' }}>
             Cross-persona identity & output rules. Sales and negotiation personae live in <code>prompts/*.yaml</code> and are edited in the codebase, not here.
             {lastModified && <> &middot; Last modified: {new Date(lastModified).toLocaleString()}</>}
           </div>
@@ -151,11 +151,11 @@ export default function SystemPromptEditor() {
           <button
             onClick={() => setShowBackups(!showBackups)}
             style={{
-              background: showBackups ? 'rgba(182, 137, 71, 0.1)' : '#fff',
-              border: '1px solid #dee2e6',
+              background: showBackups ? 'var(--color-pop-10)' : 'var(--color-background)',
+              border: '1px solid var(--color-border)',
               borderRadius: '8px',
               padding: '10px 16px',
-              color: showBackups ? '#b68947' : '#495057',
+              color: showBackups ? 'var(--color-pop)' : 'var(--color-body)',
               fontSize: '14px',
               cursor: 'pointer',
               display: 'flex',
@@ -170,11 +170,11 @@ export default function SystemPromptEditor() {
             onClick={handleSave}
             disabled={!hasChanges || saving}
             style={{
-              background: hasChanges ? '#b68947' : '#e9ecef',
+              background: hasChanges ? 'var(--color-pop)' : 'var(--color-border)',
               border: 'none',
               borderRadius: '8px',
               padding: '10px 24px',
-              color: hasChanges ? '#fff' : '#adb5bd',
+              color: hasChanges ? 'white' : 'var(--color-muted)',
               fontSize: '14px',
               fontWeight: 500,
               cursor: hasChanges ? 'pointer' : 'not-allowed',
@@ -230,16 +230,16 @@ export default function SystemPromptEditor() {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          background: '#fff',
+          background: 'var(--color-background)',
           borderRadius: '12px',
-          border: '1px solid #e9ecef',
+          border: '1px solid var(--color-border)',
           overflow: 'hidden',
         }}>
           <div style={{
             padding: '12px 16px',
-            borderBottom: '1px solid #e9ecef',
+            borderBottom: '1px solid var(--color-border)',
             fontSize: '12px',
-            color: '#6c757d',
+            color: 'var(--color-muted)',
             textTransform: 'uppercase',
             letterSpacing: '0.5px',
             fontWeight: 600,
@@ -252,7 +252,7 @@ export default function SystemPromptEditor() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#6c757d',
+              color: 'var(--color-muted)',
             }}>
               <FaSpinner className="animate-spin" style={{ marginRight: '8px' }} />
               Loading...
@@ -271,7 +271,7 @@ export default function SystemPromptEditor() {
                 lineHeight: '1.7',
                 background: 'transparent',
                 border: 'none',
-                color: '#212529',
+                color: 'var(--color-body)',
                 resize: 'none',
                 outline: 'none',
               }}
@@ -283,18 +283,18 @@ export default function SystemPromptEditor() {
         {showBackups && (
           <div style={{
             width: '320px',
-            background: '#fff',
+            background: 'var(--color-background)',
             borderRadius: '12px',
-            border: '1px solid #e9ecef',
+            border: '1px solid var(--color-border)',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
           }}>
             <div style={{
               padding: '12px 16px',
-              borderBottom: '1px solid #e9ecef',
+              borderBottom: '1px solid var(--color-border)',
               fontSize: '12px',
-              color: '#6c757d',
+              color: 'var(--color-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
               fontWeight: 600,
@@ -306,7 +306,7 @@ export default function SystemPromptEditor() {
                 <div style={{
                   padding: '24px',
                   textAlign: 'center',
-                  color: '#6c757d',
+                  color: 'var(--color-muted)',
                   fontSize: '14px',
                 }}>
                   No backups yet. Backups are created automatically when you save.
@@ -317,14 +317,14 @@ export default function SystemPromptEditor() {
                     key={backup.filename}
                     style={{
                       padding: '14px 16px',
-                      background: '#f8f9fa',
+                      background: 'var(--color-surface)',
                       borderRadius: '8px',
                       marginBottom: '8px',
                     }}
                   >
                     <div style={{
                       fontSize: '14px',
-                      color: '#212529',
+                      color: 'var(--color-heading)',
                       marginBottom: '6px',
                       fontWeight: 500,
                     }}>
@@ -332,7 +332,7 @@ export default function SystemPromptEditor() {
                     </div>
                     <div style={{
                       fontSize: '12px',
-                      color: '#6c757d',
+                      color: 'var(--color-muted)',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
@@ -342,9 +342,9 @@ export default function SystemPromptEditor() {
                         onClick={() => handleRestore(backup.filename)}
                         style={{
                           background: 'transparent',
-                          border: '1px solid #b68947',
+                          border: '1px solid var(--color-pop)',
                           borderRadius: '4px',
-                          color: '#b68947',
+                          color: 'var(--color-pop)',
                           fontSize: '12px',
                           cursor: 'pointer',
                           padding: '4px 10px',

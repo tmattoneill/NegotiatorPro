@@ -101,7 +101,7 @@ export default function ModelSelector() {
     display: 'block',
     fontSize: '11px',
     fontWeight: 600,
-    color: '#9fadbd',
+    color: 'var(--sidebar-muted)',
     marginBottom: '6px',
     textTransform: 'uppercase' as const,
     letterSpacing: '0.5px',
@@ -145,10 +145,10 @@ export default function ModelSelector() {
             style={{
               padding: '10px 12px',
               fontSize: '12px',
-              background: 'rgba(220, 53, 69, 0.2)',
-              border: '1px solid rgba(220, 53, 69, 0.5)',
+              background: 'rgba(220, 53, 69, 0.15)',
+              border: '1px solid rgba(220, 53, 69, 0.35)',
               borderRadius: '6px',
-              color: '#ff6b6b',
+              color: 'hsl(var(--danger))',
             }}
           >
             {providerError}

@@ -226,7 +226,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
         }
 
         .wizard-container {
-          background: white;
+          background: var(--color-surface);
           border-radius: 12px;
           width: 100%;
           max-width: 600px;
@@ -241,27 +241,27 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
           justify-content: space-between;
           align-items: flex-start;
           padding: 32px 32px 24px 32px;
-          border-bottom: 1px solid #ecf0f1;
+          border-bottom: 1px solid var(--color-border);
         }
 
         .wizard-title h1 {
           margin: 0 0 8px 0;
           font-size: 28px;
           font-weight: 700;
-          color: #2c3e50;
+          color: var(--color-heading);
         }
 
         .wizard-title p {
           margin: 0;
           font-size: 15px;
-          color: #7f8c8d;
+          color: var(--color-muted);
         }
 
         .wizard-close {
           background: none;
           border: none;
           font-size: 32px;
-          color: #95a5a6;
+          color: var(--color-muted);
           cursor: pointer;
           padding: 0;
           width: 36px;
@@ -276,8 +276,8 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
         }
 
         .wizard-close:hover:not(:disabled) {
-          background: #f8f9fa;
-          color: #2c3e50;
+          background: var(--color-border);
+          color: var(--color-heading);
         }
 
         .wizard-close:disabled {
@@ -287,7 +287,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
 
         .wizard-progress {
           padding: 24px 32px;
-          background: #f8f9fa;
+          background: var(--color-background);
         }
 
         .progress-steps {
@@ -308,44 +308,44 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
           width: 40px;
           height: 40px;
           border-radius: 50%;
-          background: white;
-          border: 2px solid #dfe6e9;
+          background: var(--color-surface);
+          border: 2px solid var(--color-border);
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 16px;
           font-weight: 600;
-          color: #95a5a6;
+          color: var(--color-muted);
           transition: all 0.3s;
         }
 
         .progress-step.active .step-number {
-          background: #3498db;
-          border-color: #3498db;
+          background: var(--color-accent);
+          border-color: var(--color-accent);
           color: white;
         }
 
         .progress-step.completed .step-number {
-          background: #27ae60;
-          border-color: #27ae60;
+          background: var(--color-accent-strong);
+          border-color: var(--color-accent-strong);
           color: white;
         }
 
         .step-label {
           font-size: 13px;
-          color: #95a5a6;
+          color: var(--color-muted);
           font-weight: 500;
           white-space: nowrap;
         }
 
         .progress-step.active .step-label {
-          color: #2c3e50;
+          color: var(--color-heading);
         }
 
         .progress-line {
           flex: 1;
           height: 2px;
-          background: #dfe6e9;
+          background: var(--color-border);
           margin: 0 12px;
           margin-bottom: 30px;
         }
@@ -371,7 +371,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(255, 255, 255, 0.95);
+          background: color-mix(in oklch, var(--color-surface) 95%, transparent);
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -383,8 +383,8 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
         .loading-spinner {
           width: 40px;
           height: 40px;
-          border: 3px solid #ecf0f1;
-          border-top-color: #3498db;
+          border: 3px solid var(--color-border);
+          border-top-color: var(--color-accent);
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
@@ -392,7 +392,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
         .wizard-loading p {
           margin: 0;
           font-size: 15px;
-          color: #7f8c8d;
+          color: var(--color-muted);
         }
 
         @keyframes spin {

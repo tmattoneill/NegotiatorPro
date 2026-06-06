@@ -10,6 +10,7 @@ import { sendChatMessage } from '../services/api';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import NegotiationModal from './NegotiationModal';
+import ThemeToggle from './ThemeToggle';
 import type { Message } from '../types';
 
 export default function ChatContainer() {
@@ -208,10 +209,10 @@ export default function ChatContainer() {
               fontSize: '20px',
               fontWeight: '600',
               background: 'transparent',
-              border: '1px solid #fafafa',
+              border: '1px solid var(--color-border)',
               borderRadius: '4px',
               padding: '2px 4px',
-              color: '#191919',
+              color: 'var(--color-heading)',
               outline: 'none',
               fontFamily: 'inherit',
               lineHeight: 'normal',
@@ -226,7 +227,10 @@ export default function ChatContainer() {
             {currentSession?.title || 'Select or create a conversation'}
           </h2>
         )}
-        <span className="provider-model-display">{providerDisplayName} / {modelDisplayName}</span>
+        <div className="flex items-center gap-3">
+          <span className="provider-model-display">{providerDisplayName} / {modelDisplayName}</span>
+          <ThemeToggle />
+        </div>
       </div>
 
       <div className="messages-container">
@@ -243,8 +247,8 @@ export default function ChatContainer() {
                     onClick={() => setShowNegotiationModal(true)}
                     style={{
                       padding: '10px 24px',
-                      background: '#2c3e50',
-                      color: '#fff',
+                      background: 'var(--color-accent)',
+                      color: 'white',
                       border: 'none',
                       borderRadius: '6px',
                       fontSize: '14px',

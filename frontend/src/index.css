@@ -1,31 +1,27 @@
+@import './styles/palette.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Design system tokens (HSL) */
+/* Derived palette utilities — pop tints and sidebar context vars */
 :root {
-  /* App surfaces */
-  --chat-bg: 0 0% 100%;
-  --chat-foreground: 220 16% 14%;
-  --chat-muted: 220 14% 96%;
-  --chat-muted-foreground: 215 14% 45%;
-  --chat-border: 215 20% 88%;
-  --chat-card: 0 0% 100%;
+  --color-pop-10: color-mix(in oklch, var(--color-pop) 10%, transparent);
+  --color-pop-20: color-mix(in oklch, var(--color-pop) 20%, transparent);
+  --color-pop-30: color-mix(in oklch, var(--color-pop) 30%, transparent);
+  --color-pop-50: color-mix(in oklch, var(--color-pop) 50%, transparent);
+  --color-pop-hover: color-mix(in oklch, var(--color-pop) 85%, black);
 
-  /* Brand */
-  --chat-primary: 204 70% 53%;
-  --chat-primary-hover: 204 70% 45%;
+  /* Sidebar context — sidebar bg is --color-heading (dark in light, light in dark).
+     These vars describe colours relative to that surface. */
+  --sidebar-fg: var(--color-background);
+  --sidebar-muted: var(--color-border);
+  --sidebar-panel-bg: color-mix(in oklch, var(--color-background) 5%, transparent);
+  --sidebar-control-bg: color-mix(in oklch, var(--color-background) 10%, transparent);
+  --sidebar-control-bg-hover: color-mix(in oklch, var(--color-background) 15%, transparent);
+  --sidebar-control-border: color-mix(in oklch, var(--color-background) 20%, transparent);
 
-  /* Sidebar */
-  --chat-sidebar: 0 0% 10%;
-
-  /* Messages */
-  --message-user-bg: var(--chat-primary);
-  --message-user-text: 0 0% 100%;
-  --message-assistant-bg: 210 16% 96%;
-  --message-assistant-text: 220 16% 14%;
-
-  /* Code blocks */
+  /* Code blocks (fixed, not palette-driven) */
   --code-bg: 222 13% 18%;
   --code-text: 210 40% 96%;
   --code-border: 222 13% 28%;
@@ -38,25 +34,6 @@
   --danger-foreground: 0 86% 97%;
   --warning: 38 92% 50%;
   --warning-foreground: 48 96% 10%;
-}
-
-.dark {
-  --chat-bg: 222 13% 10%;
-  --chat-foreground: 210 20% 96%;
-  --chat-muted: 223 10% 15%;
-  --chat-muted-foreground: 220 10% 65%;
-  --chat-border: 222 10% 20%;
-  --chat-card: 222 13% 12%;
-
-  --message-user-bg: var(--chat-primary);
-  --message-user-text: 0 0% 100%;
-  --message-assistant-bg: 223 10% 15%;
-  --message-assistant-text: 210 20% 96%;
-
-  --code-bg: 222 13% 12%;
-  --code-text: 210 40% 96%;
-  --code-border: 222 13% 22%;
-  --code-header: 222 13% 16%;
 }
 
 /* Global base */
@@ -89,17 +66,17 @@
   .delete-session-btn { @apply text-danger opacity-60 hover:opacity-100 hover:bg-danger/10 rounded p-1.5 ml-2 inline-flex items-center justify-center transition; }
 
   /* Chat Container */
-  .chat-container { @apply flex-1 min-w-0 flex flex-col bg-white overflow-hidden; }
-  .chat-header { @apply px-8 py-5 bg-white border-b border-chat-border flex items-center justify-between; }
-  .provider-model-display { @apply text-sm text-gray-600 font-medium; }
+  .chat-container { @apply flex-1 min-w-0 flex flex-col bg-chat-bg overflow-hidden; }
+  .chat-header { @apply px-8 py-5 bg-chat-bg border-b border-chat-border flex items-center justify-between; }
+  .provider-model-display { @apply text-sm text-chat-muted-foreground font-medium; }
   .messages-container { @apply flex-1 overflow-y-auto px-8 py-6 bg-chat-muted; }
   .welcome-message { @apply flex items-center justify-center h-full text-center text-chat-muted-foreground; }
 
   /* Messages */
   .message { @apply mb-6 animate-fade-in flex flex-col; }
   .message-header-row { @apply flex items-center justify-between mb-1.5 gap-2; }
-  .message-header { @apply text-[12px] font-semibold uppercase tracking-wide text-gray-500; }
-  .message-timestamp { @apply text-xs text-gray-400; }
+  .message-header { @apply text-[12px] font-semibold uppercase tracking-wide text-chat-muted-foreground; }
+  .message-timestamp { @apply text-xs text-chat-muted-foreground; }
   .header-expand-btn { @apply inline-flex items-center justify-center rounded p-1 text-chat-muted-foreground hover:text-chat-primary hover:bg-chat-primary/10; }
   .message-content { @apply relative px-5 py-4 rounded-xl; }
   .message.user .message-content { @apply bg-message-user-bg text-message-user-text rounded-br-sm ml-auto max-w-[75%] md:w-3/4; }
@@ -132,17 +109,17 @@
   .chat-message-prose li > p { margin-top: 0.2em; margin-bottom: 0.2em; }
   .chat-message-prose ol > li::marker { font-weight: 600; }
   .chat-message-prose blockquote {
-    border-left: 3px solid hsl(var(--chat-border));
+    border-left: 3px solid var(--color-border);
     padding-left: 0.9em;
     font-style: italic;
-    color: hsl(var(--chat-muted-foreground));
+    color: var(--color-muted);
   }
 
   /* Copy button */
   .copy-button-container { @apply absolute top-2 right-2 opacity-0 transition-opacity; }
   .message:hover .copy-button-container { @apply opacity-100; }
   .copy-button { @apply bg-transparent border-0 p-1 text-chat-muted-foreground hover:text-chat-primary hover:bg-chat-primary/10 rounded transition-colors inline-flex items-center justify-center; }
-  .copy-dropdown { @apply absolute top-full right-0 mt-2 bg-white border border-chat-border rounded-lg shadow-lg p-1 z-50 min-w-[160px]; }
+  .copy-dropdown { @apply absolute top-full right-0 mt-2 bg-chat-card border border-chat-border rounded-lg shadow-lg p-1 z-50 min-w-[160px]; }
   .copy-dropdown-item { @apply w-full text-left flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-chat-muted text-chat-foreground; }
 
   /* Typing indicator */
@@ -150,8 +127,8 @@
   .typing-indicator span { @apply inline-block w-2 h-2 rounded-full bg-chat-muted-foreground animate-pulse; }
 
   /* Input */
-  .input-container { @apply p-4 border-t border-chat-border bg-white; }
-  .input-wrapper { @apply flex gap-3 items-end rounded-md border border-chat-border bg-white p-3; }
+  .input-container { @apply p-4 border-t border-chat-border bg-chat-bg; }
+  .input-wrapper { @apply flex gap-3 items-end rounded-md border border-chat-border bg-chat-bg p-3; }
   .input-wrapper textarea { @apply flex-1 min-h-[44px] rounded-md border border-chat-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-chat-primary focus:border-chat-primary; }
   .input-wrapper.dragging { @apply ring-2 ring-chat-primary/40; }
   .attachment-button { @apply inline-flex items-center justify-center rounded-md border border-chat-border bg-transparent text-chat-foreground hover:bg-chat-muted h-10 w-10 disabled:opacity-50; }
@@ -175,7 +152,7 @@
 
   /* File preview */
   .file-preview-container { @apply my-3 grid grid-cols-1 sm:grid-cols-2 gap-3; }
-  .file-preview-item { @apply relative flex items-center gap-3 border border-chat-border rounded p-2 bg-white; }
+  .file-preview-item { @apply relative flex items-center gap-3 border border-chat-border rounded p-2 bg-chat-card; }
   .file-preview-item.error { @apply border-danger/40 bg-danger/5; }
   .file-preview-thumbnail { @apply w-16 h-16 rounded overflow-hidden bg-chat-muted flex items-center justify-center; }
   .file-preview-thumbnail img { @apply object-cover w-full h-full; }
@@ -202,7 +179,7 @@
   .form-group { @apply flex flex-col gap-1.5 mb-4; }
   .form-group label { @apply text-sm font-medium text-chat-foreground; }
   .form-group small { @apply text-xs text-chat-muted-foreground; }
-  .form-group input { @apply block w-full rounded-md border border-chat-border bg-white text-chat-foreground placeholder:text-chat-muted-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-chat-primary focus:border-chat-primary; }
+  .form-group input { @apply block w-full rounded-md border border-chat-border bg-chat-bg text-chat-foreground placeholder:text-chat-muted-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-chat-primary focus:border-chat-primary; }
   .error { @apply text-xs text-danger; }
   .error-banner { @apply rounded-md border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger mb-4; }
   .submit-button { @apply inline-flex items-center justify-center rounded-md bg-chat-primary text-white px-5 py-2.5 text-sm font-medium hover:bg-chat-primary-hover disabled:opacity-50; }

@@ -176,11 +176,11 @@ export default function Sidebar() {
       {!isSuperAdmin && (
         <div style={{
           padding: '12px 16px',
-          background: 'rgba(255, 255, 255, 0.05)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          background: 'var(--sidebar-panel-bg)',
+          borderBottom: '1px solid var(--sidebar-control-border)',
         }}>
           <div style={{ marginBottom: '10px' }}>
-            <div style={{ fontSize: '10px', color: '#9fadbd', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
+            <div style={{ fontSize: '10px', color: 'var(--sidebar-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
               You
             </div>
             {currentNegotiation && userPersonas.length > 0 ? (
@@ -228,7 +228,7 @@ export default function Sidebar() {
                 </span>
               </div>
             ) : (
-              <div style={{ fontSize: '13px', color: '#fff', fontWeight: 500 }}>
+              <div style={{ fontSize: '13px', color: 'var(--sidebar-fg)', fontWeight: 500 }}>
                 {activeUserPersona ? (
                   <>
                     <FaRegUser style={{ marginRight: '6px', opacity: 0.7, display: 'inline' }} />
@@ -244,12 +244,12 @@ export default function Sidebar() {
             )}
           </div>
           <div>
-            <div style={{ fontSize: '10px', color: '#9fadbd', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
+            <div style={{ fontSize: '10px', color: 'var(--sidebar-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
               Partner
             </div>
             {activePartnerPersona ? (
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <div style={{ flex: 1, minWidth: 0, fontSize: '13px', color: '#fff', fontWeight: 500 }}>
+                <div style={{ flex: 1, minWidth: 0, fontSize: '13px', color: 'var(--sidebar-fg)', fontWeight: 500 }}>
                   <FaHandshake style={{ marginRight: '6px', opacity: 0.7, display: 'inline' }} />
                   {activePartnerPersona.name}
                   {activePartnerPersona.company && (
@@ -265,7 +265,7 @@ export default function Sidebar() {
                 </button>
               </div>
             ) : (
-              <div style={{ fontSize: '13px', color: '#fff', fontWeight: 500 }}>
+              <div style={{ fontSize: '13px', color: 'var(--sidebar-fg)', fontWeight: 500 }}>
                 <span style={{ opacity: 0.5, fontStyle: 'italic' }}>Select a negotiation</span>
               </div>
             )}
@@ -277,8 +277,8 @@ export default function Sidebar() {
       {!isSuperAdmin && (
         <div style={{
           padding: '12px 16px',
-          background: 'rgba(255, 255, 255, 0.05)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          background: 'var(--sidebar-panel-bg)',
+          borderBottom: '1px solid var(--sidebar-control-border)',
         }}>
           <div style={{
             display: 'flex',
@@ -286,17 +286,17 @@ export default function Sidebar() {
             alignItems: 'center',
             marginBottom: '8px'
           }}>
-            <div style={{ fontSize: '10px', color: '#9fadbd', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <div style={{ fontSize: '10px', color: 'var(--sidebar-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               Active Negotiation
             </div>
             <button
               onClick={() => setShowNegotiationModal(true)}
               style={{
                 padding: '4px 8px',
-                background: 'rgba(182, 137, 71, 0.2)',
-                border: '1px solid rgba(182, 137, 71, 0.5)',
+                background: 'var(--color-pop-20)',
+                border: '1px solid var(--color-pop-50)',
                 borderRadius: '4px',
-                color: '#b68947',
+                color: 'var(--color-pop)',
                 fontSize: '11px',
                 cursor: 'pointer',
                 fontWeight: 500,
@@ -328,7 +328,7 @@ export default function Sidebar() {
               </span>
             </div>
           ) : (
-            <div style={{ fontSize: '13px', color: '#fff', opacity: 0.7, fontStyle: 'italic', lineHeight: '1.4' }}>
+            <div style={{ fontSize: '13px', color: 'var(--sidebar-fg)', opacity: 0.7, fontStyle: 'italic', lineHeight: '1.4' }}>
               <div style={{ marginBottom: '4px' }}>
                 Welcome! Click "+ New" above to start your first negotiation.
               </div>
@@ -358,7 +358,7 @@ export default function Sidebar() {
           </button>
 
           <div className="sessions-list">
-            <h3 style={{ fontSize: '12px', color: '#6c757d', padding: '8px 16px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <h3 style={{ fontSize: '12px', color: 'var(--sidebar-muted)', padding: '8px 16px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               Chat Sessions
             </h3>
             {sessions.map((session) => (
@@ -389,11 +389,11 @@ export default function Sidebar() {
                         width: '100%',
                         fontSize: '14px',
                         fontWeight: 500,
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        background: 'var(--sidebar-control-bg)',
+                        border: '1px solid var(--sidebar-control-border)',
                         borderRadius: '4px',
                         padding: '4px 8px',
-                        color: '#fff',
+                        color: 'var(--sidebar-fg)',
                         outline: 'none',
                       }}
                     />
@@ -420,7 +420,7 @@ export default function Sidebar() {
                     style={{
                       background: 'transparent',
                       border: 'none',
-                      color: '#ff6b6b',
+                      color: 'var(--color-pop)',
                       cursor: 'pointer',
                       padding: '6px',
                       marginLeft: '8px',
@@ -433,7 +433,7 @@ export default function Sidebar() {
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.opacity = '1';
-                      e.currentTarget.style.background = 'rgba(255, 107, 107, 0.1)';
+                      e.currentTarget.style.background = 'var(--color-pop-10)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.opacity = '0.6';
@@ -447,7 +447,7 @@ export default function Sidebar() {
             ))}
 
             {sessions.length === 0 && (
-              <div style={{ padding: '16px', textAlign: 'center', color: '#6c757d', fontSize: '13px' }}>
+              <div style={{ padding: '16px', textAlign: 'center', color: 'var(--sidebar-muted)', fontSize: '13px' }}>
                 No chat sessions yet. Click "New Conversation" to start.
               </div>
             )}
@@ -460,16 +460,16 @@ export default function Sidebar() {
         <div style={{
           padding: '16px',
           margin: '16px',
-          background: 'rgba(182, 137, 71, 0.1)',
-          border: '1px solid rgba(182, 137, 71, 0.3)',
+          background: 'var(--color-pop-10)',
+          border: '1px solid var(--color-pop-30)',
           borderRadius: '8px',
           textAlign: 'center',
         }}>
-          <div style={{ fontSize: '11px', color: '#b68947', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
+          <div style={{ fontSize: '11px', color: 'var(--color-pop)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
             <FaFlask style={{ marginRight: '6px' }} />
             Testing Mode
           </div>
-          <div style={{ fontSize: '12px', color: '#9fadbd', lineHeight: '1.4' }}>
+          <div style={{ fontSize: '12px', color: 'var(--sidebar-muted)', lineHeight: '1.4' }}>
             Chat with models to test. Conversations are not saved.
           </div>
         </div>
@@ -479,11 +479,11 @@ export default function Sidebar() {
       {isAdmin && (
         <div style={{
           padding: '16px',
-          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          borderTop: '1px solid var(--sidebar-control-border)',
         }}>
           <div style={{
             fontSize: '10px',
-            color: '#9fadbd',
+            color: 'var(--sidebar-muted)',
             textTransform: 'uppercase',
             letterSpacing: '0.5px',
             marginBottom: '12px',
@@ -500,10 +500,10 @@ export default function Sidebar() {
               style={{
                 width: '100%',
                 padding: '10px 12px',
-                background: currentView === 'none' ? 'rgba(182, 137, 71, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                border: currentView === 'none' ? '1px solid rgba(182, 137, 71, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+                background: currentView === 'none' ? 'var(--color-pop-20)' : 'var(--sidebar-panel-bg)',
+                border: currentView === 'none' ? '1px solid var(--color-pop-50)' : '1px solid var(--sidebar-control-border)',
                 borderRadius: '6px',
-                color: '#fff',
+                color: 'var(--sidebar-fg)',
                 fontSize: '13px',
                 cursor: 'pointer',
                 display: 'flex',
@@ -513,10 +513,10 @@ export default function Sidebar() {
                 transition: 'all 0.2s',
               }}
               onMouseOver={(e) => {
-                if (currentView !== 'none') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                if (currentView !== 'none') e.currentTarget.style.background = 'var(--sidebar-control-bg)';
               }}
               onMouseOut={(e) => {
-                if (currentView !== 'none') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                if (currentView !== 'none') e.currentTarget.style.background = 'var(--sidebar-panel-bg)';
               }}
             >
               <FaComments style={{ opacity: 0.7 }} />
@@ -527,10 +527,10 @@ export default function Sidebar() {
               style={{
                 width: '100%',
                 padding: '10px 12px',
-                background: currentView === 'admin-panel' ? 'rgba(182, 137, 71, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                border: currentView === 'admin-panel' ? '1px solid rgba(182, 137, 71, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+                background: currentView === 'admin-panel' ? 'var(--color-pop-20)' : 'var(--sidebar-panel-bg)',
+                border: currentView === 'admin-panel' ? '1px solid var(--color-pop-50)' : '1px solid var(--sidebar-control-border)',
                 borderRadius: '6px',
-                color: '#fff',
+                color: 'var(--sidebar-fg)',
                 fontSize: '13px',
                 cursor: 'pointer',
                 display: 'flex',
@@ -541,12 +541,12 @@ export default function Sidebar() {
               }}
               onMouseOver={(e) => {
                 if (currentView !== 'admin-panel') {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                  e.currentTarget.style.background = 'var(--sidebar-control-bg)';
                 }
               }}
               onMouseOut={(e) => {
                 if (currentView !== 'admin-panel') {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                  e.currentTarget.style.background = 'var(--sidebar-panel-bg)';
                 }
               }}
             >
@@ -558,10 +558,10 @@ export default function Sidebar() {
               style={{
                 width: '100%',
                 padding: '10px 12px',
-                background: currentView === 'system-prompt' ? 'rgba(182, 137, 71, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                border: currentView === 'system-prompt' ? '1px solid rgba(182, 137, 71, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+                background: currentView === 'system-prompt' ? 'var(--color-pop-20)' : 'var(--sidebar-panel-bg)',
+                border: currentView === 'system-prompt' ? '1px solid var(--color-pop-50)' : '1px solid var(--sidebar-control-border)',
                 borderRadius: '6px',
-                color: '#fff',
+                color: 'var(--sidebar-fg)',
                 fontSize: '13px',
                 cursor: 'pointer',
                 display: 'flex',
@@ -572,12 +572,12 @@ export default function Sidebar() {
               }}
               onMouseOver={(e) => {
                 if (currentView !== 'system-prompt') {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                  e.currentTarget.style.background = 'var(--sidebar-control-bg)';
                 }
               }}
               onMouseOut={(e) => {
                 if (currentView !== 'system-prompt') {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                  e.currentTarget.style.background = 'var(--sidebar-panel-bg)';
                 }
               }}
             >
@@ -591,12 +591,12 @@ export default function Sidebar() {
       {/* User info and actions */}
       <div style={{
         padding: '16px',
-        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+        borderTop: '1px solid var(--sidebar-control-border)',
         marginTop: 'auto'
       }}>
         <div style={{
           fontSize: '13px',
-          color: '#9fadbd',
+          color: 'var(--sidebar-muted)',
           marginBottom: '16px'
         }}>
           Logged in as <strong>{user?.username || 'User'}</strong>
@@ -610,9 +610,9 @@ export default function Sidebar() {
               width: '44px',
               height: '44px',
               borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.1)',
-              color: '#fff',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
+              background: 'var(--sidebar-control-bg)',
+              color: 'var(--sidebar-fg)',
+              border: '1px solid var(--sidebar-control-border)',
               fontSize: '18px',
               cursor: 'pointer',
               transition: 'all 0.2s',
@@ -621,11 +621,11 @@ export default function Sidebar() {
               justifyContent: 'center'
             }}
             onMouseOver={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+              e.currentTarget.style.background = 'var(--sidebar-control-bg-hover)';
               e.currentTarget.style.transform = 'scale(1.05)';
             }}
             onMouseOut={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+              e.currentTarget.style.background = 'var(--sidebar-control-bg)';
               e.currentTarget.style.transform = 'scale(1)';
             }}
           >
@@ -640,9 +640,9 @@ export default function Sidebar() {
               width: '44px',
               height: '44px',
               borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.1)',
-              color: '#fff',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
+              background: 'var(--sidebar-control-bg)',
+              color: 'var(--sidebar-fg)',
+              border: '1px solid var(--sidebar-control-border)',
               fontSize: '18px',
               cursor: 'pointer',
               transition: 'all 0.2s',
@@ -651,11 +651,11 @@ export default function Sidebar() {
               justifyContent: 'center'
             }}
             onMouseOver={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+              e.currentTarget.style.background = 'var(--sidebar-control-bg-hover)';
               e.currentTarget.style.transform = 'scale(1.05)';
             }}
             onMouseOut={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+              e.currentTarget.style.background = 'var(--sidebar-control-bg)';
               e.currentTarget.style.transform = 'scale(1)';
             }}
           >
@@ -670,9 +670,9 @@ export default function Sidebar() {
               width: '44px',
               height: '44px',
               borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.1)',
-              color: '#fff',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
+              background: 'var(--sidebar-control-bg)',
+              color: 'var(--sidebar-fg)',
+              border: '1px solid var(--sidebar-control-border)',
               fontSize: '18px',
               cursor: 'pointer',
               transition: 'all 0.2s',
@@ -681,11 +681,11 @@ export default function Sidebar() {
               justifyContent: 'center'
             }}
             onMouseOver={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+              e.currentTarget.style.background = 'var(--sidebar-control-bg-hover)';
               e.currentTarget.style.transform = 'scale(1.05)';
             }}
             onMouseOut={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+              e.currentTarget.style.background = 'var(--sidebar-control-bg)';
               e.currentTarget.style.transform = 'scale(1)';
             }}
           >
@@ -710,7 +710,7 @@ export default function Sidebar() {
           zIndex: 9999,
         }}>
           <div style={{
-            background: '#ffffff',
+            background: 'var(--color-surface)',
             borderRadius: '8px',
             padding: '32px',
             maxWidth: '400px',
@@ -720,14 +720,14 @@ export default function Sidebar() {
             <h2 style={{
               fontSize: '20px',
               fontWeight: '600',
-              color: '#191919',
+              color: 'var(--color-heading)',
               marginBottom: '12px',
             }}>
               Confirm Logout
             </h2>
             <p style={{
               fontSize: '14px',
-              color: '#9fadbd',
+              color: 'var(--color-muted)',
               marginBottom: '24px',
               lineHeight: '1.5',
             }}>
@@ -742,8 +742,8 @@ export default function Sidebar() {
                 onClick={() => setShowLogoutModal(false)}
                 style={{
                   padding: '10px 20px',
-                  background: '#efefef',
-                  color: '#191919',
+                  background: 'var(--color-border)',
+                  color: 'var(--color-heading)',
                   border: 'none',
                   borderRadius: '6px',
                   fontSize: '14px',
@@ -752,10 +752,10 @@ export default function Sidebar() {
                   transition: 'all 0.2s',
                 }}
                 onMouseOver={(e) => {
-                  e.currentTarget.style.background = '#e0e0e0';
+                  e.currentTarget.style.background = 'var(--color-muted)';
                 }}
                 onMouseOut={(e) => {
-                  e.currentTarget.style.background = '#efefef';
+                  e.currentTarget.style.background = 'var(--color-border)';
                 }}
               >
                 Cancel
@@ -767,8 +767,8 @@ export default function Sidebar() {
                 }}
                 style={{
                   padding: '10px 20px',
-                  background: '#b68947',
-                  color: '#ffffff',
+                  background: 'var(--color-pop)',
+                  color: 'white',
                   border: 'none',
                   borderRadius: '6px',
                   fontSize: '14px',
@@ -777,10 +777,10 @@ export default function Sidebar() {
                   transition: 'all 0.2s',
                 }}
                 onMouseOver={(e) => {
-                  e.currentTarget.style.background = '#a07839';
+                  e.currentTarget.style.background = 'var(--color-pop-hover)';
                 }}
                 onMouseOut={(e) => {
-                  e.currentTarget.style.background = '#b68947';
+                  e.currentTarget.style.background = 'var(--color-pop)';
                 }}
               >
                 Logout
@@ -807,28 +807,28 @@ export default function Sidebar() {
           zIndex: 1000,
         }}>
           <div style={{
-            background: '#1e2936',
+            background: 'var(--color-surface)',
             padding: '32px',
             borderRadius: '12px',
             maxWidth: '400px',
             width: '90%',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            border: '1px solid var(--color-border)',
           }}>
             <h2 style={{
               fontSize: '20px',
               fontWeight: '600',
-              color: '#ffffff',
+              color: 'var(--color-heading)',
               marginBottom: '16px',
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
             }}>
-              <FaTrash style={{ color: '#ff6b6b' }} />
+              <FaTrash style={{ color: 'var(--color-pop)' }} />
               Delete Conversation?
             </h2>
             <p style={{
               fontSize: '14px',
-              color: '#9fadbd',
+              color: 'var(--color-muted)',
               marginBottom: '24px',
               lineHeight: '1.5',
             }}>
@@ -843,9 +843,9 @@ export default function Sidebar() {
                 onClick={cancelDelete}
                 style={{
                   padding: '10px 20px',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  color: '#ffffff',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  background: 'var(--color-border)',
+                  color: 'var(--color-heading)',
+                  border: '1px solid var(--color-muted)',
                   borderRadius: '6px',
                   fontSize: '14px',
                   fontWeight: '500',
@@ -853,10 +853,10 @@ export default function Sidebar() {
                   transition: 'all 0.2s',
                 }}
                 onMouseOver={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                  e.currentTarget.style.background = 'var(--color-muted)';
                 }}
                 onMouseOut={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                  e.currentTarget.style.background = 'var(--color-border)';
                 }}
               >
                 Cancel
@@ -865,8 +865,8 @@ export default function Sidebar() {
                 onClick={confirmDelete}
                 style={{
                   padding: '10px 20px',
-                  background: '#ff6b6b',
-                  color: '#ffffff',
+                  background: 'var(--color-pop)',
+                  color: 'white',
                   border: 'none',
                   borderRadius: '6px',
                   fontSize: '14px',
@@ -875,10 +875,10 @@ export default function Sidebar() {
                   transition: 'all 0.2s',
                 }}
                 onMouseOver={(e) => {
-                  e.currentTarget.style.background = '#ff5252';
+                  e.currentTarget.style.background = 'var(--color-pop-hover)';
                 }}
                 onMouseOut={(e) => {
-                  e.currentTarget.style.background = '#ff6b6b';
+                  e.currentTarget.style.background = 'var(--color-pop)';
                 }}
               >
                 Delete

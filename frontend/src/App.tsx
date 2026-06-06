@@ -167,12 +167,12 @@ function App() {
   if (isCheckingOnboarding) {
     return (
       <div className="app-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center', color: '#7f8c8d' }}>
+        <div style={{ textAlign: 'center', color: 'var(--color-muted)' }}>
           <div style={{
             width: '40px',
             height: '40px',
-            border: '3px solid #ecf0f1',
-            borderTopColor: '#3498db',
+            border: '3px solid var(--color-border)',
+            borderTopColor: 'var(--color-accent)',
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
             margin: '0 auto 16px'

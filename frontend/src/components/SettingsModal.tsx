@@ -56,7 +56,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     >
       <div
         style={{
-          background: '#ffffff',
+          background: 'var(--color-surface)',
           borderRadius: '8px',
           padding: '32px',
           maxWidth: '500px',
@@ -69,7 +69,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           style={{
             fontSize: '24px',
             fontWeight: '600',
-            color: '#191919',
+            color: 'var(--color-heading)',
             marginBottom: '24px',
           }}
         >
@@ -84,7 +84,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               display: 'block',
               fontSize: '14px',
               fontWeight: '500',
-              color: '#191919',
+              color: 'var(--color-heading)',
               marginBottom: '8px',
             }}
           >
@@ -96,7 +96,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               style={{
                 padding: '12px',
                 textAlign: 'center',
-                color: '#9fadbd',
+                color: 'var(--color-muted)',
                 fontSize: '14px',
               }}
             >
@@ -106,10 +106,10 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <div
               style={{
                 padding: '12px',
-                background: '#fff5f5',
-                border: '1px solid #fc8181',
+                background: 'rgba(220, 53, 69, 0.1)',
+                border: '1px solid rgba(220, 53, 69, 0.3)',
                 borderRadius: '6px',
-                color: '#c53030',
+                color: '#dc3545',
                 fontSize: '14px',
               }}
             >
@@ -124,10 +124,10 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 width: '100%',
                 padding: '12px',
                 fontSize: '14px',
-                border: '1px solid #9fadbd',
+                border: '1px solid var(--color-border)',
                 borderRadius: '6px',
-                background: '#ffffff',
-                color: '#191919',
+                background: 'var(--color-background)',
+                color: 'var(--color-body)',
                 cursor: 'pointer',
               }}
             >
@@ -165,7 +165,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 style={{
                   fontSize: '14px',
                   fontWeight: '500',
-                  color: '#191919',
+                  color: 'var(--color-heading)',
                   marginBottom: '2px',
                 }}
               >
@@ -174,7 +174,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <div
                 style={{
                   fontSize: '13px',
-                  color: '#9fadbd',
+                  color: 'var(--color-muted)',
                 }}
               >
                 Remove boilerplate to reduce tokens
@@ -189,8 +189,8 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             onClick={onClose}
             style={{
               padding: '10px 24px',
-              background: '#3498db',
-              color: '#ffffff',
+              background: 'var(--color-accent)',
+              color: 'white',
               border: 'none',
               borderRadius: '6px',
               fontSize: '14px',
@@ -199,10 +199,10 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               transition: 'all 0.2s',
             }}
             onMouseOver={(e) => {
-              e.currentTarget.style.background = '#2980b9';
+              e.currentTarget.style.background = 'var(--color-accent-strong)';
             }}
             onMouseOut={(e) => {
-              e.currentTarget.style.background = '#3498db';
+              e.currentTarget.style.background = 'var(--color-accent)';
             }}
           >
             Done
