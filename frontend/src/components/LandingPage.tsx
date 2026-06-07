@@ -73,7 +73,7 @@ function LandingPage() {
   }, []);
 
   return (
-    <>
+    <div className="landing-page">
       {/* Navigation */}
       <nav ref={navRef}>
         <div className="container">
@@ -504,7 +504,7 @@ function LandingPage() {
           </div>
         </div>
       </footer>
-    </>
+    </div>
   );
 }
 
