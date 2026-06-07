@@ -22,7 +22,7 @@ export default {
         'chat-card': 'oklch(from var(--color-surface) l c h / <alpha-value>)',
         // Strong (dark) end of the accent ramp — mid accent is too light for readable text.
         'message-user-bg': 'oklch(from var(--color-accent-strong) l c h / <alpha-value>)',
-        'message-user-text': 'oklch(from var(--color-on-accent) l c h / <alpha-value>)',
+        'message-user-text': 'oklch(from var(--user-bubble-fg) l c h / <alpha-value>)',
         'message-assistant-bg': 'oklch(from var(--color-surface) l c h / <alpha-value>)',
         'message-assistant-text': 'oklch(from var(--color-body) l c h / <alpha-value>)',
         // Pop/highlight colour

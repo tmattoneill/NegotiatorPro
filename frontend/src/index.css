@@ -6,13 +6,14 @@
 
 /* Derived palette utilities — pop tints and sidebar context vars */
 :root {
-  /* App-owned semantic alias. site-palette exports the ramps + --color-* aliases
-     but NOT an "on accent" role, so we add it here rather than in palette.css.
-     Lives outside palette.css on purpose: a raw export can be swapped in wholesale
-     and this token survives, re-theming via the ramp. Tracks the lightest neutral
-     (dominant-1) and does not flip with dark mode, so text on accent fills stays
-     readable in both themes (measured >= 8:1 against --color-accent-strong). */
-  --color-on-accent: var(--palette-dominant-1);
+  /* Foreground for the user bubble, which fills with --color-accent-strong.
+     A fill of --color-X takes the palette's paired --color-on-X token; here that
+     is --color-on-accent-strong. Newer palettes ship the on-* set; older exports
+     (the starters) don't, so fall back to the lightest neutral, which clears AA
+     against any dark accent-strong (measured 8.7-9.3 across all palettes).
+     NB: NOT --color-on-accent — that token pairs with the mid accent and can be
+     dark (e.g. dominant-6), which would be unreadable on the dark strong fill. */
+  --user-bubble-fg: var(--color-on-accent-strong, var(--palette-dominant-1));
 
   --color-pop-10: color-mix(in oklch, var(--color-pop) 10%, transparent);
   --color-pop-20: color-mix(in oklch, var(--color-pop) 20%, transparent);
@@ -95,14 +96,14 @@
      dark:prose-invert ([data-theme] .dark\:prose-invert = 0,2,0) without !important. */
   .message.user .message-content {
     @apply bg-message-user-bg text-message-user-text rounded-br-sm ml-auto max-w-[75%] md:w-3/4;
-    --tw-prose-body: var(--color-on-accent);
-    --tw-prose-headings: var(--color-on-accent);
-    --tw-prose-bold: var(--color-on-accent);
-    --tw-prose-links: var(--color-on-accent);
-    --tw-prose-code: var(--color-on-accent);
-    --tw-prose-quotes: var(--color-on-accent);
-    --tw-prose-bullets: var(--color-on-accent);
-    --tw-prose-counters: var(--color-on-accent);
+    --tw-prose-body: var(--user-bubble-fg);
+    --tw-prose-headings: var(--user-bubble-fg);
+    --tw-prose-bold: var(--user-bubble-fg);
+    --tw-prose-links: var(--user-bubble-fg);
+    --tw-prose-code: var(--user-bubble-fg);
+    --tw-prose-quotes: var(--user-bubble-fg);
+    --tw-prose-bullets: var(--user-bubble-fg);
+    --tw-prose-counters: var(--user-bubble-fg);
   }
   /* Assistant bubble: surface fill + body text (~7:1). Pin prose children to palette
      tokens too — body for text, heading for headings (even higher contrast, keeps

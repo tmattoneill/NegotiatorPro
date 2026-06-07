@@ -31,30 +31,45 @@ Two layers, in this order:
 
 This is exactly what [site-palette](https://site-palette) emits.
 
-## The `--color-on-accent` gap
+## The `on-*` (foreground) tokens
 
-site-palette does **not** emit an "on accent" role — a text colour to sit on a
-filled accent surface (the user message bubble). The app adds it itself, in
-`index.css`, **not** here:
+Newer exports emit an "on" role for each backgroundable colour — a foreground
+guaranteed to contrast with that fill:
 
 ```css
-:root { --color-on-accent: var(--palette-dominant-1); }
+--color-on-accent:        var(--palette-dominant-6);  /* pairs with --color-accent (mid) */
+--color-on-accent-soft:   var(--palette-dominant-6);
+--color-on-accent-strong: var(--palette-dominant-1);  /* pairs with --color-accent-strong (dark) */
+--color-on-pop:           var(--palette-dominant-1);
 ```
 
-It lives outside the palette files on purpose. A raw export can be dropped in
-wholesale and this token survives, re-theming through the ramp. It tracks the
-lightest neutral and does not flip with dark mode, because the accent fill it
-sits on doesn't flip either. If a future palette tool starts emitting an
-on-accent role, move it into the palette files and delete the index.css line.
+The contract is **suffix pairing**: a fill of `--color-X` takes foreground
+`--color-on-X`. Mind the binding — `on-accent` pairs with the *mid* accent and
+can be dark (dominant-6 above), so it is the wrong token for a dark
+`accent-strong` fill. The user bubble fills with `accent-strong`, so it uses
+`on-accent-strong`.
+
+Older exports (the four starters here) predate these tokens. The app handles
+both with a fallback, in `index.css`, **not** in the palette files:
+
+```css
+--user-bubble-fg: var(--color-on-accent-strong, var(--palette-dominant-1));
+```
+
+Prefer the palette's paired token when present; fall back to the lightest
+neutral otherwise. That fallback lives outside the palette files on purpose, so
+a raw export swaps in wholesale and the bubble stays readable either way. It
+does not flip with dark mode, because the accent fill it sits on doesn't flip.
 
 ## Contrast contract
 
 The chat bubbles depend on one structural invariant that every starter must hold:
 
 - `--color-accent-strong` is the **dark** end of the accent ramp (low L).
-- `--color-on-accent` (= `--palette-dominant-1`) is the **light** end.
+- the bubble foreground resolves to the **light** end (`on-accent-strong` =
+  `--palette-dominant-1`, or the dominant-1 fallback for older exports).
 
-The user bubble fills with `accent-strong` and writes in `on-accent`; the
+The user bubble fills with `accent-strong` and writes in `--user-bubble-fg`; the
 assistant fills with `surface` and writes in `body`/`heading`. As long as the
 ramps run light→dark in the documented order, every pairing clears WCAG AA
 (≥ 4.5:1) in both themes. A mid-tone accent fill (`--color-accent`, ~L 62%)
