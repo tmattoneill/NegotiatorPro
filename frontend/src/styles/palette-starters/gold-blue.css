@@ -1,0 +1,41 @@
+/* Gold + Teal — warm gold dominant (hue 77), teal accent (hue 181), red-orange
+   highlight. Genuine site-palette export. Was the live theme as of this commit.
+   Contrast verified: user 8.71, assistant body 6.97, headings 8.94-12.63, both themes. */
+:root {
+  --palette-dominant-1: oklch(96.00% 0.0306 77.09);
+  --palette-dominant-2: oklch(88.00% 0.0351 77.09);
+  --palette-dominant-3: oklch(75.00% 0.0423 77.09);
+  --palette-dominant-4: oklch(58.00% 0.0496 77.09);
+  --palette-dominant-5: oklch(38.00% 0.0384 77.09);
+  --palette-dominant-6: oklch(20.00% 0.0284 77.09);
+  --palette-secondary-1: oklch(82.00% 0.0584 181.23);
+  --palette-secondary-2: oklch(62.00% 0.0754 181.23);
+  --palette-secondary-3: oklch(38.00% 0.0584 181.23);
+  --palette-highlight: oklch(62.23% 0.1669 35.26);
+
+  /* Semantic aliases (light) */
+  --color-background: var(--palette-dominant-1);
+  --color-surface: var(--palette-dominant-2);
+  --color-border: var(--palette-dominant-3);
+  --color-muted: var(--palette-dominant-4);
+  --color-body: var(--palette-dominant-5);
+  --color-heading: var(--palette-dominant-6);
+  --color-accent-soft: var(--palette-secondary-1);
+  --color-accent: var(--palette-secondary-2);
+  --color-accent-strong: var(--palette-secondary-3);
+  --color-pop: var(--palette-highlight);
+}
+
+[data-theme="dark"] {
+  /* Semantic aliases (dark) — dominant ramp flips, accents stay */
+  --color-background: var(--palette-dominant-6);
+  --color-surface: var(--palette-dominant-5);
+  --color-border: var(--palette-dominant-4);
+  --color-muted: var(--palette-dominant-3);
+  --color-body: var(--palette-dominant-2);
+  --color-heading: var(--palette-dominant-1);
+  --color-accent-soft: var(--palette-secondary-1);
+  --color-accent: var(--palette-secondary-2);
+  --color-accent-strong: var(--palette-secondary-3);
+  --color-pop: var(--palette-highlight);
+}

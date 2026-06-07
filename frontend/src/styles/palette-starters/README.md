@@ -67,8 +67,10 @@ case across all four palettes × both themes is **4.51** — all pass AA.
 
 | Palette | Theme | user | asst body | asst head |
 |---|---|---|---|---|
-| Sand + Blue (default) | light | 8.85 | 7.00 | 12.64 |
-| Sand + Blue (default) | dark | 8.85 | 7.00 | 8.98 |
+| Sand + Blue | light | 8.85 | 7.00 | 12.64 |
+| Sand + Blue | dark | 8.85 | 7.00 | 8.98 |
+| Gold + Teal | light | 8.71 | 6.97 | 12.63 |
+| Gold + Teal | dark | 8.71 | 6.97 | 8.94 |
 | Mad Max | light | 9.34 | 7.11 | 12.71 |
 | Mad Max | dark | 9.34 | 7.11 | 9.08 |
 | Matrix | light | 8.98 | 6.83 | 13.09 |
@@ -84,4 +86,4 @@ palette ever pushes accent-strong above ~L 60%, re-check the user-bubble ratio.
 `mad-max.css` and `matrix.css` were authored in site-palette's format for this
 regression test, not exported from the tool (site-palette isn't wired into this
 repo). They follow the export contract exactly, so a real export can replace
-them at any time. `sand-blue.css` is the genuine current export.
+them at any time. `sand-blue.css` and `gold-blue.css` are genuine exports.
