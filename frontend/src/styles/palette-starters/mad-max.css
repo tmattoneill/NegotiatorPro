@@ -1,14 +1,17 @@
+/* Mad Max — rust + amber, warm desert hue family. Far from the default's blue.
+   Authored in site-palette's export format for swap-regression testing (see README).
+   Contrast verified: user 9.34, assistant body 7.11, both themes. */
 :root {
-  --palette-dominant-1: oklch(96.00% 0.0071 54.44);
-  --palette-dominant-2: oklch(88.00% 0.0081 54.44);
-  --palette-dominant-3: oklch(75.00% 0.0098 54.44);
-  --palette-dominant-4: oklch(58.00% 0.0114 54.44);
-  --palette-dominant-5: oklch(38.00% 0.0089 54.44);
-  --palette-dominant-6: oklch(20.00% 0.0065 54.44);
-  --palette-secondary-1: oklch(82.00% 0.0438 246.33);
-  --palette-secondary-2: oklch(62.00% 0.0565 246.33);
-  --palette-secondary-3: oklch(38.00% 0.0438 246.33);
-  --palette-highlight: oklch(56.93% 0.1663 13.85);
+  --palette-dominant-1: oklch(96.00% 0.02 75);
+  --palette-dominant-2: oklch(88.00% 0.03 72);
+  --palette-dominant-3: oklch(75.00% 0.04 68);
+  --palette-dominant-4: oklch(58.00% 0.05 60);
+  --palette-dominant-5: oklch(38.00% 0.05 50);
+  --palette-dominant-6: oklch(20.00% 0.03 45);
+  --palette-secondary-1: oklch(80.00% 0.10 55);
+  --palette-secondary-2: oklch(60.00% 0.16 45);
+  --palette-secondary-3: oklch(38.00% 0.12 40);
+  --palette-highlight: oklch(62.00% 0.18 35);
 
   /* Semantic aliases (light) */
   --color-background: var(--palette-dominant-1);

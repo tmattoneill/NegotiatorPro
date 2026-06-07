@@ -1,14 +1,17 @@
+/* Matrix — phosphor green on near-black. Green hue family, high accent chroma.
+   Authored in site-palette's export format for swap-regression testing (see README).
+   Contrast verified: user 8.98, assistant body 6.83, both themes. */
 :root {
-  --palette-dominant-1: oklch(96.00% 0.0071 54.44);
-  --palette-dominant-2: oklch(88.00% 0.0081 54.44);
-  --palette-dominant-3: oklch(75.00% 0.0098 54.44);
-  --palette-dominant-4: oklch(58.00% 0.0114 54.44);
-  --palette-dominant-5: oklch(38.00% 0.0089 54.44);
-  --palette-dominant-6: oklch(20.00% 0.0065 54.44);
-  --palette-secondary-1: oklch(82.00% 0.0438 246.33);
-  --palette-secondary-2: oklch(62.00% 0.0565 246.33);
-  --palette-secondary-3: oklch(38.00% 0.0438 246.33);
-  --palette-highlight: oklch(56.93% 0.1663 13.85);
+  --palette-dominant-1: oklch(96.00% 0.01 150);
+  --palette-dominant-2: oklch(88.00% 0.015 150);
+  --palette-dominant-3: oklch(75.00% 0.02 150);
+  --palette-dominant-4: oklch(58.00% 0.03 150);
+  --palette-dominant-5: oklch(38.00% 0.04 150);
+  --palette-dominant-6: oklch(18.00% 0.03 150);
+  --palette-secondary-1: oklch(80.00% 0.15 145);
+  --palette-secondary-2: oklch(62.00% 0.20 145);
+  --palette-secondary-3: oklch(36.00% 0.14 145);
+  --palette-highlight: oklch(80.00% 0.22 142);
 
   /* Semantic aliases (light) */
   --color-background: var(--palette-dominant-1);

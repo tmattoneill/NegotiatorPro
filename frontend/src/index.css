@@ -6,6 +6,14 @@
 
 /* Derived palette utilities — pop tints and sidebar context vars */
 :root {
+  /* App-owned semantic alias. site-palette exports the ramps + --color-* aliases
+     but NOT an "on accent" role, so we add it here rather than in palette.css.
+     Lives outside palette.css on purpose: a raw export can be swapped in wholesale
+     and this token survives, re-theming via the ramp. Tracks the lightest neutral
+     (dominant-1) and does not flip with dark mode, so text on accent fills stays
+     readable in both themes (measured >= 8:1 against --color-accent-strong). */
+  --color-on-accent: var(--palette-dominant-1);
+
   --color-pop-10: color-mix(in oklch, var(--color-pop) 10%, transparent);
   --color-pop-20: color-mix(in oklch, var(--color-pop) 20%, transparent);
   --color-pop-30: color-mix(in oklch, var(--color-pop) 30%, transparent);
@@ -79,13 +87,38 @@
   .message-timestamp { @apply text-xs text-chat-muted-foreground; }
   .header-expand-btn { @apply inline-flex items-center justify-center rounded p-1 text-chat-muted-foreground hover:text-chat-primary hover:bg-chat-primary/10; }
   .message-content { @apply relative px-5 py-4 rounded-xl; }
-  /* User bubble: strong (dark) accent fill + light on-accent text (~8:1, clears AA).
-     User messages carry no .prose class, so markdown children inherit this colour
-     directly — no --tw-prose-* overrides needed. */
+  /* User bubble: strong (dark) accent fill + on-accent text. Measured ~8.9:1 (AAA),
+     both themes, holding across palette swaps. The --tw-prose-* overrides pin every
+     markdown child to the same on-accent token so Tailwind Typography's child rules
+     can't win via :where() selectors. All values are palette tokens — a palette swap
+     re-themes them. Selector is (0,3,0), so it beats prose (.prose = 0,1,0) and
+     dark:prose-invert ([data-theme] .dark\:prose-invert = 0,2,0) without !important. */
   .message.user .message-content {
     @apply bg-message-user-bg text-message-user-text rounded-br-sm ml-auto max-w-[75%] md:w-3/4;
+    --tw-prose-body: var(--color-on-accent);
+    --tw-prose-headings: var(--color-on-accent);
+    --tw-prose-bold: var(--color-on-accent);
+    --tw-prose-links: var(--color-on-accent);
+    --tw-prose-code: var(--color-on-accent);
+    --tw-prose-quotes: var(--color-on-accent);
+    --tw-prose-bullets: var(--color-on-accent);
+    --tw-prose-counters: var(--color-on-accent);
   }
-  .message.assistant .message-content { @apply bg-message-assistant-bg text-message-assistant-text border border-chat-border mr-auto max-w-[75%] md:w-3/4; }
+  /* Assistant bubble: surface fill + body text (~7:1). Pin prose children to palette
+     tokens too — body for text, heading for headings (even higher contrast, keeps
+     hierarchy). This makes assistant markdown palette-driven instead of relying on
+     the typography plugin's default greys + dark:prose-invert. */
+  .message.assistant .message-content {
+    @apply bg-message-assistant-bg text-message-assistant-text border border-chat-border mr-auto max-w-[75%] md:w-3/4;
+    --tw-prose-body: var(--color-body);
+    --tw-prose-headings: var(--color-heading);
+    --tw-prose-bold: var(--color-body);
+    --tw-prose-links: var(--color-body);
+    --tw-prose-code: var(--color-body);
+    --tw-prose-quotes: var(--color-body);
+    --tw-prose-bullets: var(--color-body);
+    --tw-prose-counters: var(--color-body);
+  }
   .message.user .message-header-row { @apply justify-end; }
   .message-meta { @apply mt-2 flex items-center gap-4 text-xs text-chat-muted-foreground; }
   .message-meta-label { @apply font-semibold; }
