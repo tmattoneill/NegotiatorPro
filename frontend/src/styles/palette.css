@@ -21,6 +21,9 @@
   --color-accent: var(--palette-secondary-2);
   --color-accent-strong: var(--palette-secondary-3);
   --color-pop: var(--palette-highlight);
+  /* Text on accent-coloured surfaces — theme-independent because the accent
+     bubble doesn't flip with dark mode. Swap this token when the palette changes. */
+  --color-on-accent: oklch(94% 0 0);
 }
 
 [data-theme="dark"] {

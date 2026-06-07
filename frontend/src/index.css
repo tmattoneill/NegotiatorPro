@@ -79,7 +79,19 @@
   .message-timestamp { @apply text-xs text-chat-muted-foreground; }
   .header-expand-btn { @apply inline-flex items-center justify-center rounded p-1 text-chat-muted-foreground hover:text-chat-primary hover:bg-chat-primary/10; }
   .message-content { @apply relative px-5 py-4 rounded-xl; }
-  .message.user .message-content { @apply bg-message-user-bg text-message-user-text rounded-br-sm ml-auto max-w-[75%] md:w-3/4; }
+  .message.user .message-content {
+    @apply bg-message-user-bg text-message-user-text rounded-br-sm ml-auto max-w-[75%] md:w-3/4;
+    --tw-prose-body: var(--color-on-accent);
+    --tw-prose-headings: var(--color-on-accent);
+    --tw-prose-lead: var(--color-on-accent);
+    --tw-prose-bold: var(--color-on-accent);
+    --tw-prose-counters: var(--color-on-accent);
+    --tw-prose-bullets: var(--color-on-accent);
+    --tw-prose-links: var(--color-on-accent);
+    --tw-prose-code: var(--color-on-accent);
+    --tw-prose-captions: var(--color-on-accent);
+    --tw-prose-quotes: var(--color-on-accent);
+  }
   .message.assistant .message-content { @apply bg-message-assistant-bg text-message-assistant-text border border-chat-border mr-auto max-w-[75%] md:w-3/4; }
   .message.user .message-header-row { @apply justify-end; }
   .message-meta { @apply mt-2 flex items-center gap-4 text-xs text-chat-muted-foreground; }

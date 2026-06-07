@@ -21,7 +21,7 @@ export default {
         'chat-sidebar': 'oklch(from var(--color-heading) l c h / <alpha-value>)',
         'chat-card': 'oklch(from var(--color-surface) l c h / <alpha-value>)',
         'message-user-bg': 'oklch(from var(--color-accent) l c h / <alpha-value>)',
-        'message-user-text': 'oklch(100% 0 0 / <alpha-value>)',
+        'message-user-text': 'oklch(from var(--color-on-accent) l c h / <alpha-value>)',
         'message-assistant-bg': 'oklch(from var(--color-surface) l c h / <alpha-value>)',
         'message-assistant-text': 'oklch(from var(--color-body) l c h / <alpha-value>)',
         // Pop/highlight colour
