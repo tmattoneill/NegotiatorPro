@@ -29,6 +29,44 @@ class SourceCitation(BaseModel):
     active: bool = Field(default=False, description="True for the top-ranked source")
 
 
+class LeverageEdge(BaseModel):
+    label: str
+    confidence: str = Field(default="high", description="'high' or 'low'")
+
+
+class Leverage(BaseModel):
+    mineWeight: float = Field(..., ge=0, le=1)
+    theirsWeight: float = Field(..., ge=0, le=1)
+    summary: str = ""
+    mine: List[LeverageEdge] = Field(default_factory=list)
+    theirs: List[LeverageEdge] = Field(default_factory=list)
+
+
+class PartyCard(BaseModel):
+    name: str
+    initial: str
+    summary: str = ""
+
+
+class Parties(BaseModel):
+    me: PartyCard
+    them: PartyCard
+
+
+class Vitals(BaseModel):
+    zopa: Optional[str] = None
+    batna: Optional[str] = Field(None, description="'strong' | 'moderate' | 'weak'")
+    time: Optional[str] = Field(None, description="'urgent' | 'tight' | 'loose'")
+
+
+class NegotiationContextResponse(BaseModel):
+    """Negotiation-level context for the stats gutter. Parties come from the
+    personas; leverage and vitals are inferred from the conversation."""
+    leverage: Optional[Leverage] = None
+    parties: Optional[Parties] = None
+    vitals: Optional[Vitals] = None
+
+
 class ChatResponse(BaseModel):
     """Response model for chat endpoint"""
     answer: str = Field(..., description="AI-generated negotiation advice")

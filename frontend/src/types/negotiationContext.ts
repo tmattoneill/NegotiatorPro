@@ -71,3 +71,10 @@ export interface NegotiationContext {
   vitals: Vitals | null;
   sources: SourceCitation[];
 }
+
+/** The negotiation-level slice returned by GET /negotiations/{id}/context. */
+export interface NegotiationLevelContext {
+  leverage: Leverage | null;
+  parties: Parties | null;
+  vitals: Vitals | null;
+}

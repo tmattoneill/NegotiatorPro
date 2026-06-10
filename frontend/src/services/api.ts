@@ -91,6 +91,22 @@ export const sendChatMessage = async (request: ChatRequest, files?: File[]): Pro
   return response.data;
 };
 
+/**
+ * Fetch the negotiation-level context (leverage, parties, vitals) for the gutter.
+ * The backend caches the inferred leverage/vitals and only reruns the analysis
+ * when new messages have landed (or refresh=true).
+ */
+export const getNegotiationContext = async (
+  negotiationId: string,
+  userId: string,
+  refresh = false,
+): Promise<import('../types/negotiationContext').NegotiationLevelContext> => {
+  const response = await api.get(`/negotiations/${negotiationId}/context`, {
+    params: { user_id: userId, refresh },
+  });
+  return response.data;
+};
+
 export const login = async (request: LoginRequest): Promise<LoginResponse> => {
   const response = await api.post<LoginResponse>('/auth/login', request);
   return response.data;

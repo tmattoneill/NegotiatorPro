@@ -303,9 +303,11 @@ async def get_negotiation(negotiation_id: UUID) -> Optional[dict]:
         return None
 
     neg = dict(row)
-    # Parse settings from JSON string to dict if it's a string
+    # Parse JSONB columns from string to dict if asyncpg handed them back as text
     if 'settings' in neg and isinstance(neg['settings'], str):
         neg['settings'] = json.loads(neg['settings'])
+    if neg.get('context') and isinstance(neg['context'], str):
+        neg['context'] = json.loads(neg['context'])
 
     return neg
 
@@ -350,9 +352,11 @@ async def update_negotiation(negotiation_id: UUID, **kwargs) -> Optional[dict]:
     if not kwargs:
         return await get_negotiation(negotiation_id)
 
-    # Convert settings dict to JSON string
+    # Convert JSONB dict columns to JSON strings for asyncpg
     if 'settings' in kwargs and isinstance(kwargs['settings'], dict):
         kwargs['settings'] = json.dumps(kwargs['settings'])
+    if 'context' in kwargs and isinstance(kwargs['context'], dict):
+        kwargs['context'] = json.dumps(kwargs['context'])
 
     fields = []
     values = []

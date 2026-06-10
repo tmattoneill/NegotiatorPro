@@ -1,22 +1,24 @@
 /**
  * useGutterContext
  *
- * Assembles the NegotiationContext that feeds the right gutter. PLEASE is live
- * and conversation-level: it is the running mean of every scored assistant turn
- * in the current session, so it reads as the overall health of the conversation
- * rather than a single reply. Leverage, parties, vitals, and sources are still
- * mocked; they go live in later phases, at which point their mock fallbacks come
- * out.
+ * Assembles the NegotiationContext that feeds the right gutter, all live:
+ * - PLEASE: the running mean of every scored assistant turn in the session.
+ * - sources: the citations from the most recent turn that retrieved any.
+ * - leverage / parties / vitals: fetched from the context endpoint, lazily when
+ *   the gutter is expanded and refreshed as new turns land.
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useChatStore } from '../store/chatStore';
+import { useContextStore } from '../store/contextStore';
+import { useUIStore } from '../store/uiStore';
+import { useNegotiationStore } from '../store/negotiationStore';
+import { useAuthStore } from '../store/authStore';
 import type {
   NegotiationContext,
   PleaseScore,
   ScoreValue,
   SourceCitation,
 } from '../types/negotiationContext';
-import { MOCK_CONTEXT } from '../components/RightGutter/mockContext';
 
 const LETTER_CODE: Record<keyof RunningTotals, string> = {
   polite: 'P',
@@ -58,8 +60,6 @@ function runningAverage(scores: PleaseScore[]): PleaseScore | null {
 
   const total = DIMENSIONS.reduce((acc, dim) => acc + means[dim], 0);
 
-  // Soft spots: the dimensions sitting in the lowest two score tiers, weakest
-  // first, deduplicated by letter. Empty when every dimension is equal.
   const distinct = [...new Set(DIMENSIONS.map((d) => means[d]))].sort((a, b) => a - b);
   let weakest: string[] = [];
   if (distinct.length > 1) {
@@ -79,33 +79,61 @@ function runningAverage(scores: PleaseScore[]): PleaseScore | null {
 export function useGutterContext(): NegotiationContext {
   const sessions = useChatStore((s) => s.sessions);
   const currentSessionId = useChatStore((s) => s.currentSessionId);
+  const currentNegotiationId = useNegotiationStore((s) => s.currentNegotiationId);
+  const userId = useAuthStore((s) => s.user?.id);
+  const gutterExpanded = useUIStore((s) => s.gutterExpanded);
+
+  const contextData = useContextStore((s) => s.data);
+  const fetchContext = useContextStore((s) => s.fetchContext);
+  const clearContext = useContextStore((s) => s.clear);
+
+  // Drop the previous negotiation's leverage/parties/vitals on switch so they
+  // don't linger while the new one loads.
+  useEffect(() => {
+    clearContext();
+  }, [currentNegotiationId, clearContext]);
+
+  const currentSession = useMemo(
+    () => sessions.find((s) => s.id === currentSessionId),
+    [sessions, currentSessionId],
+  );
+  const messageCount = currentSession?.messages.length ?? 0;
+
+  // Fetch leverage/parties/vitals only when the gutter is expanded (that is the
+  // only state that shows them). Re-runs when the turn count changes; the store
+  // and backend both dedupe, so repeats are cheap.
+  useEffect(() => {
+    if (gutterExpanded && currentNegotiationId && userId) {
+      fetchContext(currentNegotiationId, userId, messageCount);
+    }
+  }, [gutterExpanded, currentNegotiationId, userId, messageCount, fetchContext]);
 
   const runningPlease = useMemo<PleaseScore | null>(() => {
-    const session = sessions.find((s) => s.id === currentSessionId);
-    if (!session) return null;
-    const scores = session.messages
+    if (!currentSession) return null;
+    const scores = currentSession.messages
       .filter((m) => m.role === 'assistant' && m.please)
       .map((m) => m.please as PleaseScore);
     return runningAverage(scores);
-  }, [sessions, currentSessionId]);
+  }, [currentSession]);
 
-  // Sources are per-turn, not cumulative: show the citations from the most
-  // recent assistant turn that retrieved any.
+  // Sources are per-turn: the citations from the most recent assistant turn
+  // that retrieved any.
   const liveSources = useMemo<SourceCitation[]>(() => {
-    const session = sessions.find((s) => s.id === currentSessionId);
-    if (!session) return [];
-    for (let i = session.messages.length - 1; i >= 0; i -= 1) {
-      const message = session.messages[i];
+    if (!currentSession) return [];
+    for (let i = currentSession.messages.length - 1; i >= 0; i -= 1) {
+      const message = currentSession.messages[i];
       if (message.role === 'assistant' && message.sources && message.sources.length > 0) {
         return message.sources;
       }
     }
     return [];
-  }, [sessions, currentSessionId]);
+  }, [currentSession]);
 
   return {
-    ...MOCK_CONTEXT,
     please: runningPlease,
     sources: liveSources,
+    leverage: contextData?.leverage ?? null,
+    parties: contextData?.parties ?? null,
+    vitals: contextData?.vitals ?? null,
   };
 }

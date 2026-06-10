@@ -10,6 +10,7 @@ Provides REST endpoints for negotiation management including:
 NOTE: Super admin (username 'admin') cannot create negotiations - this account
 is for system testing only, not for negotiation workflows.
 """
+import asyncio
 import logging
 from typing import List, Optional
 from uuid import UUID
@@ -25,11 +26,17 @@ from ..models.negotiations import (
     NegotiationStatus
 )
 from ..models.personas import PartnerPersonaUpdate, PartnerPersonaResponse
+from ..models.responses import NegotiationContextResponse
 from ..middleware.auth import get_current_user
 from ... import db_operations as db_ops
+from ...negotiation_context import build_parties, analyse_leverage_vitals
 from .personas import _enforce_min_context, _PARTNER_CONTEXT_FIELDS
 
 logger = logging.getLogger(__name__)
+
+# Cap the transcript handed to the analysis model. The most recent exchanges
+# carry the live leverage picture; older turns add cost without changing it.
+_TRANSCRIPT_CHAR_CAP = 12000
 
 # Create router
 negotiations_router = APIRouter(
@@ -472,4 +479,97 @@ async def remove_partner_from_negotiation(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to remove partner"
+        )
+
+
+async def _assemble_transcript(negotiation_id: UUID) -> tuple[str, int]:
+    """Flatten a negotiation's conversations into a readable transcript and count
+    its messages. The count drives cache invalidation; only the tail of the
+    transcript (most recent exchanges) is kept, capped at _TRANSCRIPT_CHAR_CAP."""
+    conversations = await db_ops.get_conversations(negotiation_id)
+    lines: List[str] = []
+    total = 0
+    # get_conversations returns newest-first; walk oldest-first for reading order.
+    for conv in reversed(conversations):
+        messages = await db_ops.get_conversation_messages(conv["id"])
+        total += len(messages)
+        for msg in messages:
+            speaker = "User" if msg.get("role") == "user" else "Advisor"
+            content = (msg.get("content") or "").strip()
+            if content:
+                lines.append(f"{speaker}: {content}")
+    transcript = "\n\n".join(lines)
+    if len(transcript) > _TRANSCRIPT_CHAR_CAP:
+        transcript = transcript[-_TRANSCRIPT_CHAR_CAP:]
+    return transcript, total
+
+
+@negotiations_router.get("/{negotiation_id}/context", response_model=NegotiationContextResponse)
+async def get_negotiation_context(
+    negotiation_id: UUID,
+    user_id: UUID,
+    refresh: bool = Query(False, description="Force a fresh analysis, ignoring the cache"),
+):
+    """Negotiation-level context for the stats gutter.
+
+    Parties come from the personas (no model). Leverage and vitals come from one
+    structured LLM call over the transcript, cached on the negotiation and reused
+    until new messages land (or refresh=true).
+    """
+    try:
+        detail = await db_ops.get_negotiation_detail(negotiation_id)
+        if not detail or str(detail.get("user_id")) != str(user_id):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Negotiation not found or you don't have access",
+            )
+
+        parties = build_parties(detail)
+        transcript, message_count = await _assemble_transcript(negotiation_id)
+
+        # Serve the cache when it matches the current message count. Parties are
+        # always refreshed from personas (cheap) in case they changed.
+        cached = detail.get("context") or {}
+        cached_count = (cached.get("_meta") or {}).get("message_count")
+        if not refresh and cached and cached_count == message_count:
+            return NegotiationContextResponse(
+                leverage=cached.get("leverage"),
+                parties=parties,
+                vitals=cached.get("vitals"),
+            )
+
+        # No conversation yet: return parties only, don't spend an LLM call.
+        if message_count == 0:
+            return NegotiationContextResponse(leverage=None, parties=parties, vitals=None)
+
+        # One structured analysis call, off the event loop (blocking invoke).
+        from .chat import get_rag_system
+        rag = get_rag_system()
+        briefing = ""  # personas already inform the transcript; keep the call lean
+        analysis = await asyncio.to_thread(
+            analyse_leverage_vitals, transcript, briefing, rag.default_llm
+        )
+
+        leverage = analysis.get("leverage") if analysis else None
+        vitals = analysis.get("vitals") if analysis else None
+
+        # Cache leverage + vitals (not parties — those are cheap to rebuild).
+        await db_ops.update_negotiation(
+            negotiation_id,
+            context={
+                "leverage": leverage,
+                "vitals": vitals,
+                "_meta": {"message_count": message_count},
+            },
+        )
+
+        return NegotiationContextResponse(leverage=leverage, parties=parties, vitals=vitals)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to build negotiation context: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to build negotiation context",
         )
