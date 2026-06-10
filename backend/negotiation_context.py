@@ -14,6 +14,8 @@ import logging
 import re
 from typing import Any, Optional
 
+from .persona_text import is_placeholder
+
 logger = logging.getLogger(__name__)
 
 _BATNA_VALUES = {"strong", "moderate", "weak"}
@@ -30,8 +32,9 @@ def _initial(name: Optional[str]) -> str:
 
 
 def _first_present(*values: Optional[str]) -> str:
+    """First meaningful value, skipping blanks and placeholders like "N/A"."""
     for value in values:
-        if value and value.strip():
+        if value and value.strip() and not is_placeholder(value):
             return value.strip()
     return ""
 

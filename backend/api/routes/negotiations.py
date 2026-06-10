@@ -30,6 +30,7 @@ from ..models.responses import NegotiationContextResponse
 from ..middleware.auth import get_current_user
 from ... import db_operations as db_ops
 from ...negotiation_context import build_parties, analyse_leverage_vitals
+from ...user_profile import UserProfileManager
 from .personas import _enforce_min_context, _PARTNER_CONTEXT_FIELDS
 
 logger = logging.getLogger(__name__)
@@ -482,6 +483,44 @@ async def remove_partner_from_negotiation(
         )
 
 
+async def _resolve_analysis_llm(rag, detail: dict, user_id: UUID):
+    """Pick the LLM for the leverage/vitals analysis.
+
+    Use the model the negotiation actually talks to — its own settings, then the
+    user's preferred provider/model with the user's key — so the analysis works
+    wherever the chat does. The RAG system default is a last resort (it may point
+    at a local model that isn't installed).
+    """
+    settings = detail.get("settings") or {}
+    provider = settings.get("provider")
+    model = settings.get("model")
+
+    if not (provider and model):
+        try:
+            profile = await UserProfileManager.get_user_by_id(str(user_id))
+            if profile:
+                provider = provider or profile.preferred_provider
+                model = model or profile.preferred_model
+        except Exception as exc:
+            logger.warning("Could not load profile for analysis model: %s", exc)
+
+    if not (provider and model):
+        return rag.default_llm
+
+    api_key = None
+    try:
+        keys = await UserProfileManager.get_user_api_keys(str(user_id))
+        api_key = (keys or {}).get(provider)
+    except Exception as exc:
+        logger.warning("Could not load API keys for analysis model: %s", exc)
+
+    try:
+        return rag.model_config.create_llm(provider, model, api_key=api_key)
+    except Exception as exc:
+        logger.warning("Could not build analysis LLM %s/%s: %s; using default", provider, model, exc)
+        return rag.default_llm
+
+
 async def _assemble_transcript(negotiation_id: UUID) -> tuple[str, int]:
     """Flatten a negotiation's conversations into a readable transcript and count
     its messages. The count drives cache invalidation; only the tail of the
@@ -527,11 +566,13 @@ async def get_negotiation_context(
         parties = build_parties(detail)
         transcript, message_count = await _assemble_transcript(negotiation_id)
 
-        # Serve the cache when it matches the current message count. Parties are
-        # always refreshed from personas (cheap) in case they changed.
+        # Serve the cache when it matches the current message count AND actually
+        # holds an analysis. A cached null (a prior failed analysis) is not worth
+        # keeping — fall through and retry. Parties are always rebuilt from the
+        # personas (cheap) in case they changed.
         cached = detail.get("context") or {}
         cached_count = (cached.get("_meta") or {}).get("message_count")
-        if not refresh and cached and cached_count == message_count:
+        if not refresh and cached.get("leverage") and cached_count == message_count:
             return NegotiationContextResponse(
                 leverage=cached.get("leverage"),
                 parties=parties,
@@ -543,25 +584,30 @@ async def get_negotiation_context(
             return NegotiationContextResponse(leverage=None, parties=parties, vitals=None)
 
         # One structured analysis call, off the event loop (blocking invoke).
+        # Use the model the negotiation actually chats with, not the system
+        # default (which may be an uninstalled local model).
         from .chat import get_rag_system
         rag = get_rag_system()
+        analysis_llm = await _resolve_analysis_llm(rag, detail, user_id)
         briefing = ""  # personas already inform the transcript; keep the call lean
         analysis = await asyncio.to_thread(
-            analyse_leverage_vitals, transcript, briefing, rag.default_llm
+            analyse_leverage_vitals, transcript, briefing, analysis_llm
         )
 
         leverage = analysis.get("leverage") if analysis else None
         vitals = analysis.get("vitals") if analysis else None
 
-        # Cache leverage + vitals (not parties — those are cheap to rebuild).
-        await db_ops.update_negotiation(
-            negotiation_id,
-            context={
-                "leverage": leverage,
-                "vitals": vitals,
-                "_meta": {"message_count": message_count},
-            },
-        )
+        # Only cache a successful analysis; a failed one (None) is left uncached
+        # so the next request retries instead of serving an empty result.
+        if leverage is not None:
+            await db_ops.update_negotiation(
+                negotiation_id,
+                context={
+                    "leverage": leverage,
+                    "vitals": vitals,
+                    "_meta": {"message_count": message_count},
+                },
+            )
 
         return NegotiationContextResponse(leverage=leverage, parties=parties, vitals=vitals)
 
