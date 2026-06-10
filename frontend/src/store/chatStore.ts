@@ -79,6 +79,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         processing_time: msg.processing_time,
         detected_intent: msg.detected_intent || undefined,
         please: msg.please_score || null,
+        sources: msg.sources || [],
       }));
 
       set((state) => ({

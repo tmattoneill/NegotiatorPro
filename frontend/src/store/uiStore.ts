@@ -19,10 +19,16 @@ interface UIState {
   // state so we can flip to overlay later without touching call sites.
   gutterPushesChat: boolean;
 
+  // The source title currently hovered, in either the chat citation chips or the
+  // gutter's sources list. Shared so hovering one highlights the other. Transient
+  // — not persisted.
+  hoveredSource: string | null;
+
   toggleSettingsSidebar: () => void;
   setSettingsSidebarExpanded: (expanded: boolean) => void;
   toggleGutter: () => void;
   setGutterExpanded: (expanded: boolean) => void;
+  setHoveredSource: (title: string | null) => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -31,6 +37,7 @@ export const useUIStore = create<UIState>()(
       settingsSidebarExpanded: false,
       gutterExpanded: false,
       gutterPushesChat: true,
+      hoveredSource: null,
 
       toggleSettingsSidebar: () =>
         set((state) => ({ settingsSidebarExpanded: !state.settingsSidebarExpanded })),
@@ -38,6 +45,7 @@ export const useUIStore = create<UIState>()(
         set({ settingsSidebarExpanded: expanded }),
       toggleGutter: () => set((state) => ({ gutterExpanded: !state.gutterExpanded })),
       setGutterExpanded: (expanded: boolean) => set({ gutterExpanded: expanded }),
+      setHoveredSource: (title: string | null) => set({ hoveredSource: title }),
     }),
     {
       name: 'ui-storage',

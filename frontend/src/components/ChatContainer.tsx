@@ -128,6 +128,7 @@ export default function ChatContainer() {
         processing_time: response.processing_time,
         detected_intent: response.detected_intent,
         please: response.please ?? null,
+        sources: response.sources ?? [],
       };
       addMessage(assistantMessage);
     } catch (error) {

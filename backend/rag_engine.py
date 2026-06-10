@@ -375,50 +375,103 @@ class EnhancedNegotiationRAG:
                 "message": f"Error regenerating vectorstore: {str(e)}"
             }
 
+    def _retrieve_docs(
+        self,
+        question: str,
+        k: int = None,
+        tags_filter: Optional[List[str]] = None,
+    ) -> List[Any]:
+        """Retrieve the relevant chunks (Document objects) for a question.
+
+        When tags_filter is set (e.g. ['sales'] or ['negotiation']), only
+        chunks whose 'tags' metadata field overlaps with the filter list are
+        returned. Uses FAISS post-retrieval metadata filtering.
+        """
+        if not self.vectorstore:
+            return []
+
+        if k is None:
+            k = config.get("rag.retrieval_k", 5)
+
+        if tags_filter:
+            filter_fn = lambda meta: bool(
+                set(meta.get("tags", [])) & set(tags_filter)
+            )
+            # Fetch many more candidates so post-retrieval tag filtering
+            # leaves enough results. The corpus is imbalanced (negotiation
+            # outnumbers sales ~5:1), so fetch_k must be high enough that
+            # the minority tag still surfaces in the top-N by similarity.
+            fetch_k = max(k * 40, 200)
+            return self.vectorstore.similarity_search(
+                question, k=k, fetch_k=fetch_k, filter=filter_fn
+            )
+        retriever = self.vectorstore.as_retriever(search_kwargs={"k": k})
+        return retriever.invoke(question)
+
+    @staticmethod
+    def _format_context(relevant_docs: List[Any]) -> str:
+        """Join retrieved chunks into the reference block the prompt expects."""
+        if not relevant_docs:
+            return "No relevant context found."
+        return "\n\n".join(
+            f"Source {i + 1}: {doc.page_content}" for i, doc in enumerate(relevant_docs)
+        )
+
     def get_relevant_context(
         self,
         question: str,
         k: int = None,
         tags_filter: Optional[List[str]] = None,
     ) -> str:
-        """Retrieve relevant context from vectorstore for the given question.
-
-        When tags_filter is set (e.g. ['sales'] or ['negotiation']), only
-        chunks whose 'tags' metadata field overlaps with the filter list are
-        returned. Uses FAISS post-retrieval metadata filtering.
-        """
+        """Retrieve relevant context as a formatted string (back-compat wrapper)."""
         try:
             if not self.vectorstore:
                 return "No knowledge base available."
-
-            if k is None:
-                k = config.get("rag.retrieval_k", 5)
-
-            if tags_filter:
-                filter_fn = lambda meta: bool(
-                    set(meta.get("tags", [])) & set(tags_filter)
-                )
-                # Fetch many more candidates so post-retrieval tag filtering
-                # leaves enough results. The corpus is imbalanced (negotiation
-                # outnumbers sales ~5:1), so fetch_k must be high enough that
-                # the minority tag still surfaces in the top-N by similarity.
-                fetch_k = max(k * 40, 200)
-                relevant_docs = self.vectorstore.similarity_search(
-                    question, k=k, fetch_k=fetch_k, filter=filter_fn
-                )
-            else:
-                retriever = self.vectorstore.as_retriever(search_kwargs={"k": k})
-                relevant_docs = retriever.invoke(question)
-
-            context_parts = []
-            for i, doc in enumerate(relevant_docs):
-                context_parts.append(f"Source {i+1}: {doc.page_content}")
-
-            return "\n\n".join(context_parts) if context_parts else "No relevant context found."
-
+            return self._format_context(
+                self._retrieve_docs(question, k=k, tags_filter=tags_filter)
+            )
         except Exception as e:
             logger.error(f"Error retrieving context: {e}")
             return "Error retrieving context from knowledge base."
+
+    @staticmethod
+    def _build_source_refs(relevant_docs: List[Any]) -> List[dict]:
+        """Turn retrieved chunks into citation dicts for the stats gutter.
+
+        One entry per source book (deduplicated, ranked by similarity); the top
+        hit is marked active. The quote is a trimmed one-line passage from the
+        best-matching chunk of that source. Title comes from source_titles.
+        """
+        from .source_titles import display_title
+
+        refs: List[dict] = []
+        seen: set[str] = set()
+        for doc in relevant_docs:
+            meta = getattr(doc, "metadata", None) or {}
+            source_file = (
+                meta.get("source_file") or meta.get("source") or meta.get("filename") or ""
+            )
+            title = display_title(source_file)
+            if title in seen:
+                continue
+            seen.add(title)
+
+            passage = " ".join((doc.page_content or "").split())
+            quote = (passage[:160].rstrip() + "…") if len(passage) > 160 else passage
+
+            page = meta.get("page") or meta.get("page_number")
+            sub = f"p. {page}" if page else ""
+
+            refs.append({
+                "title": title,
+                "sub": sub,
+                "quote": quote or None,
+                "active": False,
+            })
+
+        if refs:
+            refs[0]["active"] = True
+        return refs
 
     def _create_llm_with_fallback(self, backend: str, model: str, model_type: str) -> Any:
         """
@@ -620,7 +673,9 @@ class EnhancedNegotiationRAG:
                 response = llm.invoke(messages)
                 content = response.content if hasattr(response, 'content') else str(response)
                 usage = self._extract_usage(response)
-                return (content, usage) if return_usage else content
+                # Test prompts skip RAG, so no intent classification and no
+                # citations. Keep the tuple shape the caller unpacks.
+                return (content, usage, "GENERAL", []) if return_usage else content
             except Exception as e:
                 logger.error(f"Test prompt LLM call failed: {e}")
                 raise LLMGenerationError(f"Connection test failed: {e}") from e
@@ -668,8 +723,11 @@ class EnhancedNegotiationRAG:
             elif mode == "negotiation":
                 tags_filter = ["negotiation"]
 
-            # Get relevant context from vectorstore
-            context = self.get_relevant_context(question, tags_filter=tags_filter)
+            # Get relevant context from vectorstore. Retrieve the docs once so we
+            # can both build the prompt context and surface the citations.
+            relevant_docs = self._retrieve_docs(question, tags_filter=tags_filter)
+            context = self._format_context(relevant_docs)
+            sources = self._build_source_refs(relevant_docs)
 
             # Split the prompt into a static prefix (meta + persona, identical
             # every request) and the per-request context. mode selects which
@@ -730,7 +788,7 @@ class EnhancedNegotiationRAG:
             )
 
             content = response.content if hasattr(response, 'content') else str(response)
-            return (content, usage, intent) if return_usage else content
+            return (content, usage, intent, sources) if return_usage else content
 
         except LLMGenerationError:
             raise

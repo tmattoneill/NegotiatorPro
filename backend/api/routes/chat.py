@@ -7,7 +7,7 @@ from typing import List, Optional, Tuple
 from fastapi import APIRouter, HTTPException, status, File, UploadFile, Form, Depends
 
 from ..models.requests import ChatRequest
-from ..models.responses import ChatResponse, PleaseScore
+from ..models.responses import ChatResponse, PleaseScore, SourceCitation
 from ...rag_engine import EnhancedNegotiationRAG, LLMGenerationError, MissingAPIKeyError
 from ...please_parser import parse_and_strip
 from ... import db_operations as db_ops
@@ -338,7 +338,7 @@ async def process_chat(
         # Process question using existing RAG system. get_advice is synchronous
         # and does a blocking llm.invoke() network call — run it in a worker
         # thread so it doesn't block the event loop and serialize all requests.
-        answer, usage, detected_intent = await asyncio.to_thread(
+        answer, usage, detected_intent, sources = await asyncio.to_thread(
             rag.get_advice,
             question=enhanced_question,
             use_premium_model=use_premium_model,
@@ -420,6 +420,7 @@ async def process_chat(
                             preprocessing_applied=use_preprocessing,
                             detected_intent=detected_intent,
                             please_score=please_scores,
+                            sources=sources,
                         )
                         logger.info(
                             "Messages saved to conversation %s (user=%s)",
@@ -438,6 +439,7 @@ async def process_chat(
             processing_time=round(processing_time, 2),
             detected_intent=detected_intent,
             please=PleaseScore(**please_scores) if please_scores else None,
+            sources=[SourceCitation(**s) for s in sources],
         )
 
     except HTTPException:

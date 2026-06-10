@@ -2,7 +2,7 @@
  * TypeScript type definitions for the application
  */
 
-import type { PleaseScore } from './negotiationContext';
+import type { PleaseScore, SourceCitation } from './negotiationContext';
 
 export interface ChatRequest {
   question: string;
@@ -26,6 +26,8 @@ export interface ChatResponse {
   detected_intent?: 'ANALYSIS' | 'TACTICAL' | 'QUESTION' | 'GENERAL';
   // PLEASE self-assessment, present on ANALYSIS responses only.
   please?: PleaseScore | null;
+  // RAG citations for this turn.
+  sources?: SourceCitation[];
 }
 
 export interface LoginRequest {
@@ -59,6 +61,8 @@ export interface Message {
   detected_intent?: string;
   // PLEASE self-assessment for an ANALYSIS assistant turn; drives the gutter.
   please?: PleaseScore | null;
+  // RAG citations surfaced for this assistant turn; drives the gutter sources.
+  sources?: SourceCitation[];
 }
 
 export interface ModelInfo {

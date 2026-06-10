@@ -21,6 +21,14 @@ class PleaseScore(BaseModel):
     weakest: List[str] = Field(default_factory=list)
 
 
+class SourceCitation(BaseModel):
+    """A RAG source surfaced in the stats gutter for a given turn."""
+    title: str = Field(..., description="Display title, e.g. 'Voss · Never Split the Difference'")
+    sub: str = Field(default="", description="Secondary line, e.g. a page reference")
+    quote: Optional[str] = Field(None, description="One-line passage from the matched chunk")
+    active: bool = Field(default=False, description="True for the top-ranked source")
+
+
 class ChatResponse(BaseModel):
     """Response model for chat endpoint"""
     answer: str = Field(..., description="AI-generated negotiation advice")
@@ -29,6 +37,7 @@ class ChatResponse(BaseModel):
     processing_time: Optional[float] = Field(None, description="Processing time in seconds")
     detected_intent: Optional[str] = Field(None, description="Classified query intent: ANALYSIS | TACTICAL | QUESTION | GENERAL")
     please: Optional[PleaseScore] = Field(None, description="PLEASE self-assessment, present on ANALYSIS responses only")
+    sources: List[SourceCitation] = Field(default_factory=list, description="RAG citations for this turn")
 
     class Config:
         json_schema_extra = {

@@ -17,14 +17,12 @@ import SourcesPanel from './SourcesPanel';
 
 interface RightGutterProps {
   context: NegotiationContext;
-  hoveredSource?: string | null;
-  onHoverSource?: (title: string | null) => void;
 }
 
 const COLLAPSED_WIDTH = 240;
 const EXPANDED_WIDTH = 420;
 
-export default function RightGutter({ context, hoveredSource, onHoverSource }: RightGutterProps) {
+export default function RightGutter({ context }: RightGutterProps) {
   const expanded = useUIStore((s) => s.gutterExpanded);
   const toggleGutter = useUIStore((s) => s.toggleGutter);
 
@@ -85,11 +83,7 @@ export default function RightGutter({ context, hoveredSource, onHoverSource }: R
 
         {expanded && context.vitals && <VitalsPanel vitals={context.vitals} />}
 
-        <SourcesPanel
-          sources={context.sources}
-          hoveredTitle={hoveredSource}
-          onHoverSource={onHoverSource}
-        />
+        <SourcesPanel sources={context.sources} />
       </div>
     </div>
   );

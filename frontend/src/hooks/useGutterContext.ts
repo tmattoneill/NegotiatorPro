@@ -10,7 +10,12 @@
  */
 import { useMemo } from 'react';
 import { useChatStore } from '../store/chatStore';
-import type { NegotiationContext, PleaseScore, ScoreValue } from '../types/negotiationContext';
+import type {
+  NegotiationContext,
+  PleaseScore,
+  ScoreValue,
+  SourceCitation,
+} from '../types/negotiationContext';
 import { MOCK_CONTEXT } from '../components/RightGutter/mockContext';
 
 const LETTER_CODE: Record<keyof RunningTotals, string> = {
@@ -84,8 +89,23 @@ export function useGutterContext(): NegotiationContext {
     return runningAverage(scores);
   }, [sessions, currentSessionId]);
 
+  // Sources are per-turn, not cumulative: show the citations from the most
+  // recent assistant turn that retrieved any.
+  const liveSources = useMemo<SourceCitation[]>(() => {
+    const session = sessions.find((s) => s.id === currentSessionId);
+    if (!session) return [];
+    for (let i = session.messages.length - 1; i >= 0; i -= 1) {
+      const message = session.messages[i];
+      if (message.role === 'assistant' && message.sources && message.sources.length > 0) {
+        return message.sources;
+      }
+    }
+    return [];
+  }, [sessions, currentSessionId]);
+
   return {
     ...MOCK_CONTEXT,
     please: runningPlease,
+    sources: liveSources,
   };
 }

@@ -10,6 +10,7 @@ import 'katex/dist/katex.min.css';
 import CodeBlock from './CodeBlock';
 import MermaidDiagram from './MermaidDiagram';
 import CopyButton from './CopyButton';
+import CitationChips from './CitationChips';
 import type { Message } from '../types';
 
 interface ChatMessageProps {
@@ -139,6 +140,9 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           </ReactMarkdown>
         )}
       </div>
+      {!isUser && message.sources && message.sources.length > 0 && (
+        <CitationChips sources={message.sources} />
+      )}
       {!isUser && message.model_used && (
         <div className="message-meta">
           <div className="message-meta-item">

@@ -1,26 +1,21 @@
 /**
  * SourcesPanel (both states)
  *
- * Recent RAG citations. The active source gets an amber left rail and shows a
- * one-line quote; hovering any source expands its passage. Hovering a source
- * also reports back so the matching citation chip in chat can highlight, and a
- * chip hovered in chat highlights the matching source here.
+ * The RAG citations for the latest turn. The active source gets an amber left
+ * rail and shows a one-line quote; hovering any source expands its passage.
+ * Hover is shared through the UI store, so hovering a citation chip in chat
+ * highlights the matching source here, and vice versa.
  */
-import { useState } from 'react';
 import type { SourceCitation } from '../../types/negotiationContext';
+import { useUIStore } from '../../store/uiStore';
 
 interface SourcesPanelProps {
   sources: SourceCitation[];
-  hoveredTitle?: string | null;
-  onHoverSource?: (title: string | null) => void;
 }
 
-export default function SourcesPanel({ sources, hoveredTitle, onHoverSource }: SourcesPanelProps) {
-  const [localHover, setLocalHover] = useState<string | null>(null);
-
-  // Hover takes precedence: while a source is hovered (here or via a chat chip),
-  // only that one is active, so the default active source doesn't double up.
-  const activeHover = localHover ?? hoveredTitle ?? null;
+export default function SourcesPanel({ sources }: SourcesPanelProps) {
+  const hoveredSource = useUIStore((s) => s.hoveredSource);
+  const setHoveredSource = useUIStore((s) => s.setHoveredSource);
 
   return (
     <div>
@@ -28,24 +23,18 @@ export default function SourcesPanel({ sources, hoveredTitle, onHoverSource }: S
         Sources in play
       </p>
       {sources.map((src, i) => {
-        const isActive = activeHover ? src.title === activeHover : src.active;
-        // Show the quote for the resting-active source AND the hovered one.
-        // Crucially, hovering another item does NOT collapse the active item's
-        // quote — collapsing it shifts the list under the cursor and sets off a
-        // hover-enter/leave loop (the "vibration"). Only the hovered item grows,
-        // downward, so the pointer keeps its target.
-        const showQuote = Boolean(src.quote) && (src.active || src.title === activeHover);
+        // Hover wins over the resting active source for the highlight, so only
+        // one row is emphasised at a time.
+        const isActive = hoveredSource ? src.title === hoveredSource : src.active;
+        // But keep the resting-active quote visible even while another row is
+        // hovered — collapsing it would shift the list under the cursor and set
+        // off a hover enter/leave loop. Only the hovered row grows, downward.
+        const showQuote = Boolean(src.quote) && (src.active || src.title === hoveredSource);
         return (
           <div
             key={`${src.title}-${i}`}
-            onMouseEnter={() => {
-              setLocalHover(src.title);
-              onHoverSource?.(src.title);
-            }}
-            onMouseLeave={() => {
-              setLocalHover(null);
-              onHoverSource?.(null);
-            }}
+            onMouseEnter={() => setHoveredSource(src.title)}
+            onMouseLeave={() => setHoveredSource(null)}
             className="mb-1.5 py-1.5 pl-2.5 transition-colors"
             style={{
               borderLeft: '2px solid',
@@ -57,9 +46,11 @@ export default function SourcesPanel({ sources, hoveredTitle, onHoverSource }: S
             <p className="m-0 text-[11px] font-medium" style={{ color: 'var(--color-heading)' }}>
               {src.title}
             </p>
-            <p className="mt-px text-[10px]" style={{ color: 'var(--color-muted)' }}>
-              {src.sub}
-            </p>
+            {src.sub && (
+              <p className="mt-px text-[10px]" style={{ color: 'var(--color-muted)' }}>
+                {src.sub}
+              </p>
+            )}
             {showQuote && (
               <p className="mt-1 text-[10px] italic leading-snug" style={{ color: 'var(--color-muted)' }}>
                 {src.quote}
