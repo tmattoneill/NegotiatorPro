@@ -1,7 +1,24 @@
 """Response models for FastAPI endpoints"""
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import List, Optional
 from datetime import datetime
+
+
+class PleaseScore(BaseModel):
+    """The PLEASE self-assessment parsed from an ANALYSIS-intent response.
+
+    Each element is graded 1–5; total is their sum (6–30). The model is told to
+    revise any draft scoring below 20. `weakest` lists the soft-spot letter codes
+    for the gutter's one-line read. Only present on ANALYSIS responses.
+    """
+    polite: int = Field(..., ge=1, le=5)
+    logical: int = Field(..., ge=1, le=5)
+    empathetic: int = Field(..., ge=1, le=5)
+    assertive: int = Field(..., ge=1, le=5)
+    strategic: int = Field(..., ge=1, le=5)
+    engaging: int = Field(..., ge=1, le=5)
+    total: int = Field(..., ge=6, le=30)
+    weakest: List[str] = Field(default_factory=list)
 
 
 class ChatResponse(BaseModel):
@@ -11,6 +28,7 @@ class ChatResponse(BaseModel):
     tokens_used: Optional[int] = Field(None, description="Total tokens used (if available)")
     processing_time: Optional[float] = Field(None, description="Processing time in seconds")
     detected_intent: Optional[str] = Field(None, description="Classified query intent: ANALYSIS | TACTICAL | QUESTION | GENERAL")
+    please: Optional[PleaseScore] = Field(None, description="PLEASE self-assessment, present on ANALYSIS responses only")
 
     class Config:
         json_schema_extra = {

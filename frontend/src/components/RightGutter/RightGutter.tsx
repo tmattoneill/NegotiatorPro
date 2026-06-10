@@ -57,7 +57,21 @@ export default function RightGutter({ context, hoveredSource, onHoverSource }: R
       </button>
 
       <div className="flex h-full flex-col gap-4 overflow-y-auto px-4 py-4">
-        {context.please && <PleaseGauges please={context.please} expanded={expanded} />}
+        {context.please ? (
+          <PleaseGauges please={context.please} expanded={expanded} />
+        ) : (
+          <div>
+            <p
+              className="m-0 mb-2 text-[10px] uppercase tracking-[0.08em]"
+              style={{ color: 'var(--color-muted)' }}
+            >
+              PLEASE
+            </p>
+            <p className="text-[11px] leading-snug" style={{ color: 'var(--color-muted)' }}>
+              Ask for analysis of an email or a situation to see a PLEASE score.
+            </p>
+          </div>
+        )}
 
         {expanded && context.leverage && (
           <LeveragePanel

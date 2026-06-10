@@ -7,8 +7,9 @@ from typing import List, Optional, Tuple
 from fastapi import APIRouter, HTTPException, status, File, UploadFile, Form, Depends
 
 from ..models.requests import ChatRequest
-from ..models.responses import ChatResponse
+from ..models.responses import ChatResponse, PleaseScore
 from ...rag_engine import EnhancedNegotiationRAG, LLMGenerationError, MissingAPIKeyError
+from ...please_parser import parse_and_strip
 from ... import db_operations as db_ops
 from ...persona_text import is_placeholder
 from ..middleware.auth import get_current_user
@@ -353,6 +354,11 @@ async def process_chat(
             raw_question=question,
         )
 
+        # Pull the PLEASE self-assessment out of the answer (ANALYSIS intent only)
+        # and strip its block so the chat bubble shows clean prose; the gutter
+        # renders the scores. Non-ANALYSIS answers come back unchanged with None.
+        answer, please_scores = parse_and_strip(answer)
+
         processing_time = time.time() - start_time
 
         # Determine which model was used
@@ -413,6 +419,7 @@ async def process_chat(
                             model=model_used,
                             preprocessing_applied=use_preprocessing,
                             detected_intent=detected_intent,
+                            please_score=please_scores,
                         )
                         logger.info(
                             "Messages saved to conversation %s (user=%s)",
@@ -430,6 +437,7 @@ async def process_chat(
             tokens_used=usage.get("total_tokens") or None,
             processing_time=round(processing_time, 2),
             detected_intent=detected_intent,
+            please=PleaseScore(**please_scores) if please_scores else None,
         )
 
     except HTTPException:

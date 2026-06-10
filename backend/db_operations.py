@@ -512,12 +512,18 @@ async def save_conversation_turn(
     model: Optional[str] = None,
     preprocessing_applied: bool = False,
     detected_intent: Optional[str] = None,
+    please_score: Optional[dict] = None,
 ) -> None:
     """Persist a user message and its assistant reply atomically.
 
     Both rows commit together or neither does, so a failed assistant insert
     never leaves an orphaned user message in the conversation.
+
+    please_score (the parsed PLEASE self-assessment, ANALYSIS turns only) is
+    stored as JSONB on the assistant row so the gutter rehydrates on reload.
     """
+    import json
+    please_json = json.dumps(please_score) if please_score else None
     async with db.acquire() as conn:
         async with conn.transaction():
             await conn.execute(
@@ -532,16 +538,17 @@ async def save_conversation_turn(
                 """
                 INSERT INTO chat_messages
                 (conversation_id, user_id, session_id, role, content, model, tokens_used,
-                 preprocessing_applied, detected_intent)
-                VALUES ($1, $2, NULL, $3, $4, $5, NULL, $6, $7)
+                 preprocessing_applied, detected_intent, please_score)
+                VALUES ($1, $2, NULL, $3, $4, $5, NULL, $6, $7, $8)
                 """,
                 conversation_id, user_id, "assistant", assistant_content, model,
-                preprocessing_applied, detected_intent,
+                preprocessing_applied, detected_intent, please_json,
             )
 
 
 async def get_conversation_messages(conversation_id: UUID, limit: Optional[int] = None) -> List[dict]:
     """Get all messages for a conversation, optionally limited."""
+    import json
     if limit:
         rows = await db.fetch(
             """
@@ -557,7 +564,17 @@ async def get_conversation_messages(conversation_id: UUID, limit: Optional[int] 
             "SELECT * FROM chat_messages WHERE conversation_id = $1 ORDER BY created_at ASC",
             conversation_id
         )
-    return [dict(r) for r in rows]
+    messages = []
+    for r in rows:
+        msg = dict(r)
+        # JSONB comes back as a string from asyncpg; hand the frontend an object.
+        if isinstance(msg.get("please_score"), str):
+            try:
+                msg["please_score"] = json.loads(msg["please_score"])
+            except (ValueError, TypeError):
+                msg["please_score"] = None
+        messages.append(msg)
+    return messages
 
 
 async def get_chat_message(message_id: int) -> Optional[dict]:

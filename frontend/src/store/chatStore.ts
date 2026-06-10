@@ -78,6 +78,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         model_used: msg.model_used || msg.model,
         processing_time: msg.processing_time,
         detected_intent: msg.detected_intent || undefined,
+        please: msg.please_score || null,
       }));
 
       set((state) => ({

@@ -16,8 +16,8 @@ import AdminPanel from './components/AdminPanel';
 import OnboardingWizard from './components/OnboardingWizard';
 import SettingsModal from './components/SettingsModal';
 import RightGutter from './components/RightGutter/RightGutter';
-import { MOCK_CONTEXT } from './components/RightGutter/mockContext';
 import { useUIStore } from './store/uiStore';
+import { useGutterContext } from './hooks/useGutterContext';
 
 function App() {
   const navigate = useNavigate();
@@ -32,6 +32,7 @@ function App() {
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const settingsSidebarExpanded = useUIStore((state) => state.settingsSidebarExpanded);
+  const gutterContext = useGutterContext();
 
   useEffect(() => {
     // Redirect to login if not authenticated
@@ -224,7 +225,7 @@ function App() {
 
         {renderMainContent()}
 
-        {showGutter && <RightGutter context={MOCK_CONTEXT} />}
+        {showGutter && <RightGutter context={gutterContext} />}
       </div>
 
       {/* Settings reachable from the icon rail, independent of the sidebar */}

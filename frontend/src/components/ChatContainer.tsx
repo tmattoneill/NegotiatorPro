@@ -127,6 +127,7 @@ export default function ChatContainer() {
         model_used: response.model_used,
         processing_time: response.processing_time,
         detected_intent: response.detected_intent,
+        please: response.please ?? null,
       };
       addMessage(assistantMessage);
     } catch (error) {

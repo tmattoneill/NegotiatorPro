@@ -2,6 +2,8 @@
  * TypeScript type definitions for the application
  */
 
+import type { PleaseScore } from './negotiationContext';
+
 export interface ChatRequest {
   question: string;
   conversation_id?: string;
@@ -22,6 +24,8 @@ export interface ChatResponse {
   tokens_used?: number;
   processing_time?: number;
   detected_intent?: 'ANALYSIS' | 'TACTICAL' | 'QUESTION' | 'GENERAL';
+  // PLEASE self-assessment, present on ANALYSIS responses only.
+  please?: PleaseScore | null;
 }
 
 export interface LoginRequest {
@@ -53,6 +57,8 @@ export interface Message {
   model_used?: string;
   processing_time?: number;
   detected_intent?: string;
+  // PLEASE self-assessment for an ANALYSIS assistant turn; drives the gutter.
+  please?: PleaseScore | null;
 }
 
 export interface ModelInfo {

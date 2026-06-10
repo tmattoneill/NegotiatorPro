@@ -151,7 +151,13 @@ Your specific recommendation. Word-for-word language for the critical moments. I
 Two or three likely counter-responses from the other side, with the user's next move for each.
 
 ### PLEASE Self-Assessment
-Score your draft 1–5 on each: **P**olite, **L**ogical, **E**mpathetic, **A**ssertive, **S**trategic, **E**ngaging. Total /30. Revise if below 20.""",
+Score your draft 1–5 on each of Polite, Logical, Empathetic, Assertive, Strategic, Engaging. If the total is below 20, revise the draft before you answer. Do not write the scores out in prose. Instead, end your whole response with this block, exactly, on its own lines:
+
+```please
+polite=N logical=N empathetic=N assertive=N strategic=N engaging=N
+```
+
+Replace each N with the integer score. The app reads this block and renders the scores, so it must be the last thing in your response.""",
 
     "TACTICAL": """\
 ## Response Format
