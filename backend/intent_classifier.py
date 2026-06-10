@@ -170,7 +170,7 @@ This is a live situation. Skip preamble. Give:
 
 **If they push back** — one contingency response.
 
-No lengthy analysis. No PLEASE scoring.""",
+Keep the reply itself lean — no lengthy analysis.""",
 
     "QUESTION": """\
 ## Response Format
@@ -190,6 +190,24 @@ Cite the relevant framework or author by name. End with one follow-up question o
 
 Answer directly in a teaching style. Use headers only if the answer has genuinely distinct parts. Be concrete. End with one applied next step.""",
 }
+
+# Every assistant turn ends with a machine-readable PLEASE block so the gutter
+# keeps a running, conversation-level score — not just on ANALYSIS turns. Kept
+# terse for the non-analysis intents so it doesn't bloat a quick reply. ANALYSIS
+# carries its own richer PLEASE section (with the rewrite-below-20 gate), so it
+# is not appended here.
+_PLEASE_TRAILER = """
+
+After your reply, silently rate it 1–5 on each of Polite, Logical, Empathetic, Assertive, Strategic, Engaging. Do not mention the scores in prose. End your whole response with this block, exactly, on its own lines:
+
+```please
+polite=N logical=N empathetic=N assertive=N strategic=N engaging=N
+```
+
+Replace each N with the integer score. It must be the last thing in your response."""
+
+for _intent in ("TACTICAL", "QUESTION", "GENERAL"):
+    FORMAT_INSTRUCTIONS[_intent] += _PLEASE_TRAILER
 
 # ------------------------------------------------------------------
 # Intent-specific user message templates

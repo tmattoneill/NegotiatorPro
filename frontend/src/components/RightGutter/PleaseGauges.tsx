@@ -110,7 +110,7 @@ export default function PleaseGauges({ please, expanded }: PleaseGaugesProps) {
           <div
             className="absolute top-[-2px] h-2 w-px"
             style={{ left: `${thresholdPct}%`, background: 'var(--threshold)' }}
-            title="rewrite threshold: 20"
+            title="health line: 20"
           />
         </div>
       )}
@@ -125,7 +125,7 @@ export default function PleaseGauges({ please, expanded }: PleaseGaugesProps) {
 
       {expanded && (
         <p className="mt-2.5 text-[10px] leading-snug" style={{ color: 'var(--color-muted)' }}>
-          {aboveThreshold ? 'Above rewrite threshold (20).' : 'Below rewrite threshold (20).'}
+          {aboveThreshold ? 'Healthy overall (above 20).' : 'Below the 20 health line.'}
           {please.weakest.length > 0 && ` ${weakestLabels} ${please.weakest.length > 1 ? 'are' : 'is'} the soft ${please.weakest.length > 1 ? 'spots' : 'spot'}.`}
         </p>
       )}

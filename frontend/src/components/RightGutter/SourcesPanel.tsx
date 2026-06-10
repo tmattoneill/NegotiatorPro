@@ -29,7 +29,12 @@ export default function SourcesPanel({ sources, hoveredTitle, onHoverSource }: S
       </p>
       {sources.map((src, i) => {
         const isActive = activeHover ? src.title === activeHover : src.active;
-        const showQuote = src.quote && isActive;
+        // Show the quote for the resting-active source AND the hovered one.
+        // Crucially, hovering another item does NOT collapse the active item's
+        // quote — collapsing it shifts the list under the cursor and sets off a
+        // hover-enter/leave loop (the "vibration"). Only the hovered item grows,
+        // downward, so the pointer keeps its target.
+        const showQuote = Boolean(src.quote) && (src.active || src.title === activeHover);
         return (
           <div
             key={`${src.title}-${i}`}

@@ -68,7 +68,7 @@ export default function RightGutter({ context, hoveredSource, onHoverSource }: R
               PLEASE
             </p>
             <p className="text-[11px] leading-snug" style={{ color: 'var(--color-muted)' }}>
-              Ask for analysis of an email or a situation to see a PLEASE score.
+              Send a message to start the running PLEASE score for this conversation.
             </p>
           </div>
         )}
