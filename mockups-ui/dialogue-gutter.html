@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NegotiatorPro — Dialogue + Right Gutter Mockup</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css">
+<style>
+  :root {
+    --bg-canvas: #FAFAFA;
+    --bg-surface: #FFFFFF;
+    --bg-muted: #F5F5F5;
+    --text: #191919;
+    --text-muted: #666666;
+    --text-faint: #999999;
+    --border: #E0E0E0;
+    --border-strong: #CCCCCC;
+    --accent: #A8C5FF;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --teal-5: #0F6E56;
+    --teal-4: #1D9E75;
+    --amber-3: #BA7517;
+    --red-2: #A32D2D;
+    --coral: #D85A30;
+    --warn-bg: #FFFBEC;
+    --warn-border: #E8C547;
+    --warn-text: #6B5800;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px;
+    background: var(--bg-canvas);
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .mock-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    margin: 0 0 8px;
+  }
+  .np-frame {
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--bg-canvas);
+    margin-bottom: 32px;
+    max-width: 1280px;
+  }
+  .np-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .np-bar-dots { display: flex; align-items: center; gap: 10px; }
+  .np-bar-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .np-bar-title { font-size: 12px; color: var(--text-muted); margin-left: 8px; }
+  .np-bar-model { font-size: 11px; color: var(--text-faint); }
+  .np-app { display: flex; min-height: 640px; }
+  .np-rail {
+    width: 44px;
+    background: #191919;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    padding: 16px 0;
+    flex-shrink: 0;
+  }
+  .np-rail i { font-size: 18px; color: #888; }
+  .np-rail i.active { color: #EFEFEF; }
+  .np-rail i.toggle { color: var(--accent); }
+  .np-rail .spacer { flex: 1; }
+  .np-eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    margin: 0 0 8px;
+    text-transform: uppercase;
+  }
+  .np-chat {
+    flex: 1;
+    background: var(--bg-surface);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+  }
+  .np-msg-user {
+    font-size: 13px;
+    color: var(--text);
+    margin: 0;
+    line-height: 1.55;
+  }
+  .np-msg-bot {
+    background: var(--bg-canvas);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.55;
+  }
+  .np-cites { margin-top: 6px; display: flex; gap: 4px; flex-wrap: wrap; }
+  .np-cite {
+    font-size: 10px;
+    padding: 2px 6px;
+    background: var(--bg-muted);
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .np-cite-active {
+    background: var(--warn-bg);
+    color: var(--warn-text);
+    border: 1px solid var(--warn-border);
+  }
+  .np-input {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    margin-top: auto;
+  }
+  .np-input span { font-size: 12px; color: var(--text-faint); flex: 1; }
+  .np-input i { color: var(--text-faint); font-size: 16px; }
+  .np-gutter {
+    background: var(--bg-canvas);
+    border-left: 1px solid var(--border);
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .np-toggle {
+    position: absolute;
+    top: 14px;
+    left: -11px;
+    width: 22px;
+    height: 22px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .np-toggle i { font-size: 13px; color: var(--text-muted); }
+  .np-card {
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+    padding: 10px;
+  }
+  .np-src {
+    border-left: 2px solid var(--border);
+    padding: 6px 0 6px 10px;
+    margin-bottom: 6px;
+  }
+  .np-src-active {
+    border-left-color: var(--warn-border);
+    background: var(--warn-bg);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  }
+  .np-src p { margin: 0; }
+  .np-src-title { font-size: 11px; font-weight: 500; }
+  .np-src-sub { font-size: 10px; color: var(--text-muted); margin-top: 1px !important; }
+  .np-src-quote { font-size: 10px; color: var(--text-faint); margin-top: 4px !important; font-style: italic; line-height: 1.45; }
+  .np-gauge-label { font-size: 10px; font-weight: 500; margin: 4px 0 0; text-align: center; }
+  .np-gauge-sub { font-size: 9px; color: var(--text-faint); margin: 0; text-align: center; }
+  .np-gauge-num { font-size: 11px; font-weight: 500; }
+  .np-total { font-size: 11px; font-weight: 500; color: var(--text); }
+  .np-please-row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+  }
+  .np-please-row-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .np-leverage-bar {
+    position: relative;
+    height: 8px;
+    background: var(--bg-muted);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .np-leverage-mine { position: absolute; top: 0; left: 0; height: 100%; width: 58%; background: var(--teal-4); }
+  .np-leverage-theirs { position: absolute; top: 0; right: 0; height: 100%; width: 42%; background: var(--coral); opacity: 0.65; }
+  .np-leverage-pivot { position: absolute; top: -2px; left: 50%; width: 1px; height: 12px; background: var(--text); }
+  .np-edge-list { font-size: 11px; }
+  .np-edge-list p { margin: 0 0 2px; }
+  .np-edge-list i { font-size: 11px; }
+  .np-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 500;
+  }
+  .np-vital { padding: 8px; }
+  .np-vital-label {
+    font-size: 9px;
+    color: var(--text-faint);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .np-vital-val { font-size: 13px; font-weight: 500; margin: 2px 0 0; }
+  .np-total-bar {
+    position: relative;
+    height: 4px;
+    background: var(--bg-muted);
+    border-radius: 2px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .np-total-fill { position: absolute; top: 0; left: 0; height: 100%; width: 70%; background: var(--teal-4); }
+  .np-total-threshold {
+    position: absolute;
+    top: -2px;
+    left: 66.6%;
+    width: 1px;
+    height: 8px;
+    background: var(--text-faint);
+  }
+</style>
+</head>
+<body>
+
+<p class="mock-label">Collapsed gutter — PLEASE + Sources only (width matches left rail)</p>
+<div class="np-frame">
+  <div class="np-bar">
+    <div class="np-bar-dots">
+      <span class="np-bar-dot" style="background: #ED6A5A;"></span>
+      <span class="np-bar-dot" style="background: #F4BF4F;"></span>
+      <span class="np-bar-dot" style="background: #61C554;"></span>
+      <span class="np-bar-title">Negotiator Pro — TEST NEGO</span>
+    </div>
+    <span class="np-bar-model">DeepSeek / deepseek-v4-pro</span>
+  </div>
+  <div class="np-app">
+    <div class="np-rail">
+      <i class="ti ti-layout-sidebar-left-expand toggle" title="Show settings"></i>
+      <i class="ti ti-message-circle active"></i>
+      <i class="ti ti-users"></i>
+      <i class="ti ti-history"></i>
+      <i class="ti ti-books"></i>
+      <span class="spacer"></span>
+      <i class="ti ti-settings"></i>
+      <i class="ti ti-user"></i>
+    </div>
+    <div class="np-chat">
+      <p class="np-msg-user">How should I open the price conversation if they haven't put a number forward yet?</p>
+      <div class="np-msg-bot">
+        Don't be the first to anchor unless you have strong information. Open with a calibrated question that surfaces their constraints. Ask what their budget allows, then let the silence stretch.
+        <div class="np-cites">
+          <span class="np-cite">Voss · ch. 7</span>
+          <span class="np-cite">Fisher &amp; Ury · p. 84</span>
+        </div>
+      </div>
+      <p class="np-msg-user">They mentioned budget constraints twice. Should I probe?</p>
+      <div class="np-msg-bot">
+        Yes. Mirror the phrase, then label the emotion. "Budget constraints" — let the silence do the work. They'll often expand on what they meant without being asked.
+        <div class="np-cites">
+          <span class="np-cite np-cite-active">Voss · mirroring</span>
+        </div>
+      </div>
+      <p class="np-msg-user">What if they push back on the timeline?</p>
+      <div class="np-msg-bot">
+        Don't bargain on the timeline directly. Reframe — ask why that date matters. The reason behind it is the real lever.
+        <div class="np-cites">
+          <span class="np-cite">Ury · ch. 2</span>
+        </div>
+      </div>
+      <div class="np-input">
+        <i class="ti ti-paperclip"></i>
+        <span>Ask a negotiation question…</span>
+        <i class="ti ti-send"></i>
+      </div>
+    </div>
+    <div class="np-gutter" style="width: 240px;">
+      <div class="np-toggle"><i class="ti ti-chevron-left"></i></div>
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+          <p class="np-eyebrow" style="margin: 0;">PLEASE</p>
+          <span class="np-total">21 / 30</span>
+        </div>
+        <div class="np-please-row-3">
+          <div>
+            <svg viewBox="0 0 44 44" width="42" height="42" style="display:block; margin: 0 auto;">
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--border)" stroke-width="3"/>
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--teal-4)" stroke-width="3" stroke-dasharray="64 107" stroke-linecap="round" transform="rotate(-90 22 22)"/>
+              <text x="22" y="25" text-anchor="middle" class="np-gauge-num" fill="var(--text)">4</text>
+            </svg>
+            <p class="np-gauge-label">P</p>
+            <p class="np-gauge-sub">Polite</p>
+          </div>
+          <div>
+            <svg viewBox="0 0 44 44" width="42" height="42" style="display:block; margin: 0 auto;">
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--border)" stroke-width="3"/>
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--teal-5)" stroke-width="3" stroke-dasharray="80 107" stroke-linecap="round" transform="rotate(-90 22 22)"/>
+              <text x="22" y="25" text-anchor="middle" class="np-gauge-num" fill="var(--text)">5</text>
+            </svg>
+            <p class="np-gauge-label">L</p>
+            <p class="np-gauge-sub">Logical</p>
+          </div>
+          <div>
+            <svg viewBox="0 0 44 44" width="42" height="42" style="display:block; margin: 0 auto;">
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--border)" stroke-width="3"/>
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--amber-3)" stroke-width="3" stroke-dasharray="48 107" stroke-linecap="round" transform="rotate(-90 22 22)"/>
+              <text x="22" y="25" text-anchor="middle" class="np-gauge-num" fill="var(--text)">3</text>
+            </svg>
+            <p class="np-gauge-label">E</p>
+            <p class="np-gauge-sub">Empath.</p>
+          </div>
+          <div>
+            <svg viewBox="0 0 44 44" width="42" height="42" style="display:block; margin: 0 auto;">
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--border)" stroke-width="3"/>
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--red-2)" stroke-width="3" stroke-dasharray="32 107" stroke-linecap="round" transform="rotate(-90 22 22)"/>
+              <text x="22" y="25" text-anchor="middle" class="np-gauge-num" fill="var(--text)">2</text>
+            </svg>
+            <p class="np-gauge-label">A</p>
+            <p class="np-gauge-sub">Assert.</p>
+          </div>
+          <div>
+            <svg viewBox="0 0 44 44" width="42" height="42" style="display:block; margin: 0 auto;">
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--border)" stroke-width="3"/>
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--teal-4)" stroke-width="3" stroke-dasharray="64 107" stroke-linecap="round" transform="rotate(-90 22 22)"/>
+              <text x="22" y="25" text-anchor="middle" class="np-gauge-num" fill="var(--text)">4</text>
+            </svg>
+            <p class="np-gauge-label">S</p>
+            <p class="np-gauge-sub">Strategic</p>
+          </div>
+          <div>
+            <svg viewBox="0 0 44 44" width="42" height="42" style="display:block; margin: 0 auto;">
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--border)" stroke-width="3"/>
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--amber-3)" stroke-width="3" stroke-dasharray="48 107" stroke-linecap="round" transform="rotate(-90 22 22)"/>
+              <text x="22" y="25" text-anchor="middle" class="np-gauge-num" fill="var(--text)">3</text>
+            </svg>
+            <p class="np-gauge-label">E</p>
+            <p class="np-gauge-sub">Engaging</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p class="np-eyebrow">Sources in play</p>
+        <div class="np-src np-src-active">
+          <p class="np-src-title">Voss · Never Split the Difference</p>
+          <p class="np-src-sub">Mirroring · ch. 3</p>
+          <p class="np-src-quote">"Repeat the last three words. Then shut up."</p>
+        </div>
+        <div class="np-src">
+          <p class="np-src-title">Fisher &amp; Ury</p>
+          <p class="np-src-sub">Getting to Yes · p. 84</p>
+        </div>
+        <div class="np-src">
+          <p class="np-src-title">Ury</p>
+          <p class="np-src-sub">Getting Past No · ch. 2</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="mock-label">Expanded gutter — grows left, overlays chat, adds Leverage, Parties, Vitals</p>
+<div class="np-frame">
+  <div class="np-bar">
+    <div class="np-bar-dots">
+      <span class="np-bar-dot" style="background: #ED6A5A;"></span>
+      <span class="np-bar-dot" style="background: #F4BF4F;"></span>
+      <span class="np-bar-dot" style="background: #61C554;"></span>
+      <span class="np-bar-title">Negotiator Pro — TEST NEGO</span>
+    </div>
+    <span class="np-bar-model">DeepSeek / deepseek-v4-pro</span>
+  </div>
+  <div class="np-app">
+    <div class="np-rail">
+      <i class="ti ti-layout-sidebar-left-expand toggle"></i>
+      <i class="ti ti-message-circle active"></i>
+      <i class="ti ti-users"></i>
+      <i class="ti ti-history"></i>
+      <i class="ti ti-books"></i>
+      <span class="spacer"></span>
+      <i class="ti ti-settings"></i>
+      <i class="ti ti-user"></i>
+    </div>
+    <div class="np-chat">
+      <p class="np-msg-user">How should I open the price conversation if they haven't put a number forward yet?</p>
+      <div class="np-msg-bot">
+        Don't be the first to anchor unless you have strong information. Open with a calibrated question that surfaces their constraints.
+        <div class="np-cites">
+          <span class="np-cite">Voss · ch. 7</span>
+        </div>
+      </div>
+      <p class="np-msg-user">They mentioned budget constraints twice. Should I probe?</p>
+      <div class="np-msg-bot">
+        Yes. Mirror the phrase, then label the emotion. "Budget constraints" — let the silence do the work.
+        <div class="np-cites">
+          <span class="np-cite np-cite-active">Voss · mirroring</span>
+        </div>
+      </div>
+      <div class="np-input">
+        <i class="ti ti-paperclip"></i>
+        <span>Ask a negotiation question…</span>
+        <i class="ti ti-send"></i>
+      </div>
+    </div>
+    <div class="np-gutter" style="width: 420px; box-shadow: -8px 0 24px rgba(0,0,0,0.04);">
+      <div class="np-toggle"><i class="ti ti-chevron-right"></i></div>
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+          <p class="np-eyebrow" style="margin: 0;">PLEASE</p>
+          <span class="np-total">21 / 30</span>
+        </div>
+        <div class="np-total-bar">
+          <div class="np-total-fill"></div>
+          <div class="np-total-threshold" title="rewrite threshold: 20"></div>
+        </div>
+        <div class="np-please-row">
+          <div>
+            <svg viewBox="0 0 44 44" width="46" height="46" style="display:block; margin: 0 auto;">
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--border)" stroke-width="3"/>
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--teal-4)" stroke-width="3" stroke-dasharray="64 107" stroke-linecap="round" transform="rotate(-90 22 22)"/>
+              <text x="22" y="25" text-anchor="middle" class="np-gauge-num" fill="var(--text)">4</text>
+            </svg>
+            <p class="np-gauge-label">P</p>
+            <p class="np-gauge-sub">Polite</p>
+          </div>
+          <div>
+            <svg viewBox="0 0 44 44" width="46" height="46" style="display:block; margin: 0 auto;">
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--border)" stroke-width="3"/>
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--teal-5)" stroke-width="3" stroke-dasharray="80 107" stroke-linecap="round" transform="rotate(-90 22 22)"/>
+              <text x="22" y="25" text-anchor="middle" class="np-gauge-num" fill="var(--text)">5</text>
+            </svg>
+            <p class="np-gauge-label">L</p>
+            <p class="np-gauge-sub">Logical</p>
+          </div>
+          <div>
+            <svg viewBox="0 0 44 44" width="46" height="46" style="display:block; margin: 0 auto;">
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--border)" stroke-width="3"/>
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--amber-3)" stroke-width="3" stroke-dasharray="48 107" stroke-linecap="round" transform="rotate(-90 22 22)"/>
+              <text x="22" y="25" text-anchor="middle" class="np-gauge-num" fill="var(--text)">3</text>
+            </svg>
+            <p class="np-gauge-label">E</p>
+            <p class="np-gauge-sub">Empathetic</p>
+          </div>
+          <div>
+            <svg viewBox="0 0 44 44" width="46" height="46" style="display:block; margin: 0 auto;">
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--border)" stroke-width="3"/>
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--red-2)" stroke-width="3" stroke-dasharray="32 107" stroke-linecap="round" transform="rotate(-90 22 22)"/>
+              <text x="22" y="25" text-anchor="middle" class="np-gauge-num" fill="var(--text)">2</text>
+            </svg>
+            <p class="np-gauge-label">A</p>
+            <p class="np-gauge-sub">Assertive</p>
+          </div>
+          <div>
+            <svg viewBox="0 0 44 44" width="46" height="46" style="display:block; margin: 0 auto;">
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--border)" stroke-width="3"/>
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--teal-4)" stroke-width="3" stroke-dasharray="64 107" stroke-linecap="round" transform="rotate(-90 22 22)"/>
+              <text x="22" y="25" text-anchor="middle" class="np-gauge-num" fill="var(--text)">4</text>
+            </svg>
+            <p class="np-gauge-label">S</p>
+            <p class="np-gauge-sub">Strategic</p>
+          </div>
+          <div>
+            <svg viewBox="0 0 44 44" width="46" height="46" style="display:block; margin: 0 auto;">
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--border)" stroke-width="3"/>
+              <circle cx="22" cy="22" r="17" fill="none" stroke="var(--amber-3)" stroke-width="3" stroke-dasharray="48 107" stroke-linecap="round" transform="rotate(-90 22 22)"/>
+              <text x="22" y="25" text-anchor="middle" class="np-gauge-num" fill="var(--text)">3</text>
+            </svg>
+            <p class="np-gauge-label">E</p>
+            <p class="np-gauge-sub">Engaging</p>
+          </div>
+        </div>
+        <p style="font-size: 10px; color: var(--text-faint); margin: 10px 0 0; line-height: 1.45;">Above rewrite threshold (20). Empathetic and Assertive are the soft spots.</p>
+      </div>
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+          <p class="np-eyebrow" style="margin: 0;">Leverage</p>
+          <p style="font-size: 10px; color: var(--text-faint); margin: 0;">slight tilt — you</p>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+          <span style="font-weight: 500;">Matt</span>
+          <span style="color: var(--text-muted);">Partner Test</span>
+        </div>
+        <div class="np-leverage-bar">
+          <div class="np-leverage-mine"></div>
+          <div class="np-leverage-theirs"></div>
+          <div class="np-leverage-pivot"></div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px;">
+          <div class="np-edge-list">
+            <p style="font-size: 10px; color: var(--text-faint); margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.05em;">Your edge</p>
+            <p><i class="ti ti-arrow-up-right" style="color: var(--teal-5);"></i> Strong BATNA</p>
+            <p><i class="ti ti-arrow-up-right" style="color: var(--teal-5);"></i> Time on your side</p>
+            <p><i class="ti ti-arrow-up-right" style="color: var(--teal-5);"></i> Domain expertise</p>
+          </div>
+          <div class="np-edge-list">
+            <p style="font-size: 10px; color: var(--text-faint); margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.05em;">Their edge</p>
+            <p><i class="ti ti-arrow-up-right" style="color: var(--coral); transform: scaleX(-1); display: inline-block;"></i> Budget authority</p>
+            <p><i class="ti ti-arrow-up-right" style="color: var(--coral); transform: scaleX(-1); display: inline-block;"></i> Multiple vendors</p>
+            <p><i class="ti ti-arrow-up-right" style="color: var(--text-faint); transform: scaleX(-1); display: inline-block;"></i> Internal champion</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p class="np-eyebrow">Parties</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div class="np-card">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+              <div class="np-avatar" style="background: var(--teal-4);">M</div>
+              <p style="font-size: 12px; font-weight: 500; margin: 0;">Matt</p>
+            </div>
+            <p style="font-size: 10px; color: var(--text-muted); margin: 0; line-height: 1.45;">Founder. Strong BATNA, willing to walk.</p>
+          </div>
+          <div class="np-card">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+              <div class="np-avatar" style="background: var(--coral);">P</div>
+              <p style="font-size: 12px; font-weight: 500; margin: 0;">Partner Test</p>
+            </div>
+            <p style="font-size: 10px; color: var(--text-muted); margin: 0; line-height: 1.45;">Procurement-led. Comparing vendors.</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p class="np-eyebrow">Vitals</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+          <div class="np-card np-vital">
+            <p class="np-vital-label">ZOPA</p>
+            <p class="np-vital-val">£42–58k</p>
+          </div>
+          <div class="np-card np-vital">
+            <p class="np-vital-label">BATNA</p>
+            <p class="np-vital-val">Strong</p>
+          </div>
+          <div class="np-card np-vital">
+            <p class="np-vital-label">Time</p>
+            <p class="np-vital-val">Loose</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p class="np-eyebrow">Sources in play</p>
+        <div class="np-src np-src-active">
+          <p class="np-src-title">Voss · Never Split the Difference</p>
+          <p class="np-src-sub">Mirroring · ch. 3</p>
+          <p class="np-src-quote">"Repeat the last three words. Then shut up."</p>
+        </div>
+        <div class="np-src">
+          <p class="np-src-title">Fisher &amp; Ury · Getting to Yes</p>
+          <p class="np-src-sub">Separate the people from the problem · p. 84</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -28,6 +28,19 @@
   --color-on-accent-soft: var(--palette-dominant-6);
   --color-on-accent-strong: var(--palette-dominant-1);
   --color-on-pop: var(--palette-dominant-1);
+
+  /* Feedback-panel semantics. The PLEASE gauge needs a good-to-bad ramp and the
+     leverage bar needs a two-sided mine/theirs pair — neither maps onto the
+     neutral-plus-pop palette, so they live as their own fixed tokens. The ramp
+     holds across light and dark; only the leverage colours lean on palette aliases. */
+  --score-5: oklch(45.00% 0.0900 169.00); /* deep teal */
+  --score-4: oklch(62.00% 0.1200 165.00); /* teal */
+  --score-3: oklch(60.00% 0.1100 70.00);  /* amber */
+  --score-2: oklch(48.00% 0.1500 25.00);  /* red */
+  --score-1: oklch(40.00% 0.1600 25.00);  /* deeper red */
+  --leverage-mine: var(--color-accent-strong);
+  --leverage-theirs: oklch(62.00% 0.1400 45.00); /* coral counterweight */
+  --threshold: var(--color-muted);
 }
 
 [data-theme="dark"] {

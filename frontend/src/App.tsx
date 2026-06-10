@@ -9,10 +9,15 @@ import { useNegotiationStore } from './store/negotiationStore';
 import { usePersonaStore } from './store/personaStore';
 import { useChatStore } from './store/chatStore';
 import Sidebar from './components/Sidebar';
+import IconRail from './components/IconRail';
 import ChatContainer from './components/ChatContainer';
 import SystemPromptEditor from './components/SystemPromptEditor';
 import AdminPanel from './components/AdminPanel';
 import OnboardingWizard from './components/OnboardingWizard';
+import SettingsModal from './components/SettingsModal';
+import RightGutter from './components/RightGutter/RightGutter';
+import { MOCK_CONTEXT } from './components/RightGutter/mockContext';
+import { useUIStore } from './store/uiStore';
 
 function App() {
   const navigate = useNavigate();
@@ -25,6 +30,8 @@ function App() {
 
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+  const settingsSidebarExpanded = useUIStore((state) => state.settingsSidebarExpanded);
 
   useEffect(() => {
     // Redirect to login if not authenticated
@@ -185,6 +192,11 @@ function App() {
 
   const isAdmin = user?.role === 'admin';
 
+  // The admin views replace the chat surface entirely; the stats gutter only
+  // belongs alongside the dialogue.
+  const isAdminView = isAdmin && (adminView === 'system-prompt' || adminView === 'admin-panel');
+  const showGutter = !isAdminView;
+
   const renderMainContent = () => {
     switch (adminView) {
       case 'system-prompt':
@@ -199,9 +211,24 @@ function App() {
   return (
     <>
       <div className="app-container">
-        <Sidebar />
+        <IconRail onOpenSettings={() => setShowSettings(true)} />
+
+        {/* The full settings sidebar slides out of the icon rail. The wrapper
+            animates width; the sidebar keeps its fixed 300px and is clipped. */}
+        <div
+          className="flex shrink-0 overflow-hidden transition-[width] duration-200 ease-out"
+          style={{ width: settingsSidebarExpanded ? 300 : 0 }}
+        >
+          <Sidebar />
+        </div>
+
         {renderMainContent()}
+
+        {showGutter && <RightGutter context={MOCK_CONTEXT} />}
       </div>
+
+      {/* Settings reachable from the icon rail, independent of the sidebar */}
+      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
       {/* Onboarding Wizard */}
       {showOnboarding && (
