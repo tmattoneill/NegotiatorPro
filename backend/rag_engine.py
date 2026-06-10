@@ -457,7 +457,7 @@ class EnhancedNegotiationRAG:
             seen.add(title)
 
             passage = " ".join((doc.page_content or "").split())
-            quote = (passage[:160].rstrip() + "…") if len(passage) > 160 else passage
+            quote = (passage[:280].rstrip() + "…") if len(passage) > 280 else passage
 
             page = meta.get("page") or meta.get("page_number")
             sub = f"p. {page}" if page else ""

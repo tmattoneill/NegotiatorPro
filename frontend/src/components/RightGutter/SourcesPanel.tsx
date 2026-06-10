@@ -26,10 +26,11 @@ export default function SourcesPanel({ sources }: SourcesPanelProps) {
         // Hover wins over the resting active source for the highlight, so only
         // one row is emphasised at a time.
         const isActive = hoveredSource ? src.title === hoveredSource : src.active;
-        // But keep the resting-active quote visible even while another row is
-        // hovered — collapsing it would shift the list under the cursor and set
-        // off a hover enter/leave loop. Only the hovered row grows, downward.
-        const showQuote = Boolean(src.quote) && (src.active || src.title === hoveredSource);
+        // Every source shows its retrieved passage, not just the active one —
+        // the passages are the useful part. Showing them all also means hover
+        // changes only the highlight, never the height, so the list can't
+        // "vibrate" under the cursor.
+        const showQuote = Boolean(src.quote);
         return (
           <div
             key={`${src.title}-${i}`}

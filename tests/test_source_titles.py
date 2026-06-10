@@ -60,7 +60,7 @@ def test_build_refs_truncates_long_quote():
         [_Doc(long_passage, {"source_file": "getting-past-no.pdf"})]
     )
     assert refs[0]["quote"].endswith("…")
-    assert len(refs[0]["quote"]) <= 161
+    assert len(refs[0]["quote"]) <= 281
 
 
 def test_build_refs_empty_when_no_docs():
