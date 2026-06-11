@@ -74,8 +74,8 @@ Keep this file lean — put detail in `docs/`, not here.
 
 **Project:** Enhanced RAG-based negotiation guidance system with React frontend, FastAPI backend, multi-backend LLM support (OpenAI, Anthropic, Ollama), and document management.
 
-**Branch:** `ui/colour-scheme`
-**Last Updated:** 09/06/2026, 10:01:48
+**Branch:** `ui/feedback-panel`
+**Last Updated:** 11/06/2026, 10:54:51
 
 ### Active Todos
 - [ ] [critical] Test vectorstore rebuild functionality end-to-end with the new bind mount fix to ensure no data loss (`main`)
@@ -94,6 +94,8 @@ Keep this file lean — put detail in `docs/`, not here.
 - [ ] [high] Push the 10 ahead commits on main to remote repository (`main`)
 - [ ] [high] Verify the Neon PostgreSQL migration works correctly in all environments (`main`)
 - [ ] [high] Merge ui/colour-scheme branch into main to integrate the new palette system (`ui/colour-scheme`)
+- [ ] [high] Push ui/feedback-panel branch with all 15 commits to remote (`ui/feedback-panel`)
+- [ ] [high] Test the complete feedback panel functionality end-to-end, especially PLEASE scoring and RAG citations (`ui/feedback-panel`)
 - [ ] [medium] Verify admin login route works correctly with the new authentication changes (`main`)
 - [ ] [medium] Replace 'YOU' label with the active Persona Name in chat messages (`main`)
 - [ ] [medium] Show RAG source citations in right margin of chat messages, with hover tooltip revealing the relevant source text (`main`)
@@ -116,8 +118,11 @@ Keep this file lean — put detail in `docs/`, not here.
 - [ ] [medium] Commit or revert the modified usage_stats.json file (`main`)
 - [ ] [medium] Test the new empty state UI and profile page improvements end-to-end (`main`)
 - [ ] [medium] Test the new color scheme across all UI components to ensure consistent application (`ui/colour-scheme`)
+- [ ] [medium] Merge ui/feedback-panel into main after testing to integrate the feedback systems (`ui/feedback-panel`)
+- [ ] [medium] Create integration tests for the live gutter analytics (leverage, parties, vitals) (`ui/feedback-panel`)
 - [ ] [low] Document the new admin features and LLM configuration capabilities in user documentation (`main`)
 - [ ] [low] Partner copy-on-write: private partner copies created before migration 007 (e.g. "Partner - Buyer") have a NULL cloned_from, so the modal's "also update the shared template" option silently no-ops for them. Decide whether to backfill cloned_from for pre-existing copies or accept it (re-cloning fixes it going forward). (`main`)
 - [ ] [low] Document the palette system architecture and available color tokens for future development (`ui/colour-scheme`)
+- [ ] [low] Document the PLEASE scoring system and gutter analytics in user documentation (`ui/feedback-panel`)
 
 <!-- DEVCTX:END -->
