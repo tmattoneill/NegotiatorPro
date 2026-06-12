@@ -77,7 +77,7 @@ Keep this file lean — put detail in `docs/`, not here.
 **Project:** Enhanced RAG-based negotiation guidance system with React frontend, FastAPI backend, multi-backend LLM support (OpenAI, Anthropic, Ollama), and document management.
 
 **Branch:** `main`
-**Last Updated:** 12/06/2026, 07:17:39
+**Last Updated:** 12/06/2026, 11:07:03
 
 ### Active Todos
 - [ ] [critical] Test vectorstore rebuild functionality end-to-end with the new bind mount fix to ensure no data loss (`main`)
@@ -90,6 +90,8 @@ Keep this file lean — put detail in `docs/`, not here.
 - [ ] [high] Don't let the text preprocessor strip the negotiation briefing: get_advice preprocesses the whole enhanced_question (which includes the persona briefing block), degrading the >=240-char persona context we now require. Preprocess only the raw user question, not the briefing/file context. (`main`)
 - [ ] [high] Implement Phase 4: route chat-uploads to amfonica-user-data zone in Bunny Storage (`main`)
 - [ ] [high] tests/test_docker.py asserts EXPOSE 7860 and port 7860 (Gradio era) — will fail against the current 8000 backend / 5173 frontend. Update the port assertions. (`docs/cleanup-stale`)
+- [ ] [high] Security: rotate the LINEAR_API_KEY that was pasted into a chat transcript on 2026-06-12. Generate a new personal API key in Linear, revoke the old one, and update LINEAR_API_KEY in the shell profile on each machine. The devctx→Linear hook reads it from env, so no code change needed. (`main`)
+- [ ] [high] Rotate the exposed LINEAR_API_KEY: generate new personal API key in Linear, revoke the old one, update in shell profiles on all machines (`main`)
 - [ ] [medium] Replace 'YOU' label with the active Persona Name in chat messages (`main`)
 - [ ] [medium] Show RAG source citations in right margin of chat messages, with hover tooltip revealing the relevant source text (`main`)
 - [ ] [medium] Add copy button to chat prompts and responses — copies raw markdown to clipboard (`main`)
@@ -102,6 +104,8 @@ Keep this file lean — put detail in `docs/`, not here.
 - [ ] [medium] tests/test_model_config.py exercises the deprecated ModelConfig.get_model_kwargs_legacy path — update to the current logical-key get_model_kwargs pattern. (`docs/cleanup-stale`)
 - [ ] [medium] Dead-code audit (with code verification, not date heuristics): runpod_llm.py is wired into llm_backend_config/rag_engine/routes.models but may never trigger in production; scripts/init_user_profile.py is now only referenced by deleted docs. Decide keep/remove for each. NOTE: the earlier stale-scan wrongly flagged config_loader.py and routes/config.py as dead — both are live, do not delete. (`docs/cleanup-stale`)
 - [ ] [medium] Test rot: fix and then add the `unit` marker to the 4 currently-failing test files left unmarked — test_model_config.py (calls renamed ModelConfig.get_model_kwargs, now _legacy), test_prompt_renderer.py (1 assertion drifted from the slimmed negotiation persona), test_document_manager.py (4 fail), test_admin_config.py (2 fail + 1 error). Until fixed they run only under bare `pytest`, not `pytest -m unit`. (`docs/cleanup-stale`)
+- [ ] [medium] Verify the devctx-to-Linear hook continues working correctly after API key rotation (`main`)
 - [ ] [low] Partner copy-on-write: private partner copies created before migration 007 (e.g. "Partner - Buyer") have a NULL cloned_from, so the modal's "also update the shared template" option silently no-ops for them. Decide whether to backfill cloned_from for pre-existing copies or accept it (re-cloning fixes it going forward). (`main`)
+- [ ] [low] Document the branch cleanup process and merge criteria in DEPLOY.md or developer docs for future maintenance sessions (`main`)
 
 <!-- DEVCTX:END -->
