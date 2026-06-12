@@ -167,13 +167,6 @@ backup tarball does not contain the database.
 
 - **No migration runner.** Step 2 is manual and there is no `schema_migrations` ledger. Easy to
   forget on a deploy that adds columns. This is the single most likely way to break a deploy.
-- **Orphan `dev-postgres-1` container.** The host still runs a `postgres:15-alpine` container from
-  before the Neon migration. It is unused (backend talks to Neon) but `docker compose` warns about
-  it on every deploy. Remove it once you have confirmed nothing depends on it:
-  ```bash
-  ssh webdev@134.209.189.154 \
-    'cd /home/webdev/sites/amfonica.com/dev && docker compose -f docker-compose.deploy.yml up -d --remove-orphans && docker rm -f dev-postgres-1'
-  ```
 - **`deploy.sh` still ships the corpus and vectorstore every run.** Once clean-boot hydrate from
   Bunny Storage is proven stable, trim those rsync steps (they are slow and large).
 - **`promote.sh` does not exist.** Prod (`www.amfonica.com`) is unbuilt. When it lands, document the
