@@ -69,6 +69,10 @@ cp .env.example .env
 
 Edit `.env` and configure:
 
+> This guide covers a **local** Postgres for development. Production and the dev deploy use **Neon**
+> instead: set `DATABASE_URL` and it overrides the `POSTGRES_*` vars below. See
+> `docs/deployment/INFRASTRUCTURE.md`.
+
 ```bash
 # Database Configuration
 POSTGRES_HOST=localhost

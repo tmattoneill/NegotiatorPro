@@ -6,7 +6,7 @@ The enhanced negotiation advisor now includes a comprehensive admin panel with p
 ## Access
 - **Main Interface**: Negotiation Advisor tab (unchanged user experience)
 - **Admin Panel**: Admin Panel tab (password protected)
-- **Default Password**: `admin123` (change immediately after first login)
+- **Password**: `ADMIN_PASSWORD` from `.env` (defaults to `admin123` in dev if unset; change it for anything exposed)
 
 ## Admin Features
 

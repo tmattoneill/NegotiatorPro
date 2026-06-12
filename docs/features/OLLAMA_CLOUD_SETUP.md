@@ -33,7 +33,7 @@ OLLAMA_API_KEY=your_actual_api_key_here
 
 ### Step 3: Configure the Backend in Admin Panel
 
-1. Start the application: `python main.py`
+1. Start the backend: `./run-api.sh`
 2. Navigate to **Admin Panel** tab
 3. Log in with your admin password
 4. Go to **🤖 LLM Backends** tab

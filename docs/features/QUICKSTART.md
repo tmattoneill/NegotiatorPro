@@ -38,7 +38,7 @@ cd ..
 - **Backend API**: http://localhost:8000
 - **API Docs**: http://localhost:8000/docs
 
-**Default Admin Password**: `admin123` (change this immediately!)
+**Admin Password**: set `ADMIN_PASSWORD` in `.env` (defaults to `admin123` in dev if unset). Change it for anything exposed.
 
 ---
 
@@ -72,10 +72,9 @@ docker compose logs -f frontend # Frontend only
 2. **Try a question** like: "How should I respond to a lowball offer?"
 3. **Create conversations**: Start new chat sessions for different scenarios
 4. **Toggle Premium Model**: Use advanced reasoning when needed
-5. **Admin Features** (coming soon to React UI):
-   - Access via FastAPI endpoints at http://localhost:8000/docs
-   - Login with password: `admin123`
-   - **IMPORTANT**: Change the admin password immediately!
+5. **Admin Panel**: open the Admin Panel tab in the React UI (`AdminPanel.tsx`)
+   - Log in with `ADMIN_PASSWORD` (dev default `admin123` if unset in `.env`)
+   - Raw API endpoints are also at http://localhost:8000/docs
 
 ---
 
