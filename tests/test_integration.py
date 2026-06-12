@@ -2,7 +2,9 @@
 Integration tests for NegotiatorPro
 Tests end-to-end workflows and component interactions
 """
+
 import pytest
+pytestmark = pytest.mark.integration
 import sys
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock

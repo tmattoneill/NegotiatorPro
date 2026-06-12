@@ -1,7 +1,9 @@
 """
 Combined tests for text_preprocessor, prompt_manager, and embedding_config modules
 """
+
 import pytest
+pytestmark = pytest.mark.unit
 import json
 from pathlib import Path
 from backend.text_preprocessor import TextPreprocessor

@@ -1,7 +1,9 @@
 """Tests for the three-layer mode-aware PromptManager."""
+
 from pathlib import Path
 
 import pytest
+pytestmark = pytest.mark.unit
 
 from backend.prompt_manager import PromptManager
 

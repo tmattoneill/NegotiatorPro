@@ -1,4 +1,7 @@
 """Unit tests for the PLEASE self-assessment parser."""
+import pytest
+pytestmark = pytest.mark.unit
+
 from backend.please_parser import parse_and_strip
 
 _BLOCK = (

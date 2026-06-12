@@ -1,4 +1,7 @@
 """Unit tests for negotiation context: parties + leverage/vitals analysis."""
+import pytest
+pytestmark = pytest.mark.unit
+
 from backend.negotiation_context import (
     build_parties,
     analyse_leverage_vitals,

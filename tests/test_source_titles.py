@@ -1,4 +1,7 @@
 """Unit tests for source title mapping and citation building."""
+import pytest
+pytestmark = pytest.mark.unit
+
 from backend.source_titles import display_title
 from backend.rag_engine import EnhancedNegotiationRAG
 

@@ -1,5 +1,7 @@
 """Unit tests for the intent classifier."""
+
 import pytest
+pytestmark = pytest.mark.unit
 from backend.intent_classifier import classify
 
 

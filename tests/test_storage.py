@@ -4,9 +4,11 @@ These are pure-logic tests — no network. They cover the graceful-degradation
 guards and the env-prefix helpers that gate the write-through / push behaviour
 wired into the admin RAG routes.
 """
+
 import importlib
 
 import pytest
+pytestmark = pytest.mark.unit
 
 from backend import storage
 from backend.storage import ObjectStore

@@ -1,8 +1,10 @@
 """
 Docker infrastructure tests for NegotiatorPro
 """
+
 import os
 import pytest
+pytestmark = pytest.mark.docker
 import subprocess
 import yaml
 from pathlib import Path
