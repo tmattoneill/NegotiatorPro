@@ -1,6 +1,6 @@
 # NegotiatorPro
 
-An AI-powered negotiation advisor that uses RAG (Retrieval-Augmented Generation) to provide expert guidance based on negotiation literature. Features a React frontend, FastAPI backend, and multi-LLM support (OpenAI, Anthropic Claude, Ollama).
+An AI-powered negotiation advisor that uses RAG (Retrieval-Augmented Generation) to provide expert guidance based on negotiation literature. Features a React frontend, FastAPI backend, and multi-LLM support (OpenAI, Anthropic Claude, Ollama, DeepSeek). The database is PostgreSQL on Neon (external); the Docker stack runs the backend and frontend only.
 
 ## Prerequisites
 
@@ -63,8 +63,10 @@ OPENAI_API_KEY=sk-your-key-here
 # OR
 ANTHROPIC_API_KEY=sk-ant-your-key-here
 
-# Database (required)
-POSTGRES_PASSWORD=your-secure-password
+# Database (required): a PostgreSQL connection string. In production and the dev
+# deploy this is Neon. The POSTGRES_* individual vars are an optional fallback
+# for a local Postgres and are ignored when DATABASE_URL is set.
+DATABASE_URL=postgresql://user:pass@host/dbname
 
 # Security (auto-generated if using setup.sh)
 JWT_SECRET_KEY=your-jwt-secret
@@ -83,7 +85,7 @@ python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().
 ### 2. Create Data Directories
 
 ```bash
-mkdir -p data/db data/vectorstore data/uploads data/sources data/config
+mkdir -p data/vectorstore data/uploads data/sources data/config
 ```
 
 ### 3. Add Source Documents
@@ -107,7 +109,7 @@ before the RAG can answer anything:
 
 - Preferred: open the admin **📚 Sources & RAG** tab and click **Rebuild
   Vectorstore** (see below).
-- Or from the CLI: `docker exec -it negotiator-pro-backend python scripts/rebuild_vectordb.py`
+- Or from the CLI: `docker compose exec backend python scripts/rebuild_vectordb.py`
 
 After the first build the index persists in the `data/vectorstore/` volume, so
 this step is only needed on a fresh environment or when you change the corpus.
@@ -133,10 +135,10 @@ To populate `sources/` with the full sales + negotiation corpus and backfill met
 
 ```bash
 # Preview what would happen
-docker exec -it negotiator-pro-backend python scripts/migrate_expanded_corpus.py --dry-run
+docker compose exec backend python scripts/migrate_expanded_corpus.py --dry-run
 
 # Apply
-docker exec -it negotiator-pro-backend python scripts/migrate_expanded_corpus.py
+docker compose exec backend python scripts/migrate_expanded_corpus.py
 ```
 
 Then trigger a rebuild from the admin panel.
@@ -144,12 +146,12 @@ Then trigger a rebuild from the admin panel.
 ### Via CLI (advanced / scripting)
 
 ```bash
-# Apply DB migration for source_documents and rebuild_jobs tables (first time only)
-docker exec -i negotiator-pro-postgres psql -U negotiatorpro -d negotiatorpro \
-  < migrations/004_source_documents.sql
+# Apply a DB migration (first time only). The DB is Neon; migrations are run
+# against it directly, not from a local container. See docs/deployment/DEPLOY.md.
+psql "$DATABASE_URL" -f migrations/004_source_documents.sql
 
 # Programmatic rebuild (skips interactive prompts)
-docker exec -it negotiator-pro-backend python scripts/rebuild_vectordb.py
+docker compose exec backend python scripts/rebuild_vectordb.py
 ```
 
 ## Docker Commands Reference
@@ -180,33 +182,33 @@ docker compose logs -f
 # Specific service
 docker compose logs -f backend
 docker compose logs -f frontend
-docker compose logs -f postgres
 ```
 
 ### Execute Commands in Containers
 
 ```bash
 # Backend shell
-docker exec -it negotiator-pro-backend bash
+docker compose exec backend bash
 
 # Run Python script
-docker exec -it negotiator-pro-backend python scripts/rebuild_vectordb.py
+docker compose exec backend python scripts/rebuild_vectordb.py
 
 # Initialize user profiles
-docker exec -it negotiator-pro-backend python scripts/init_user_profile.py
+docker compose exec backend python scripts/init_user_profile.py
 ```
 
 ### Database Operations
 
+The database is Neon (external), so connect with `DATABASE_URL` from `.env`, not
+through a container. Neon provides backups and point-in-time restore from its
+dashboard.
+
 ```bash
-# Access PostgreSQL
-docker exec -it negotiator-pro-postgres psql -U negotiatorpro -d negotiatorpro
+# Access the database
+psql "$DATABASE_URL"
 
-# Backup database
-docker exec negotiator-pro-postgres pg_dump -U negotiatorpro negotiatorpro > backup.sql
-
-# Restore database
-docker exec -i negotiator-pro-postgres psql -U negotiatorpro negotiatorpro < backup.sql
+# Ad-hoc dump (Neon also has managed backups / PITR in the dashboard)
+pg_dump "$DATABASE_URL" > backup.sql
 ```
 
 ### Cleanup
@@ -228,7 +230,6 @@ All persistent data is stored in the `data/` directory:
 
 | Directory | Purpose |
 |-----------|---------|
-| `data/db/` | PostgreSQL database files |
 | `data/vectorstore/` | FAISS vector embeddings |
 | `data/uploads/` | User uploaded documents |
 | `data/sources/` | Source negotiation books |
@@ -240,7 +241,7 @@ All persistent data is stored in the `data/` directory:
 
 | Variable | Description |
 |----------|-------------|
-| `POSTGRES_PASSWORD` | PostgreSQL password |
+| `DATABASE_URL` | PostgreSQL connection string (Neon in prod/dev; or a local Postgres) |
 | `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` | At least one LLM provider |
 
 ### Security (Required for Production)
@@ -305,7 +306,7 @@ docker compose logs backend
 ```
 
 Common issues:
-- Missing `POSTGRES_PASSWORD` in `.env`
+- Missing or wrong `DATABASE_URL` in `.env`
 - Port 8000 or 5173 already in use
 - Insufficient memory (requires 2GB+)
 
@@ -313,16 +314,16 @@ Common issues:
 
 Rebuild the vectorstore:
 ```bash
-docker exec -it negotiator-pro-backend python scripts/rebuild_vectordb.py
+docker compose exec backend python scripts/rebuild_vectordb.py
 ```
 
 ### Database connection issues
 
-Ensure PostgreSQL is healthy:
+The DB is Neon (external). Check it is reachable:
 ```bash
-docker compose ps
-docker exec -it negotiator-pro-postgres pg_isready
+psql "$DATABASE_URL" -c "select 1"
 ```
+Confirm `DATABASE_URL` is set and the Neon branch is not paused (free tier auto-suspends).
 
 ### Ollama not connecting
 
@@ -332,7 +333,7 @@ For local Ollama on the host machine:
 ollama serve
 
 # Test connectivity from container
-docker exec -it negotiator-pro-backend curl http://host.docker.internal:11434/api/version
+docker compose exec backend curl http://host.docker.internal:11434/api/version
 ```
 
 ## Development
