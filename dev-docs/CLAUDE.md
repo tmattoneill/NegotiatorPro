@@ -54,7 +54,8 @@ every supported key (other LLM providers, Postgres, encryption, dev auth, Bunny 
 - Config system (`config.json` vs `llm_backend_config.json`) → `docs/CONFIGURATION.md`
 - Database and user profiles → `docs/USER_PROFILE_SETUP.md`
 - Testing → `docs/TESTING.md`
-- Docker and production deploy → `docs/deployment/DOCKER-DEPLOY.md`, `docs/deployment/DEPLOYMENT.md`
+- Deploy to dev (`./deploy.sh`), the Neon migration step, hosts/paths, rollback → `docs/deployment/DEPLOY.md` (authoritative)
+- Docker internals and local stack → `docs/deployment/DOCKER-DEPLOY.md` (`DEPLOYMENT.md` is stale, superseded by DEPLOY.md)
 - Admin panel and Sources & RAG → `docs/features/ADMIN_FEATURES.md`
 - Intent-aware prompting → `docs/features/INTENT_AWARE_PROMPTING.md`
 - Quick start → `docs/features/QUICKSTART.md`

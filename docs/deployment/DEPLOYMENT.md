@@ -1,5 +1,10 @@
 # NegotiatorPro - Docker Deployment Guide
 
+> **STALE — do not follow for the live deploy.** This is a Gradio-era generic Docker guide (port
+> 7860, `admin123`, plain `docker compose up`) and describes a system that no longer exists. The
+> authoritative dev/prod deploy recipe is **[`DEPLOY.md`](DEPLOY.md)**. Kept only for the odd generic
+> Docker/nginx snippet.
+
 This guide provides step-by-step instructions for deploying NegotiatorPro using Docker and Docker Compose on Ubuntu systems.
 
 **🚀 Architecture**: This deployment uses React frontend + FastAPI backend architecture.
