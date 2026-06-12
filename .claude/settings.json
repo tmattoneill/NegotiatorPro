@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "mcp__devctx__devctx_todo_add",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/devctx-todo-to-linear.py\"",
+            "timeout": 15,
+            "statusMessage": "Mirroring todo to Linear..."
+          }
+        ]
+      }
+    ]
+  }
+}
