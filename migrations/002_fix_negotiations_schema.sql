@@ -1,26 +1,28 @@
 -- Migration 002: Fix negotiations table schema mismatch
 -- Issue: Database has legacy 'name' column (NOT NULL) but code uses 'title'
 -- This migration consolidates to use 'title' only
+--
+-- 001_full_schema.sql was later consolidated to create the table without the
+-- legacy columns, so on a fresh database there is no 'name' to copy from. The
+-- copy step only runs when the column exists; every other step is already
+-- safe to run against either shape.
 
-BEGIN;
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'negotiations' AND column_name = 'name'
+    ) THEN
+        -- Keep title as the surviving identifier; backfill it from name where empty.
+        UPDATE negotiations SET title = name WHERE (title IS NULL OR title = '') AND name IS NOT NULL;
+    END IF;
+END
+$$;
 
--- Step 1: Copy any existing data from title to name (if title has data)
-UPDATE negotiations
-SET name = title
-WHERE title IS NOT NULL AND title != '';
-
--- Step 2: For rows where title is null/empty, keep existing name
--- (No action needed, name already has data)
-
--- Step 3: Drop the old name column
 ALTER TABLE negotiations DROP COLUMN IF EXISTS name;
 
--- Step 4: Make title NOT NULL (since it's now the primary identifier)
 ALTER TABLE negotiations ALTER COLUMN title SET NOT NULL;
 
--- Step 5: Drop other legacy columns that aren't in current schema
 ALTER TABLE negotiations DROP COLUMN IF EXISTS visibility;
 ALTER TABLE negotiations DROP COLUMN IF EXISTS preferred_backend;
 ALTER TABLE negotiations DROP COLUMN IF EXISTS preferred_model;
-
-COMMIT;

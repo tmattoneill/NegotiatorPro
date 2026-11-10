@@ -36,6 +36,8 @@ _PASSWORD = os.getenv("DEV_AUTH_PASSWORD", "amfonica123")
 # but you should set DEV_AUTH_SECRET to a random string in production.
 _SECRET = os.getenv("DEV_AUTH_SECRET", _PASSWORD)
 _COOKIE = "amfonica_dev"
+# Shown on the gate page. Prod sets "Amfonica" so beta testers never see "Dev".
+_TITLE = _html.escape(os.getenv("SITE_GATE_TITLE", "Amfonica Dev"))
 _MAX_AGE = 30 * 24 * 3600  # 30 days
 
 _LOGIN_HTML = """\
@@ -44,7 +46,7 @@ _LOGIN_HTML = """\
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Amfonica Dev</title>
+  <title>{title}</title>
   <style>
     *, *::before, *::after {{ box-sizing: border-box; }}
     body {{
@@ -112,7 +114,7 @@ _LOGIN_HTML = """\
 </head>
 <body>
   <div class="card">
-    <h1>Amfonica Dev</h1>
+    <h1>{title}</h1>
     {error}
     <form method="post" action="/dev-auth/login">
       <input type="hidden" name="next" value="{next}" />
@@ -149,14 +151,15 @@ def _verify_token(token: str) -> bool:
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(next: str = "/"):
-    return _LOGIN_HTML.format(error="", next=_html.escape(next))
+    return _LOGIN_HTML.format(title=_TITLE, error="", next=_html.escape(next))
 
 
 @router.post("/login")
 async def login(password: str = Form(...), next: str = Form("/")):
-    if password != _PASSWORD:
+    if not hmac.compare_digest(password.encode(), _PASSWORD.encode()):
         return HTMLResponse(
             _LOGIN_HTML.format(
+                title=_TITLE,
                 error='<p class="error">Wrong password.</p>',
                 next=_html.escape(next),
             ),

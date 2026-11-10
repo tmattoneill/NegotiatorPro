@@ -79,53 +79,30 @@ BUNNY_NET_PULL_ZONE=data.amfonica.com
 
 **IP:** `134.209.189.154`  
 **User:** `webdev`  
-**Deploy path:** `/home/webdev/sites/amfonica.com/dev`  
-**Domain:** `dev.amfonica.com`
+**Sites:** `/home/webdev/sites/amfonica.com/dev` (dev.amfonica.com) and `/home/webdev/sites/amfonica.com/www` (www.amfonica.com)
+
+Dev and prod share this droplet. Each has its own directory, `.env`, container and port, and both run the same image (`amfonica-backend`, tagged by git sha, `:dev` and `:prod`).
 
 ### What runs on the box
 
 | Component | How it runs | Port |
 |---|---|---|
-| FastAPI backend | Docker container (`amfonica-dev-backend`) | `127.0.0.1:8090` (loopback only) |
-| React SPA | Static files served by host nginx | — |
+| Dev backend | Docker, compose project `dev` | `127.0.0.1:8090` (loopback only) |
+| Prod backend | Docker, compose project `amfonica-prod` | `127.0.0.1:8091` (loopback only) |
+| React SPA | Static files served by host nginx from each site's `public/` | none |
 | nginx | Host process (not in Docker) | 80 / 443 |
 
-No Postgres container on the box — the backend connects to Neon directly via `DATABASE_URL`.
+No Postgres container on the box. Both backends connect to Neon via `DATABASE_URL`.
 
 ### nginx role
 
-nginx handles two jobs:
+For each site, nginx serves the built SPA from `public/` and reverse-proxies `/api/` to that site's backend port. Both sites sit behind the cookie gate (`backend/api/routes/dev_auth.py`). Dev lets the home subnet `80.249.28.0/24` skip it; prod has no bypass while it is a private beta. `amfonica.com`, `amfonica.ai` and `www.amfonica.ai` 301 to `https://www.amfonica.com`.
 
-1. Serves the built React SPA from `$DEPLOY_DIR/public/` for all non-`/api/` paths.
-2. Reverse-proxies `/api/` to the backend container at `127.0.0.1:8090`.
-
-TLS is issued by certbot (`--nginx` plugin). The vhost template is at `deploy/nginx/dev.amfonica.com.conf`; `deploy.sh` fills in `__WEBROOT__`, `__APP_PORT__`, and `__DOMAIN__` before installing it.
-
-### Access control on dev
-
-All routes are behind a cookie-based pre-auth gate:
-- Requests from `80.249.28.0/24` (Matt's home ISP) bypass the check entirely.
-- Everyone else hits a login form at `/dev-auth/login` on first visit; a 30-day signed cookie grants access after that.
-- Route `backend/api/routes/dev_auth.py`, nginx sub-request at `/internal-dev-auth-check`.
+Vhost templates live in `deploy/nginx/`. Dev's TLS is managed by `certbot --nginx`, and prod's by `certbot certonly --webroot` with static vhosts.
 
 ### Deploy flow
 
-```
-./deploy.sh   (run from repo root, requires .env.dev)
-  │
-  ├── build React SPA locally (Docker, node:20-alpine)
-  ├── rsync backend code + built SPA + corpus + vectorstore to VPS
-  ├── rsync .env.dev -> VPS:.env
-  │
-  └── ssh: run deploy/remote-deploy.sh on the box
-        ├── docker compose up -d --build   (backend container)
-        ├── sync admin password to Neon
-        ├── backfill source_documents registry if empty
-        ├── install nginx vhost from template
-        └── certbot TLS (if DNS resolves)
-```
-
-The React SPA source never goes to the box; only `frontend/dist/` is shipped.
+`./deploy.sh` builds and ships to dev. `./promote.sh` moves the exact dev release to prod. See `DEPLOY.md` for the full workflow, migrations and rollback.
 
 ---
 
@@ -133,8 +110,8 @@ The React SPA source never goes to the box; only `frontend/dist/` is shipped.
 
 ```
 Browser
-  └─> nginx (dev.amfonica.com, port 443)
-        ├─> /api/*  → proxy → 127.0.0.1:8090 → FastAPI container
+  └─> nginx (dev.amfonica.com / www.amfonica.com, port 443)
+        ├─> /api/*  → proxy → 127.0.0.1:8090 (dev) or :8091 (prod) → FastAPI container
         │                         ├─> Neon (asyncpg, DATABASE_URL)
         │                         ├─> Bunny Storage (corpus/vectorstore sync)
         │                         └─> LLM APIs (OpenAI / Anthropic / Ollama)
@@ -149,6 +126,6 @@ Browser
 |---|---|---|---|
 | `local` (dev machine) | `amfonica_dev` | `local/` | No |
 | `dev` (VPS) | `amfonica_dev` | `dev/` | Yes |
-| `prod` (VPS, future) | `amfonica_prod` | `prod/` | Yes |
+| `prod` (VPS) | `amfonica_prod` | `prod/` | Yes |
 
 `DEPLOY_ENV` controls the vectorstore prefix and whether Bunny writes are allowed.

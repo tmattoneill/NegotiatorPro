@@ -80,8 +80,11 @@ def validate_startup_environment() -> dict:
     critical_vars = [
         "JWT_SECRET_KEY",
         "ADMIN_PASSWORD",
-        "POSTGRES_PASSWORD",
     ]
+    # Hosted databases (Neon) carry the password inside DATABASE_URL, and
+    # backend/database.py lets DATABASE_URL override the POSTGRES_* settings.
+    if not os.getenv("DATABASE_URL"):
+        critical_vars.append("POSTGRES_PASSWORD")
 
     for var in critical_vars:
         if not os.getenv(var):

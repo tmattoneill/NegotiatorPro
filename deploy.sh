@@ -5,9 +5,14 @@
 # Run from the repo root:  ./deploy.sh
 #
 # Syncs the project + corpus + prebuilt vectorstore to the remote host, builds
-# and starts the Docker stack (Postgres + FastAPI API), serves the built React
-# app through the host nginx, and (once DNS points at the box) issues TLS via
-# certbot. Containers use restart: unless-stopped, so they survive reboots.
+# the backend image tagged by git sha (amfonica-backend:<sha>, also :dev), runs
+# pending DB migrations against Neon dev, starts the container, serves the built
+# React app through the host nginx, and (once DNS points at the box) issues TLS
+# via certbot. Containers use restart: unless-stopped, so they survive reboots.
+#
+# Writes $DEPLOY_DIR/RELEASE on success. promote.sh reads it to ship exactly
+# this build to www. Only committed code deploys: ALLOW_DIRTY=1 overrides for
+# dev, but promote.sh refuses a dirty release.
 #
 # Prereqs on this machine: ssh access to the host, rsync, and a populated
 # .env.dev (git-ignored). DNS: add an A record  dev.amfonica.com -> SERVER_IP.
@@ -24,8 +29,12 @@ DEPLOY_ENV="${DEPLOY_ENV:-dev}"                   # used to name backups (amfoni
 APP_PORT="${APP_PORT:-8090}"                      # host loopback port for the API
 WEBROOT="${WEBROOT:-$DEPLOY_DIR/public}"          # nginx static root for the SPA (inside the deploy dir)
 EMAIL="${CERTBOT_EMAIL:-tmattoneill@gmail.com}"   # Let's Encrypt account email
-IMAGE="amfonica-dev-backend"
 COMPOSE="docker-compose.deploy.yml"
+
+# Paths whose contents end up on the box. Uncommitted changes here would make
+# the release untraceable to a git sha.
+SHIPPED_PATHS=(backend deploy scripts migrations prompts frontend Dockerfile requirements.txt
+               config.json run-api.sh .dockerignore docker-compose.deploy.yml)
 
 say() { printf '\n\033[1;34m==>\033[0m %s\n' "$*"; }
 die() { printf '\033[1;31mERROR:\033[0m %s\n' "$*" >&2; exit 1; }
@@ -37,6 +46,19 @@ say "Preflight"
 [ -d ../data-sources ]     || die "missing ../data-sources (RAG corpus)"
 ssh -o ConnectTimeout=10 "$REMOTE" true || die "cannot ssh to $REMOTE"
 echo "ok: local artifacts present, ssh reachable"
+
+GIT_SHA=$(git rev-parse --short=12 HEAD)
+GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+GIT_SUBJECT=$(git log -1 --format=%s)
+if [ -n "$(git status --porcelain -- "${SHIPPED_PATHS[@]}")" ]; then
+  [ "${ALLOW_DIRTY:-0}" = "1" ] || die "uncommitted changes in shipped paths; commit them, or ALLOW_DIRTY=1 for a dev-only deploy"
+  DIRTY=1; IMAGE_TAG="${GIT_SHA}-dirty"
+  echo "WARNING: deploying uncommitted changes as $IMAGE_TAG (promote.sh will refuse this release)"
+else
+  DIRTY=0; IMAGE_TAG="$GIT_SHA"
+fi
+[ "$GIT_BRANCH" = "main" ] || echo "note: deploying branch $GIT_BRANCH, not main"
+echo "release: $IMAGE_TAG ($GIT_BRANCH) $GIT_SUBJECT"
 
 # ---- backup the current deployment (before we touch anything) ---------------
 # Snapshots the whole deploy dir + a DB dump to ~/backups on the box, so a bad
@@ -82,6 +104,20 @@ rsync -az --delete frontend/dist/      "$REMOTE:$DEPLOY_DIR/public/"
 rsync -az --delete --exclude '_archive' --exclude '.DS_Store' ../data-sources/ "$REMOTE:$DEPLOY_DIR/data-sources/"
 rsync -az --delete data/vectorstore/   "$REMOTE:$DEPLOY_DIR/data/vectorstore/"
 rsync -az .env.dev                      "$REMOTE:$DEPLOY_DIR/.env"
+
+# Release manifest, shell-sourceable. remote-deploy.sh promotes it from
+# RELEASE.pending to RELEASE only once the new container is up.
+RELEASE_FILE=$(mktemp)
+trap 'rm -f "$RELEASE_FILE"' EXIT
+{
+  printf 'GIT_SHA=%q\n' "$GIT_SHA"
+  printf 'IMAGE_TAG=%q\n' "$IMAGE_TAG"
+  printf 'GIT_BRANCH=%q\n' "$GIT_BRANCH"
+  printf 'GIT_SUBJECT=%q\n' "$GIT_SUBJECT"
+  printf 'DIRTY=%q\n' "$DIRTY"
+  printf 'DEPLOYED_AT=%q\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+} > "$RELEASE_FILE"
+rsync -az "$RELEASE_FILE" "$REMOTE:$DEPLOY_DIR/RELEASE.pending"
 echo "ok: synced"
 
 # ---- remote: build, run, serve, TLS ----------------------------------------
@@ -90,6 +126,6 @@ echo "ok: synced"
 # compose exec -T) swallow the rest of the script.
 say "Running remote deploy"
 ssh "$REMOTE" bash "$DEPLOY_DIR/deploy/remote-deploy.sh" \
-  "$DEPLOY_DIR" "$DOMAIN" "$APP_PORT" "$WEBROOT" "$EMAIL" "$SERVER_IP" "$IMAGE" "$COMPOSE"
+  "$DEPLOY_DIR" "$DOMAIN" "$APP_PORT" "$WEBROOT" "$EMAIL" "$SERVER_IP" "$IMAGE_TAG" "$COMPOSE"
 
-say "Done. https://$DOMAIN  (or http:// until TLS is issued)"
+say "Done. $IMAGE_TAG is live on https://$DOMAIN  (promote with ./promote.sh)"

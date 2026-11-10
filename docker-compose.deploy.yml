@@ -1,4 +1,10 @@
-# Production-ish compose for the Amfonica dev site (dev.amfonica.com).
+# Compose for the deployed Amfonica backend, used for both dev.amfonica.com
+# (project "dev", port 8090) and www.amfonica.com (project "amfonica-prod",
+# port 8091). Each site directory has its own .env.
+#
+# The image is tagged by git sha (amfonica-backend:<sha>). deploy.sh builds it
+# and also tags it :dev; promote.sh retags the same image :prod and runs it with
+# --no-build, so prod runs exactly the bytes that were verified on dev.
 #
 # Differs from docker-compose.yml (local dev): no source hot-reload, no Vite dev
 # container (the built SPA is served by the host nginx), Postgres has no host
@@ -10,7 +16,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: amfonica-dev-backend
+    image: amfonica-backend:${IMAGE_TAG:-dev}
     restart: unless-stopped
 
     # Loopback only — the host nginx reverse-proxies /api here.
