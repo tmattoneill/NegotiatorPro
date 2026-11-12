@@ -77,7 +77,7 @@ Keep this file lean — put detail in `docs/`, not here.
 **Project:** Enhanced RAG-based negotiation guidance system with React frontend, FastAPI backend, multi-backend LLM support (OpenAI, Anthropic, Ollama), and document management.
 
 **Branch:** `main`
-**Last Updated:** 10/11/2026, 09:23:39
+**Last Updated:** 12/11/2026, 07:58:13
 
 ### Active Todos
 - [ ] [critical] Test vectorstore rebuild functionality end-to-end with the new bind mount fix to ensure no data loss (`main`)
@@ -92,6 +92,8 @@ Keep this file lean — put detail in `docs/`, not here.
 - [ ] [high] Security: rotate the LINEAR_API_KEY that was pasted into a chat transcript on 2026-06-12. Generate a new personal API key in Linear, revoke the old one, and update LINEAR_API_KEY in the shell profile on each machine. The devctx→Linear hook reads it from env, so no code change needed. (`main`)
 - [ ] [high] Rotate the exposed LINEAR_API_KEY: generate new personal API key in Linear, revoke the old one, update in shell profiles on all machines (`main`)
 - [ ] [high] Before removing the www.amfonica.com beta gate: close open signup (POST /api/users/ lets anyone register and spend our LLM keys). Add invite codes or an allowlist plus rate limits. Then drop the auth_request/error_page lines in deploy/nginx/www.amfonica.com.conf and promote. (`main`)
+- [ ] [high] Push commit 5864656 (AGENTS.md / devctx move) to origin — main is 1 ahead (`main`)
+- [ ] [high] Resume ux/negotiation-management: verify edit modal behavior end-to-end (validation, error states) before moving to delete confirmation work (`main`)
 - [ ] [medium] Replace 'YOU' label with the active Persona Name in chat messages (`main`)
 - [ ] [medium] Show RAG source citations in right margin of chat messages, with hover tooltip revealing the relevant source text (`main`)
 - [ ] [medium] Add copy button to chat prompts and responses — copies raw markdown to clipboard (`main`)
@@ -105,7 +107,9 @@ Keep this file lean — put detail in `docs/`, not here.
 - [ ] [medium] Test rot: fix and then add the `unit` marker to the 4 currently-failing test files left unmarked — test_model_config.py (calls renamed ModelConfig.get_model_kwargs, now _legacy), test_prompt_renderer.py (1 assertion drifted from the slimmed negotiation persona), test_document_manager.py (4 fail), test_admin_config.py (2 fail + 1 error). Until fixed they run only under bare `pytest`, not `pytest -m unit`. (`docs/cleanup-stale`)
 - [ ] [medium] Verify the devctx-to-Linear hook continues working correctly after API key rotation (`main`)
 - [ ] [medium] Fix GitHub "Test Suite" CI: it has failed on every push since at least June 2026 because requirements-test.txt doesn't exist, so no tests run. Add the file (pytest, pytest-asyncio etc.) or point the workflow at requirements.txt plus test deps, then gate on `pytest -m unit`. (`main`)
+- [ ] [medium] Review new Codex AGENTS.md for consistency with trimmed CLAUDE.md to avoid context drift between the two agent docs (`main`)
 - [ ] [low] Partner copy-on-write: private partner copies created before migration 007 (e.g. "Partner - Buyer") have a NULL cloned_from, so the modal's "also update the shared template" option silently no-ops for them. Decide whether to backfill cloned_from for pre-existing copies or accept it (re-cloning fixes it going forward). (`main`)
 - [ ] [low] Document the branch cleanup process and merge criteria in DEPLOY.md or developer docs for future maintenance sessions (`main`)
+- [ ] [low] Delete merged branches ops/prod-pipeline and fix/drop-sentence-transformers locally/remotely (`main`)
 
 <!-- DEVCTX:END -->
