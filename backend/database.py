@@ -92,9 +92,14 @@ class Database:
             try:
                 logger.info(f"Connecting to PostgreSQL at {self.host}:{self.port}/{self.database}")
                 # Get pool settings from config
-                pool_min = config.get("database.pool_min_size", 2)
+                # Neon bills compute time while any connection is open, so the
+                # pool must be allowed to drain to zero and idle connections
+                # must be dropped quickly. Otherwise an unused deployment keeps
+                # the Neon compute awake 24/7 and burns the allowance.
+                pool_min = config.get("database.pool_min_size", 0)
                 pool_max = config.get("database.pool_max_size", 10)
                 cmd_timeout = config.get("database.command_timeout_seconds", 60)
+                idle_lifetime = config.get("database.idle_connection_lifetime_seconds", 60)
 
                 ssl_arg = True if self._ssl_mode == "require" else None
                 self._pool = await asyncpg.create_pool(
@@ -106,6 +111,7 @@ class Database:
                     min_size=pool_min,
                     max_size=pool_max,
                     command_timeout=cmd_timeout,
+                    max_inactive_connection_lifetime=idle_lifetime,
                     **({"ssl": ssl_arg} if ssl_arg else {}),
                 )
                 logger.info("Database connection pool created successfully")

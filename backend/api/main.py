@@ -93,14 +93,10 @@ async def lifespan(app: FastAPI):
     # only warns and allows insecure defaults.
     validate_startup_environment()
 
-    logger.info("Initializing database connection...")
-
-    try:
-        await db.connect()
-        logger.info("Database connection established")
-    except Exception as e:
-        logger.error(f"Failed to connect to database: {e}")
-        logger.warning("Application will continue but database features will be unavailable")
+    # The pool connects lazily on first use (see Database.acquire). Connecting
+    # here would hold open connections from boot, which keeps the Neon compute
+    # awake even when nobody is using the app.
+    logger.info("Database pool will connect on first request")
 
     # Hydrate local corpus + vectorstore from Bunny if missing, before the RAG
     # system lazily loads them on the first request. Off-thread so it never
