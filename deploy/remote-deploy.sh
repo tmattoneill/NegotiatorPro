@@ -18,6 +18,31 @@ IMAGE_REPO="amfonica-backend"
 KEEP_IMAGES="${KEEP_IMAGES:-5}"
 dc() { docker compose -f "$COMPOSE" "$@"; }
 
+# Guard against the Nov 2026 Neon incident. A pool that connects at boot holds
+# connections open forever, Neon counts that as activity, and the compute never
+# scales to zero. A freshly started container that has served no requests must
+# therefore hold no Postgres connections. Checked before anything else talks to
+# the container, so the count reflects the app alone.
+assert_no_idle_db() {  # container-id
+  local pid n
+  pid=$(docker inspect -f '{{.State.Pid}}' "$1") || return 1
+  n=$(sudo -n nsenter -t "$pid" -n ss -Htn state established '( dport = :5432 )' | wc -l | tr -d ' ')
+  if [ "$n" != "0" ]; then
+    echo "ERROR: container holds $n Postgres connection(s) at startup with no traffic." >&2
+    echo "       The pool is eager-connecting again. See 'Neon idle rule' in docs/deployment/DEPLOY.md." >&2
+    return 1
+  fi
+  echo "    idle DB connections at startup: 0 (Neon can scale to zero)"
+}
+
+wait_healthy() {  # container-id
+  for _ in $(seq 1 45); do
+    [ "$(docker inspect -f '{{.State.Health.Status}}' "$1" 2>/dev/null)" = "healthy" ] && return 0
+    sleep 2
+  done
+  return 1
+}
+
 echo "==> Building image $IMAGE_REPO:$IMAGE_TAG"
 dc build backend
 
@@ -29,6 +54,10 @@ dc run --rm --no-deps -T backend python3 - --apply < scripts/migrate.py
 
 echo "==> Starting containers"
 dc up -d
+cid=$(dc ps -q backend)
+wait_healthy "$cid" || { echo "ERROR: backend did not become healthy" >&2; dc logs --tail=40 backend >&2; exit 1; }
+echo "==> Checking the pool is lazy (Neon idle rule)"
+assert_no_idle_db "$cid" || exit 1
 docker tag "$IMAGE_REPO:$IMAGE_TAG" "$IMAGE_REPO:dev"
 
 echo "==> Syncing admin password"

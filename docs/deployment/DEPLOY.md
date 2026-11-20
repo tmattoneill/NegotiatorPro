@@ -124,6 +124,26 @@ This puts `:prod-prev` back as `:prod`, restores `public.prev/` and `RELEASE.pre
 the container. The database is untouched. Roll the data back through the Neon dashboard
 (point-in-time restore) only if a migration itself was the problem.
 
+## Neon idle rule
+
+Neon bills compute time for as long as any connection is open, and the free and $5 tiers cannot
+turn scale-to-zero off. In November 2026 the backend opened two pool connections at boot and held
+them for the life of the process, so the dev and prod computes ran 24/7 with no users and used the
+whole monthly allowance in eight days.
+
+The rule: the backend must never hold a Postgres connection it is not using.
+
+- `config.json` keeps `database.pool_min_size` at `0` and `idle_connection_lifetime_seconds` at or
+  below `300` (Neon suspends after five minutes idle).
+- The app connects on the first request, never in `lifespan`.
+- No background task, scheduler, or health check may query the database on a timer.
+
+Three guards enforce this. `tests/test_db_pool_guard.py` fails if the config or startup code
+regresses. `deploy/remote-deploy.sh` refuses to tag a dev release, and `deploy/remote-promote.sh`
+rolls prod back, if a freshly started container holds any connection to port 5432 before serving a
+request. If you need a warm pool for latency, pay for a Neon plan that allows always-on compute
+first, then change the config and the guards together.
+
 ## Migrations
 
 `scripts/migrate.py` applies `migrations/NNN_*.sql` in order and records each one in

@@ -27,6 +27,23 @@ cd "$PROD_DIR"
 [ -f .env ] || die "$PROD_DIR/.env missing (promote.sh should have synced .env.prod)"
 dc() { IMAGE_TAG=prod docker compose -p "$PROJECT" -f "$COMPOSE" "$@"; }
 
+# Guard against the Nov 2026 Neon incident. A pool that connects at boot holds
+# connections open forever, Neon counts that as activity, and the compute never
+# scales to zero. A freshly started container that has served no requests must
+# therefore hold no Postgres connections. Checked before anything else talks to
+# the container, so the count reflects the app alone.
+assert_no_idle_db() {  # container-id
+  local pid n
+  pid=$(docker inspect -f '{{.State.Pid}}' "$1") || return 1
+  n=$(sudo -n nsenter -t "$pid" -n ss -Htn state established '( dport = :5432 )' | wc -l | tr -d ' ')
+  if [ "$n" != "0" ]; then
+    echo "ERROR: container holds $n Postgres connection(s) at startup with no traffic." >&2
+    echo "       The pool is eager-connecting again. See 'Neon idle rule' in docs/deployment/DEPLOY.md." >&2
+    return 1
+  fi
+  echo "    idle DB connections at startup: 0 (Neon can scale to zero)"
+}
+
 wait_healthy() {
   for _ in $(seq 1 45); do
     curl -fsS -m 3 "http://127.0.0.1:$PROD_PORT/api/health" >/dev/null 2>&1 && return 0
@@ -166,6 +183,13 @@ if ! wait_healthy; then
   die "first promotion failed health check; no previous release to roll back to"
 fi
 say "Healthy on 127.0.0.1:$PROD_PORT"
+if ! assert_no_idle_db "$(dc ps -q backend)"; then
+  if [ "$had_previous" = "1" ]; then
+    rollback
+    die "promotion of $IMAGE_TAG holds idle DB connections (Neon idle rule); rolled back"
+  fi
+  die "first promotion holds idle DB connections (Neon idle rule)"
+fi
 
 say "Syncing admin password"
 dc exec -T backend python3 - < scripts/sync_admin_password.py || echo "    admin sync failed (non-fatal)"

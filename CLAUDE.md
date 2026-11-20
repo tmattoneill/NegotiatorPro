@@ -44,6 +44,7 @@ every supported key (other LLM providers, Postgres, encryption, dev auth, Bunny 
 - Testing → `docs/TESTING.md`
 - Deploy to dev (`./deploy.sh`), the Neon migration step, hosts/paths, rollback → `docs/deployment/DEPLOY.md` (authoritative)
 - Infrastructure (Neon, Bunny, VPS — where everything lives) → `docs/deployment/INFRASTRUCTURE.md`
+- Neon idle rule (never hold DB connections at idle; guards in tests and deploy) → `docs/deployment/DEPLOY.md`
 - Docker internals and local stack → `docs/deployment/DOCKER-DEPLOY.md`
 - Admin panel and Sources & RAG → `docs/features/ADMIN_FEATURES.md`
 - Intent-aware prompting → `docs/features/INTENT_AWARE_PROMPTING.md`
