@@ -139,3 +139,46 @@ def test_general_whitespace():
 
 def test_general_vague():
     assert classify("I'm preparing for a tough negotiation next week.") == "GENERAL"
+
+
+# ------------------------------------------------------------------
+# Follow-up turns (has_history=True)
+# ------------------------------------------------------------------
+
+def test_followup_analysis_verb_does_not_restart_analysis():
+    q = "Excellent. Now give me a PLEASE framework analysis to include to Eniko."
+    assert classify(q) == "ANALYSIS"
+    assert classify(q, has_history=True) == "GENERAL"
+
+def test_followup_quick_analysis_phrase_is_general():
+    assert classify("can you give me a quick analysis of their last email", has_history=True) == "GENERAL"
+
+def test_followup_email_headers_still_analysis():
+    q = "From: eniko@example.com\nSubject: Re: Terms\n\nThanks, see below."
+    assert classify(q, has_history=True) == "ANALYSIS"
+
+def test_followup_tactical_still_fires():
+    assert classify("They came back with 80k, should I accept?", has_history=True) == "TACTICAL"
+
+def test_followup_question_still_fires():
+    assert classify("What is BATNA?", has_history=True) == "QUESTION"
+
+def test_followup_medium_paste_is_general():
+    paste = "\n".join(["Line of pasted notes about the deal."] * 20)  # ~700 chars
+    assert 500 < len(paste) < 1500
+    assert classify(paste) == "ANALYSIS"
+    assert classify(paste, has_history=True) == "GENERAL"
+
+def test_followup_large_paste_is_analysis():
+    paste = "\n".join(["Line of pasted notes about the deal."] * 50)  # ~1800 chars
+    assert len(paste) > 1500
+    assert classify(paste, has_history=True) == "ANALYSIS"
+
+def test_has_history_false_matches_default():
+    for q in (
+        "Can you analyze this email thread for me?",
+        "They said they can only go to 75k. What should I do?",
+        "What is BATNA?",
+        "Interesting situation here.",
+    ):
+        assert classify(q, has_history=False) == classify(q)

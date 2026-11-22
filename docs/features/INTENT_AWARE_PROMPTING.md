@@ -73,7 +73,7 @@ Classification runs on the **raw user question**, before the negotiation briefin
 Priority order matters for edge cases:
 
 1. Email headers → ANALYSIS (highest priority — unambiguous)
-2. Explicit analysis verbs → ANALYSIS
+2. Explicit analysis verbs → ANALYSIS (cold start only, see below)
 3. Tactical signals → TACTICAL (fires before the long-paste heuristic)
 4. Long paste without tactical signals → ANALYSIS
 5. Question patterns → QUESTION
@@ -81,22 +81,37 @@ Priority order matters for edge cases:
 
 TACTICAL fires before the length heuristic so that "here's the thread — they countered, what do I say?" routes to TACTICAL rather than ANALYSIS.
 
+### Follow-up turns
+
+`classify(question, has_history=True)` runs when earlier turns of the conversation are being sent to the model. Once the model can see its own earlier analysis, "now give me a PLEASE framework analysis of that" is a request to build on the thread, not to start over. So on follow-ups:
+
+- The analysis-verb rule is skipped. "Analyse", "what do you think of" and friends classify as GENERAL unless a stronger signal is present.
+- The long-paste threshold rises from 500 to 1500 characters. Only a substantial new paste (a fresh email, a transcript) restarts the ANALYSIS format.
+- Email headers, tactical signals and question patterns fire exactly as before.
+
+GENERAL follow-ups go to the model as typed, without the "Give me a direct, expert answer" wrapper, and the format block is prefixed with `FOLLOWUP_NOTE`, which tells the model to answer only what was asked and not restate the situation analysis.
+
 ### Prompt stack
 
-The system prompt has two layers with different caching behaviour:
+Everything that changes per turn sits at the tail of the message list, so the prefix the providers cache only ever grows:
 
 ```
-[CACHED]     amfonica-meta.md + negotiation-strategist.yaml (persona)
-[NOT CACHED] ## Reference Material
-             {rag_chunks}
-
-             ## Response Format
-             {FORMAT_INSTRUCTIONS[intent]}
-
-[USER MSG]   {USER_TEMPLATES[intent].format(question=question)}
+[SYSTEM A, cached]   amfonica-meta.md + negotiation-strategist.yaml (persona)
+[SYSTEM B, cached]   ## Negotiation Briefing  (parties, roles, notes)
+                     ## Negotiation Memory    (folded summary, see Conversation memory)
+[HISTORY]            earlier turns of this conversation, verbatim user/assistant messages
+                     (Anthropic: cache breakpoint on the last one)
+[FINAL USER MSG]     uploaded file text / partner_info, if any
+                     ## Reference Material  {rag_chunks}
+                     FOLLOWUP_NOTE (follow-ups only)
+                     ## Response Format  {FORMAT_INSTRUCTIONS[intent]}
+                     ---
+                     {USER_TEMPLATES[intent].format(question=question)}
 ```
 
-The cached prefix stays byte-identical regardless of intent — the static system prompt doesn't change between modes. Format instructions and the user message template vary per-request but are in the non-cached suffix. The prompt caching benefit is fully preserved.
+System A is byte-identical for every request in a mode. System B is identical for every turn of a negotiation until the memory refreshes. On Anthropic each of these carries a `cache_control` breakpoint, plus one on the last history message, so turn N+1 reads turn N's whole prefix from cache and pays full price only for the tail. OpenAI caches the longest matching prefix automatically, so the same layout works with plain strings. `rag_engine._build_messages` owns this layout and `tests/test_message_layout.py` pins it.
+
+Text preprocessing applies to the user's question only. The briefing, memory and history are sent as-is.
 
 `amfonica-meta.md` contains a single line in its output section: "Follow the response format provided with each request." It no longer contains the PLEASE structure definition, which now lives in `FORMAT_INSTRUCTIONS["ANALYSIS"]`.
 
@@ -108,9 +123,10 @@ chat.py
   └─ get_advice(question=enhanced_question, raw_question=raw_question)
 
 rag_engine.py
-  └─ intent = classify(raw_question)
-  └─ prompt_manager.get_prompt_parts(intent=intent)
-  └─ returns (answer, usage, intent)
+  └─ intent = classify(raw_question, has_history=bool(history))
+  └─ prompt_manager.get_prompt_parts(intent=intent, briefing=, memory=, has_history=)
+  └─ _build_messages(backend, parts, history, extra_context)
+  └─ returns (answer, usage, intent, sources)
 
 chat.py
   └─ ChatResponse(answer, model_used, detected_intent=intent)
@@ -126,12 +142,34 @@ frontend
 
 | File | Role |
 |------|------|
-| `backend/intent_classifier.py` | Classifier, `FORMAT_INSTRUCTIONS`, `USER_TEMPLATES` |
-| `backend/prompt_manager.py` | Injects format instructions into context block |
-| `backend/rag_engine.py` | Calls classifier, passes intent to prompt manager, returns 3-tuple |
-| `backend/api/routes/chat.py` | Passes `raw_question`, unpacks 3-tuple, persists intent |
+| `backend/intent_classifier.py` | Classifier, `FORMAT_INSTRUCTIONS`, `USER_TEMPLATES`, `FOLLOWUP_NOTE` |
+| `backend/prompt_manager.py` | Builds `PromptParts` (static, negotiation block, context block, user prompt) |
+| `backend/rag_engine.py` | Calls classifier, builds the cache-friendly message list, returns 4-tuple |
+| `backend/api/routes/chat.py` | Loads conversation context once, selects the history window, persists the turn, spawns the memory fold |
+| `backend/conversation_memory.py` | History window selection, memory fold prompt and background refresh |
+| `migrations/012_negotiation_memory.sql` | Adds `memory JSONB` to `negotiations` |
 | `prompts/amfonica-meta.md` | Static system prompt — output section delegates to per-request format |
 | `migrations/008_detected_intent.sql` | Adds `detected_intent VARCHAR(20)` to `chat_messages` |
+
+## Conversation memory
+
+Before this, every turn was a cold start: `get_advice` sent only the system prompt and the current question, so a follow-up like "now give me a PLEASE analysis" regenerated the whole situation analysis. Two layers now give the chat continuity.
+
+**Verbatim window.** The newest turns of the current conversation are loaded from `chat_messages` and sent as real user/assistant messages. `conversation_memory.select_history_window` keeps whole turns within a token budget (chars/4), always at least `history_min_turns`, never more than `history_max_turns`. No model call.
+
+**Negotiation memory.** A compact markdown summary stored in `negotiations.memory`: state of play, offers on the table, agreed facts, open questions, user instructions and preferences, next steps. It spans every conversation in the negotiation. After a turn is saved, `maybe_refresh_memory` runs in the background and folds only the turns that have left the verbatim window since the last refresh (previous memory + dropped turns → new memory). It never runs on every turn, and on the first turns of a negotiation it does nothing at all. The fold uses a fixed cheap model on the system key (`gpt-4o-mini`), so it does not depend on the user's provider having a key. A failed fold leaves the old memory in place and is retried on the next save.
+
+Config, in `config.json` under `chat_memory` (env overrides `CHAT_MEMORY_ENABLED`, `CHAT_MEMORY_WINDOW_TOKENS`, `CHAT_MEMORY_MIN_TURNS`, `CHAT_MEMORY_MAX_TURNS`):
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `enabled` | `true` | Turn history and memory off entirely |
+| `history_window_tokens` | `7000` | Budget for the verbatim window |
+| `history_min_turns` / `history_max_turns` | `4` / `12` | Bounds on the window. The start steps by (max - min) turns rather than sliding by one, so the cached prefix stays stable for a run of turns |
+| `memory_refresh_model` | `gpt-4o-mini` | OpenAI model for the fold |
+| `memory_max_chars` | `4000` | Cap on the stored summary |
+
+Inspect a negotiation's memory with `GET /api/negotiations/{id}/memory?user_id=`. Super-admin chats have no conversation and stay stateless by design.
 
 ## Extending the system
 

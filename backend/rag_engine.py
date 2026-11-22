@@ -6,6 +6,7 @@ for the NegotiatorPro system, extracted from main.py for better separation
 of concerns and to prepare for React frontend migration.
 """
 
+import hashlib
 import os
 import logging
 import time
@@ -18,13 +19,19 @@ from langchain_community.document_loaders import PyPDFLoader, TextLoader, Docx2t
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
 from .admin_config import AdminConfig
 from .document_manager import DocumentManager
 from .embedding_config import EmbeddingConfig
 from .intent_classifier import classify as classify_intent
 from .text_preprocessor import TextPreprocessor
-from .prompt_manager import PromptManager
+from .prompt_manager import PromptManager, PromptParts
+
+# The last user turn is appended to the retrieval query on follow-ups so a
+# short "what about the equity point?" still finds the right chunks. Capped so
+# a pasted email in the previous turn does not swamp the current question.
+RETRIEVAL_HISTORY_CHARS = 1500
 from .llm_backend_config import backend_manager
 from .config_loader import config
 from .runpod_llm import ChatRunPod, is_runpod_available
@@ -605,6 +612,88 @@ class EnhancedNegotiationRAG:
             "cache_creation": int(details.get("cache_creation", 0) or 0),
         }
 
+    @staticmethod
+    def _build_retrieval_query(question: str, history: List[Dict[str, str]]) -> str:
+        """Question plus the previous user turn (capped), so short follow-ups
+        still retrieve on the topic under discussion."""
+        if not history:
+            return question
+        last_user = next(
+            (h.get("content", "") for h in reversed(history) if h.get("role") == "user"),
+            "",
+        )
+        last_user = (last_user or "")[:RETRIEVAL_HISTORY_CHARS]
+        return f"{last_user}\n{question}" if last_user else question
+
+    @staticmethod
+    def _build_messages(
+        backend_id: str,
+        parts: PromptParts,
+        history: List[Dict[str, str]],
+        extra_context: str = "",
+    ) -> List[BaseMessage]:
+        """Assemble the chat messages so the cacheable prefix only ever grows.
+
+        Layout (all providers):
+            system    = static prefix (+ negotiation block)
+            history   = earlier turns, verbatim
+            final user= extra_context + reference material + format + question
+
+        Everything that changes per turn (reference chunks, format
+        instructions, the question) sits in the final message, after the
+        history. So on turn N+1 the prefix (system + history) is identical to
+        turn N's prefix plus turn N's exchange, which is exactly what the
+        providers' prefix caches reward.
+
+        Anthropic needs explicit breakpoints: one after the static prefix, one
+        after the negotiation block, one on the last history message. OpenAI
+        caches the longest matching prefix automatically, so plain strings
+        suffice; Ollama and RunPod get the same plain strings (RunPod only
+        understands BaseMessage objects with string content).
+        """
+        anthropic = backend_id == "anthropic"
+
+        tail_parts = [
+            part for part in (
+                (extra_context or "").strip(),
+                parts.context_block.strip(),
+            ) if part
+        ]
+        tail_parts.append(parts.user_prompt.strip())
+        final_user_text = "\n\n---\n\n".join(tail_parts)
+
+        messages: List[BaseMessage] = []
+        if anthropic:
+            system_blocks: List[Dict[str, Any]] = [
+                {"type": "text", "text": parts.static_system,
+                 "cache_control": {"type": "ephemeral"}},
+            ]
+            if parts.negotiation_block:
+                system_blocks.append(
+                    {"type": "text", "text": parts.negotiation_block,
+                     "cache_control": {"type": "ephemeral"}}
+                )
+            messages.append(SystemMessage(content=system_blocks))
+        else:
+            system_text = parts.static_system.rstrip()
+            if parts.negotiation_block:
+                system_text = f"{system_text}\n\n{parts.negotiation_block}"
+            messages.append(SystemMessage(content=system_text + "\n"))
+
+        last_index = len(history) - 1
+        for index, turn in enumerate(history):
+            cls = HumanMessage if turn.get("role") == "user" else AIMessage
+            text = turn.get("content", "") or ""
+            if anthropic and index == last_index:
+                messages.append(cls(content=[
+                    {"type": "text", "text": text, "cache_control": {"type": "ephemeral"}}
+                ]))
+            else:
+                messages.append(cls(content=text))
+
+        messages.append(HumanMessage(content=final_user_text))
+        return messages
+
     def get_advice(
         self,
         question: str,
@@ -616,12 +705,17 @@ class EnhancedNegotiationRAG:
         user_api_keys: Optional[Dict[str, str]] = None,
         return_usage: bool = False,
         raw_question: Optional[str] = None,
+        history: Optional[List[Dict[str, str]]] = None,
+        briefing: str = "",
+        memory: str = "",
+        extra_context: str = "",
     ):
         """
         Get negotiation advice based on the question using proper chat completion.
 
         Args:
-            question: The user's negotiation question
+            question: The user's negotiation question (the raw text; the
+                caller no longer prepends the briefing)
             use_premium_model: Whether to use the premium model
             use_preprocessing: Whether to preprocess the input text
             override_backend: Optional backend override
@@ -629,6 +723,12 @@ class EnhancedNegotiationRAG:
             return_usage: When True, return (answer, usage_dict) instead of just
                 the answer string. usage_dict has input/output/total token counts
                 and Anthropic cache_read/cache_creation when available.
+            history: Earlier turns of this conversation, oldest first, as
+                [{"role": "user"|"assistant", "content": str}]. Sent verbatim.
+            briefing: The negotiation briefing (parties, roles, notes).
+            memory: The negotiation memory block, if any.
+            extra_context: Per-turn material such as uploaded file text or
+                the legacy partner_info field. Goes in the final user message.
 
         Returns:
             The AI's response as a string, or (answer, usage) when return_usage.
@@ -680,13 +780,19 @@ class EnhancedNegotiationRAG:
                 logger.error(f"Test prompt LLM call failed: {e}")
                 raise LLMGenerationError(f"Connection test failed: {e}") from e
 
-        # Classify intent from the raw question (before briefing is prepended).
-        # Must run before preprocessing so the original phrasing is intact.
-        classification_input = raw_question if raw_question else question
-        intent = classify_intent(classification_input)
-        logger.info("Intent: %s (input: %r)", intent, classification_input[:80])
+        history = list(history or [])
+        has_history = bool(history)
 
-        # Preprocess the question if enabled
+        # Classify intent from the raw question. Must run before preprocessing
+        # so the original phrasing is intact. Follow-ups classify more
+        # conservatively so a short "now give me X" builds on the thread.
+        classification_input = raw_question if raw_question else question
+        intent = classify_intent(classification_input, has_history=has_history)
+        logger.info("Intent: %s (history=%d turns, input: %r)", intent, len(history) // 2, classification_input[:80])
+
+        # Preprocess only the user's own question. The briefing, memory and
+        # history are sent as-is: stripping filler from the persona briefing
+        # was degrading the very context we rely on.
         preprocessing_info = None
         if use_preprocessing and len(question.strip()) > 100:  # Only preprocess longer texts
             preprocessing_result = self.text_preprocessor.preprocess(question)
@@ -724,52 +830,40 @@ class EnhancedNegotiationRAG:
                 tags_filter = ["negotiation"]
 
             # Get relevant context from vectorstore. Retrieve the docs once so we
-            # can both build the prompt context and surface the citations.
-            relevant_docs = self._retrieve_docs(question, tags_filter=tags_filter)
+            # can both build the prompt context and surface the citations. The
+            # query is the question plus the previous user turn, never the
+            # briefing or memory.
+            retrieval_query = self._build_retrieval_query(question, history)
+            relevant_docs = self._retrieve_docs(retrieval_query, tags_filter=tags_filter)
             context = self._format_context(relevant_docs)
             sources = self._build_source_refs(relevant_docs)
 
-            # Split the prompt into a static prefix (meta + persona, identical
-            # every request) and the per-request context. mode selects which
-            # persona stacks on the meta prompt; mode=auto uses meta only.
-            static_system, context_block, user_prompt = self.prompt_manager.get_prompt_parts(
+            # Split the prompt into a static prefix (meta + persona), the
+            # per-negotiation block (briefing + memory) and the per-request
+            # tail. mode selects which persona stacks on the meta prompt;
+            # mode=auto uses meta only.
+            parts = self.prompt_manager.get_prompt_parts(
                 question=question,
                 context=context,
                 mode=mode,
                 intent=intent,
+                briefing=briefing,
+                memory=memory,
+                has_history=has_history,
             )
 
-            # Provider-aware system message for prompt caching.
-            #   anthropic: mark the static prefix with cache_control so it's
-            #     cached across requests; context goes in a second, uncached
-            #     block after the breakpoint.
-            #   openai: a single static-first string lets OpenAI auto-cache the
-            #     identical prefix (>1024 tokens).
-            #   ollama/others: no caching; the string form is equivalent.
-            if backend_id == "anthropic":
-                system_content = [
-                    {"type": "text", "text": static_system,
-                     "cache_control": {"type": "ephemeral"}},
-                ]
-                if context_block:
-                    system_content.append({"type": "text", "text": context_block})
-                system_message = {"role": "system", "content": system_content}
-                sys_len = len(static_system) + len(context_block)
-            else:
-                system_text = (
-                    f"{static_system.rstrip()}\n\n{context_block}\n"
-                    if context_block else static_system
-                )
-                system_message = {"role": "system", "content": system_text}
-                sys_len = len(system_text)
+            messages = self._build_messages(backend_id, parts, history, extra_context)
 
-            # Create messages for chat completion
-            messages = [
-                system_message,
-                {"role": "user", "content": user_prompt},
-            ]
-
-            logger.info(f"Sending chat completion request with {sys_len} char system prompt and {len(user_prompt)} char user prompt (backend={backend_id})")
+            # The two prefix hashes make cache misses diagnosable from the log:
+            # if either changes between turns of one negotiation, the provider
+            # cannot have hit its cache past that point.
+            logger.info(
+                "Sending chat completion: backend=%s static=%d (%s) negotiation=%d (%s) history=%d msgs tail=%d chars",
+                backend_id,
+                len(parts.static_system), hashlib.md5(parts.static_system.encode()).hexdigest()[:8],
+                len(parts.negotiation_block), hashlib.md5(parts.negotiation_block.encode()).hexdigest()[:8],
+                len(history), len(messages[-1].content) if isinstance(messages[-1].content, str) else -1,
+            )
 
             # Call the LLM with proper chat format
             response = llm.invoke(messages)

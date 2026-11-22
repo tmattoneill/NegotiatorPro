@@ -77,10 +77,11 @@ Keep this file lean — put detail in `docs/`, not here.
 **Project:** Enhanced RAG-based negotiation guidance system with React frontend, FastAPI backend, multi-backend LLM support (OpenAI, Anthropic, Ollama), and document management.
 
 **Branch:** `main`
-**Last Updated:** 12/11/2026, 07:58:13
+**Last Updated:** 22/11/2026, 09:55:29
 
 ### Active Todos
 - [ ] [critical] Test vectorstore rebuild functionality end-to-end with the new bind mount fix to ensure no data loss (`main`)
+- [ ] [critical] Chat is stateless: get_advice sends only [system, current question], so every turn is a cold start and follow-ups like "now give me a PLEASE analysis" regenerate the whole Situation Analysis. The regex intent classifier also tags any message containing "analysis" as ANALYSIS. Fix: send the last N turns from get_conversation_messages as user/assistant messages; make the classifier history-aware so short follow-ups default to GENERAL/TACTICAL; drop the "Please analyse" wrapper on follow-ups. (`main`)
 - [ ] [high] Fix chat message typography: inconsistent fonts, sizes, and heading weights across markdown elements — needs a single coherent type scale applied to all rendered output (`main`)
 - [ ] [high] Add context switching between negotiation and sales modes: NLP auto-detect intent from the query and switch mode automatically, inform the user which mode is active, allow explicit override ("what's a good negotiation strategy..." always works regardless of current mode) (`main`)
 - [ ] [high] Create edit negotiation modal UI to utilize existing backend CRUD endpoints (`ux/negotiation-management`)
@@ -94,6 +95,8 @@ Keep this file lean — put detail in `docs/`, not here.
 - [ ] [high] Before removing the www.amfonica.com beta gate: close open signup (POST /api/users/ lets anyone register and spend our LLM keys). Add invite codes or an allowlist plus rate limits. Then drop the auth_request/error_page lines in deploy/nginx/www.amfonica.com.conf and promote. (`main`)
 - [ ] [high] Push commit 5864656 (AGENTS.md / devctx move) to origin — main is 1 ahead (`main`)
 - [ ] [high] Resume ux/negotiation-management: verify edit modal behavior end-to-end (validation, error states) before moving to delete confirmation work (`main`)
+- [ ] [high] Chat input dead-ends when no negotiation exists: the only create path is the tiny "+ New" in the sidebar, the disabled input gives no action, the welcome CTA vanishes once any message (even a rejected one) is shown, and the persona form reads as "negotiation setup". Fix: make the disabled input click/paste open the negotiation modal, add a persistent "New negotiation" banner above the input when none is selected, and open the modal after first persona save if the user has no negotiations. (`main`)
+- [ ] [high] NegotiationModal create is non-atomic and hides errors: it saves the user persona before validating the partner, so a partner validation failure leaves an orphan persona (prod 2026-11-22: "Matt ONEILL" persona created, no negotiation). The error renders at the top of a long scrolling modal, out of view of Save, so it looks like nothing happened. Partner is required but unmarked. Fix: validate all sections before any write, show the error beside Save and scroll to it, mark partner required. (`main`)
 - [ ] [medium] Replace 'YOU' label with the active Persona Name in chat messages (`main`)
 - [ ] [medium] Show RAG source citations in right margin of chat messages, with hover tooltip revealing the relevant source text (`main`)
 - [ ] [medium] Add copy button to chat prompts and responses — copies raw markdown to clipboard (`main`)

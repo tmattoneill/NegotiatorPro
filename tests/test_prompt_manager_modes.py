@@ -137,3 +137,66 @@ def test_validate_prompts_reports_loaded_state(manager):
     assert v["sales_persona_loaded"]
     assert v["negotiation_persona_loaded"]
     assert v["user_template_has_question"]
+
+
+# ------------------------------------------------------------------
+# get_prompt_parts: negotiation block, follow-up handling
+# ------------------------------------------------------------------
+
+from backend.intent_classifier import FOLLOWUP_NOTE, USER_TEMPLATES
+from backend.prompt_manager import NEGOTIATION_BLOCK_MAX_CHARS
+
+
+def test_prompt_parts_negotiation_block_holds_briefing_and_memory_only(manager):
+    parts = manager.get_prompt_parts(
+        "q", "REF CHUNK", mode="negotiation", intent="GENERAL",
+        briefing="## Negotiation Briefing\n\nTitle: Deal", memory="## Negotiation Memory\n\n- open: price",
+    )
+    assert parts.negotiation_block.startswith("## Negotiation Briefing")
+    assert "## Negotiation Memory" in parts.negotiation_block
+    assert "REF CHUNK" not in parts.negotiation_block
+    assert "Deal" not in parts.static_system
+    assert "REF CHUNK" in parts.context_block
+
+
+def test_prompt_parts_empty_briefing_and_memory_gives_empty_block(manager):
+    parts = manager.get_prompt_parts("q", "", mode="negotiation")
+    assert parts.negotiation_block == ""
+
+
+def test_prompt_parts_followup_note_only_with_history(manager):
+    cold = manager.get_prompt_parts("q", "ctx", mode="negotiation", intent="GENERAL", has_history=False)
+    warm = manager.get_prompt_parts("q", "ctx", mode="negotiation", intent="GENERAL", has_history=True)
+    assert FOLLOWUP_NOTE not in cold.context_block
+    assert FOLLOWUP_NOTE in warm.context_block
+    # Format instructions still follow the note so the PLEASE trailer survives.
+    assert "```please" in warm.context_block
+
+
+def test_prompt_parts_general_followup_sends_bare_question(manager):
+    question = "What about the equity point?"
+    cold = manager.get_prompt_parts(question, "", mode="negotiation", intent="GENERAL", has_history=False)
+    warm = manager.get_prompt_parts(question, "", mode="negotiation", intent="GENERAL", has_history=True)
+    assert cold.user_prompt == USER_TEMPLATES["GENERAL"].format(question=question)
+    assert warm.user_prompt == question
+
+
+def test_prompt_parts_non_general_followup_keeps_template(manager):
+    question = "They countered at 80k, what do I say?"
+    warm = manager.get_prompt_parts(question, "", mode="negotiation", intent="TACTICAL", has_history=True)
+    assert warm.user_prompt == USER_TEMPLATES["TACTICAL"].format(question=question)
+
+
+def test_prompt_parts_static_system_is_history_independent(manager):
+    cold = manager.get_prompt_parts("q", "ctx", mode="negotiation", has_history=False, briefing="b")
+    warm = manager.get_prompt_parts("q", "ctx", mode="negotiation", has_history=True, briefing="b", memory="m")
+    assert cold.static_system == warm.static_system
+
+
+def test_prompt_parts_oversized_memory_is_trimmed(manager, caplog):
+    briefing = "B" * 1000
+    memory = "M" * (NEGOTIATION_BLOCK_MAX_CHARS + 500)
+    parts = manager.get_prompt_parts("q", "", mode="negotiation", briefing=briefing, memory=memory)
+    assert len(parts.negotiation_block) <= NEGOTIATION_BLOCK_MAX_CHARS + 2
+    assert parts.negotiation_block.startswith(briefing)
+    assert "oversized" in caplog.text

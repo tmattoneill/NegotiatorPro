@@ -84,6 +84,14 @@
     "retrieval_k": 5,
     "preprocess_min_length": 100
   },
+  "chat_memory": {
+    "enabled": true,
+    "history_window_tokens": 7000,
+    "history_min_turns": 4,
+    "history_max_turns": 12,
+    "memory_refresh_model": "gpt-4o-mini",
+    "memory_max_chars": 4000
+  },
   "uploads": {
     "max_file_size_mb": 50,
     "supported_extensions": [".pdf", ".txt", ".docx", ".doc"]

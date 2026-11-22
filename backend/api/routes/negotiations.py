@@ -543,6 +543,24 @@ async def _assemble_transcript(negotiation_id: UUID) -> tuple[str, int]:
     return transcript, total
 
 
+@negotiations_router.get("/{negotiation_id}/memory")
+async def get_negotiation_memory(negotiation_id: UUID, user_id: UUID) -> dict:
+    """The negotiation's long-term chat memory, for inspection.
+
+    Returns the stored memory object ({summary_md, source_message_count,
+    updated_at, model}) or {} when nothing has been folded yet. Backend-only
+    for now; a UI panel is a follow-up.
+    """
+    negotiation = await db_ops.get_negotiation(negotiation_id)
+    if not negotiation or str(negotiation.get("user_id")) != str(user_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Negotiation not found",
+        )
+    memory = negotiation.get("memory")
+    return memory if isinstance(memory, dict) else {}
+
+
 @negotiations_router.get("/{negotiation_id}/context", response_model=NegotiationContextResponse)
 async def get_negotiation_context(
     negotiation_id: UUID,

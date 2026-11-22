@@ -2,6 +2,7 @@
 import asyncio
 import logging
 import time
+from dataclasses import dataclass
 from uuid import UUID
 from typing import List, Optional, Tuple
 from fastapi import APIRouter, HTTPException, status, File, UploadFile, Form, Depends
@@ -11,6 +12,12 @@ from ..models.responses import ChatResponse, PleaseScore, SourceCitation
 from ...rag_engine import EnhancedNegotiationRAG, LLMGenerationError, MissingAPIKeyError
 from ...please_parser import parse_and_strip
 from ... import db_operations as db_ops
+from ...conversation_memory import (
+    build_memory_block,
+    get_memory_settings,
+    load_history_window,
+    maybe_refresh_memory,
+)
 from ...persona_text import is_placeholder
 from ..middleware.auth import get_current_user
 from ...user_profile import UserProfileManager
@@ -21,6 +28,62 @@ router = APIRouter(prefix="/api", tags=["chat"])
 
 # Initialize RAG system (singleton)
 rag_system = None
+
+# Background memory refreshes. asyncio only keeps weak references to tasks,
+# so hold them here until they finish or they can be garbage-collected mid-run.
+_background_tasks: set = set()
+
+
+def _spawn_background(coro) -> None:
+    task = asyncio.create_task(coro)
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
+
+
+@dataclass
+class ChatContext:
+    """Everything the chat turn needs from the database, loaded once.
+
+    detail is the negotiation with personas, settings, context and memory
+    (db_ops.get_negotiation_detail). owns is True only when the authenticated
+    user owns the negotiation; nothing is persisted or recalled otherwise.
+    """
+
+    conversation_id: Optional[UUID] = None
+    conversation: Optional[dict] = None
+    detail: Optional[dict] = None
+    owns: bool = False
+
+    @property
+    def negotiation_id(self) -> Optional[UUID]:
+        return self.detail["id"] if self.detail else None
+
+    @property
+    def settings(self) -> dict:
+        return (self.detail or {}).get("settings") or {}
+
+
+async def load_chat_context(conversation_id: Optional[str], user_id: Optional[str]) -> ChatContext:
+    """Resolve conversation -> negotiation -> ownership in one pass."""
+    ctx = ChatContext()
+    if not conversation_id:
+        return ctx
+    try:
+        ctx.conversation_id = UUID(conversation_id)
+    except ValueError:
+        logger.warning(f"Invalid conversation_id format: {conversation_id}")
+        return ctx
+    try:
+        ctx.conversation = await db_ops.get_conversation(ctx.conversation_id)
+        if ctx.conversation:
+            ctx.detail = await db_ops.get_negotiation_detail(ctx.conversation["negotiation_id"])
+    except Exception as exc:
+        logger.warning(f"Could not load chat context for conversation {conversation_id}: {exc}")
+        return ctx
+    ctx.owns = bool(
+        ctx.detail and user_id and str(ctx.detail.get("user_id")) == str(user_id)
+    )
+    return ctx
 
 
 def get_rag_system():
@@ -37,7 +100,7 @@ def get_rag_system():
 async def resolve_provider_preferences(
     request_provider: Optional[str],
     request_model: Optional[str],
-    conversation_id: Optional[str],
+    negotiation_settings: Optional[dict],
     user_id: Optional[str]
 ) -> Tuple[Optional[str], Optional[str], str]:
     """
@@ -45,7 +108,7 @@ async def resolve_provider_preferences(
 
     Priority order:
     1. Request-level override (provider/model from API request)
-    2. Negotiation-level setting (from negotiation.settings)
+    2. Negotiation-level setting (from negotiation.settings, already loaded)
     3. User-level default preference (from user profile)
     4. System default (None - let RAG system decide)
 
@@ -56,22 +119,13 @@ async def resolve_provider_preferences(
     if request_provider and request_model:
         return request_provider, request_model, "request_override"
 
-    # Level 2: Check negotiation settings if conversation_id provided
-    if conversation_id:
-        try:
-            conv_uuid = UUID(conversation_id)
-            conversation = await db_ops.get_conversation(conv_uuid)
-            if conversation:
-                negotiation = await db_ops.get_negotiation(conversation['negotiation_id'])
-                if negotiation and negotiation.get('settings'):
-                    settings = negotiation['settings']
-                    neg_provider = settings.get('provider')
-                    neg_model = settings.get('model')
-                    if neg_provider and neg_model:
-                        logger.info(f"Using negotiation-level provider preference: {neg_provider}/{neg_model}")
-                        return neg_provider, neg_model, "negotiation_settings"
-        except (ValueError, Exception) as e:
-            logger.warning(f"Could not resolve negotiation settings: {e}")
+    # Level 2: Negotiation settings
+    if negotiation_settings:
+        neg_provider = negotiation_settings.get('provider')
+        neg_model = negotiation_settings.get('model')
+        if neg_provider and neg_model:
+            logger.info(f"Using negotiation-level provider preference: {neg_provider}/{neg_model}")
+            return neg_provider, neg_model, "negotiation_settings"
 
     # Level 3: Check user profile preferences
     if user_id:
@@ -101,30 +155,14 @@ def _format_kv(label: str, value: Optional[str]) -> Optional[str]:
     return f"- **{label}**: {value.strip()}"
 
 
-async def build_negotiation_briefing(conversation_id: Optional[str]) -> str:
+def build_negotiation_briefing(detail: Optional[dict]) -> str:
     """
-    Load the current negotiation + personas from PostgreSQL and format them as
-    a markdown briefing block to prepend to the user's question.
+    Format a loaded negotiation (with personas) as a markdown briefing block.
 
-    Returns an empty string when the conversation_id is missing, malformed, or
-    points at a negotiation with no useful briefing data.
+    Returns an empty string when there is no negotiation or nothing useful to
+    say about it. Pure: the caller loads detail via load_chat_context.
     """
-    if not conversation_id:
-        return ""
-    try:
-        conv_uuid = UUID(conversation_id)
-    except ValueError:
-        return ""
-
-    try:
-        conversation = await db_ops.get_conversation(conv_uuid)
-        if not conversation:
-            return ""
-        detail = await db_ops.get_negotiation_detail(conversation["negotiation_id"])
-        if not detail:
-            return ""
-    except Exception as exc:
-        logger.warning(f"Could not load briefing for conversation {conversation_id}: {exc}")
+    if not detail:
         return ""
 
     sections: List[str] = []
@@ -292,12 +330,20 @@ async def process_chat(
         logger.info(f"Processing question: {question[:50]}...")
         logger.info(f"Premium model: {use_premium_model}, Preprocessing: {use_preprocessing}")
 
-        # Resolve provider preferences from multiple levels
         user_id = current_user.get('id') if current_user else None
+        # Super admin chats are for testing only: no conversation is persisted,
+        # so there is no history or memory to recall. They stay stateless.
+        is_super_admin = bool(current_user and current_user.get('is_super_admin', False))
+
+        # One pass over conversation -> negotiation -> ownership. The same
+        # loaded detail feeds provider resolution, the briefing, the memory
+        # and the save step below.
+        ctx = await load_chat_context(conversation_id, user_id)
+
         resolved_provider, resolved_model, preference_source = await resolve_provider_preferences(
             request_provider=provider,
             request_model=model,
-            conversation_id=conversation_id,
+            negotiation_settings=ctx.settings,
             user_id=user_id
         )
 
@@ -311,21 +357,36 @@ async def process_chat(
         if files:
             file_context = await process_uploaded_files(files)
 
-        # Enhance question with the negotiation briefing (loaded server-side
-        # from conversation_id), uploaded file context, and the legacy
-        # partner_info form field (if the frontend chose to send one).
-        enhanced_question = question
-
-        briefing = await build_negotiation_briefing(conversation_id)
+        briefing = build_negotiation_briefing(ctx.detail)
         if briefing:
             logger.info(f"Briefing loaded for conversation {conversation_id} ({len(briefing)} chars)")
-            enhanced_question = f"{briefing}\n\n---\n\n{enhanced_question}"
 
-        if file_context:
-            enhanced_question = f"{file_context}\n\n{enhanced_question}"
-
+        # Per-turn extras go in the final user message: uploaded file text and
+        # the legacy partner_info form field (if the frontend chose to send one).
+        extra_parts: List[str] = []
         if partner_info and partner_info.strip():
-            enhanced_question = f"Additional partner context: {partner_info}\n\n{enhanced_question}"
+            extra_parts.append(f"Additional partner context: {partner_info.strip()}")
+        if file_context:
+            extra_parts.append(file_context)
+        extra_context = "\n\n".join(extra_parts)
+
+        # Conversation memory: the verbatim window of recent turns plus the
+        # negotiation-level summary. Only for the owner of a real conversation.
+        memory_settings = get_memory_settings()
+        history: List[dict] = []
+        memory_block = ""
+        if ctx.owns and not is_super_admin and memory_settings["enabled"]:
+            try:
+                history = await load_history_window(ctx.conversation_id, memory_settings)
+                memory_block = build_memory_block((ctx.detail or {}).get("memory"))
+                logger.info(
+                    "Memory loaded: %d history turns, memory=%d chars",
+                    len(history) // 2, len(memory_block),
+                )
+            except Exception as exc:
+                # Recall is best-effort: a failed load degrades to a cold turn.
+                logger.warning(f"Could not load conversation memory: {exc}")
+                history, memory_block = [], ""
 
         # Fetch user's stored API keys to pass through to the LLM
         user_api_keys = None
@@ -340,7 +401,7 @@ async def process_chat(
         # thread so it doesn't block the event loop and serialize all requests.
         answer, usage, detected_intent, sources = await asyncio.to_thread(
             rag.get_advice,
-            question=enhanced_question,
+            question=question,
             use_premium_model=use_premium_model,
             use_preprocessing=use_preprocessing,
             override_backend=resolved_provider,
@@ -352,11 +413,15 @@ async def process_chat(
             user_api_keys=user_api_keys,
             return_usage=True,
             raw_question=question,
+            history=history,
+            briefing=briefing,
+            memory=memory_block,
+            extra_context=extra_context,
         )
 
-        # Pull the PLEASE self-assessment out of the answer (ANALYSIS intent only)
-        # and strip its block so the chat bubble shows clean prose; the gutter
-        # renders the scores. Non-ANALYSIS answers come back unchanged with None.
+        # Pull the PLEASE self-assessment out of the answer and strip its block
+        # so the chat bubble shows clean prose; the gutter renders the scores.
+        # Every intent carries the PLEASE trailer, so this applies to all turns.
         answer, please_scores = parse_and_strip(answer)
 
         processing_time = time.time() - start_time
@@ -376,58 +441,51 @@ async def process_chat(
 
         # Save messages to database if a conversation is provided (prefer authenticated user)
         # NOTE: Super admin does not save conversations - chat is for testing only
-        is_super_admin = current_user and current_user.get('is_super_admin', False)
-
         if is_super_admin and conversation_id:
             logger.info("Super admin chat - conversation not persisted (testing mode)")
 
         if conversation_id and not is_super_admin:
             try:
-                conversation_uuid = UUID(conversation_id)
-
                 # Persist only for an authenticated user who actually owns this
                 # conversation. We never derive the owner from the conversation
                 # itself — doing so let an unauthenticated caller write messages
                 # attributed to the conversation's real owner (IDOR / spoofing).
                 if not (current_user and current_user.get('id')):
                     logger.info("Unauthenticated chat — messages not persisted")
+                elif not ctx.owns or not ctx.conversation_id:
+                    logger.warning(
+                        "User %s does not own conversation %s — messages not persisted",
+                        current_user['id'], conversation_id,
+                    )
                 else:
                     user_uuid = UUID(current_user['id'])
-
-                    # Verify ownership: conversation → negotiation → user_id
-                    conversation = await db_ops.get_conversation(conversation_uuid)
-                    negotiation = (
-                        await db_ops.get_negotiation(conversation['negotiation_id'])
-                        if conversation else None
+                    # Atomic: user + assistant rows commit together or not at all
+                    await db_ops.save_conversation_turn(
+                        conversation_id=ctx.conversation_id,
+                        user_id=user_uuid,
+                        user_content=question,
+                        assistant_content=answer,
+                        model=model_used,
+                        preprocessing_applied=use_preprocessing,
+                        detected_intent=detected_intent,
+                        please_score=please_scores,
+                        sources=sources,
                     )
-                    owns_conversation = bool(
-                        negotiation and str(negotiation['user_id']) == str(user_uuid)
+                    logger.info(
+                        "Messages saved to conversation %s (user=%s)",
+                        conversation_id, current_user['username'],
                     )
 
-                    if not owns_conversation:
-                        logger.warning(
-                            "User %s does not own conversation %s — messages not persisted",
-                            user_uuid, conversation_id,
-                        )
-                    else:
-                        # Atomic: user + assistant rows commit together or not at all
-                        await db_ops.save_conversation_turn(
-                            conversation_id=conversation_uuid,
-                            user_id=user_uuid,
-                            user_content=question,
-                            assistant_content=answer,
-                            model=model_used,
-                            preprocessing_applied=use_preprocessing,
-                            detected_intent=detected_intent,
-                            please_score=please_scores,
-                            sources=sources,
-                        )
-                        logger.info(
-                            "Messages saved to conversation %s (user=%s)",
-                            conversation_id, current_user['username'],
-                        )
-            except ValueError:
-                logger.warning(f"Invalid conversation_id format: {conversation_id}")
+                    # Fold turns that have now left the verbatim window into
+                    # the negotiation memory. Background: the reply must not
+                    # wait on it, and a failure only logs.
+                    if memory_settings["enabled"] and ctx.negotiation_id:
+                        _spawn_background(maybe_refresh_memory(
+                            negotiation_id=ctx.negotiation_id,
+                            conversation_id=ctx.conversation_id,
+                            briefing=briefing,
+                            rag=rag,
+                        ))
             except Exception as db_error:
                 # Don't fail the request if database save fails
                 logger.error(f"Failed to save messages to database: {db_error}", exc_info=True)

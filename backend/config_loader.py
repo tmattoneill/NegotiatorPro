@@ -65,6 +65,14 @@ class ConfigLoader:
             "defaults": {
                 "default_provider": "openai",
                 "default_model": "gpt-4o-mini"
+            },
+            "chat_memory": {
+                "enabled": True,
+                "history_window_tokens": 7000,
+                "history_min_turns": 4,
+                "history_max_turns": 12,
+                "memory_refresh_model": "gpt-4o-mini",
+                "memory_max_chars": 4000
             }
         }
 

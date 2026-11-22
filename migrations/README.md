@@ -2,9 +2,11 @@
 
 This directory contains the PostgreSQL database schema for NegotiatorPro.
 
-## Migration File
+## Migration Files
 
 - `001_full_schema.sql` - Complete production database schema
+- `002` to `011` - Incremental changes (provider preferences, source registry, partner scope, detected intent, PLEASE scores, message sources, negotiation context)
+- `012_negotiation_memory.sql` - `negotiations.memory JSONB`, the per-negotiation chat memory folded from turns that leave the verbatim history window
 
 ## Schema Overview
 

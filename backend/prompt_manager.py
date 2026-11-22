@@ -9,9 +9,13 @@ Three-layer prompt architecture for the Amfonica platform:
                    prompts/sales-mentor.yaml         (mode=sales)
                    prompts/negotiation-strategist.yaml (mode=negotiation)
                    No persona is applied for mode=auto.
-  Layer 3 — Context + Question:
-                   RAG-retrieved chunks and the user's question, injected per
-                   request.
+  Layer 3 — Negotiation block (per negotiation):
+                   briefing + negotiation memory. Stable between memory
+                   refreshes, so it sits in the cached prefix.
+  Layer 4 — Context + Question (per request):
+                   RAG-retrieved chunks, format instructions and the user's
+                   question. These change every turn, so they go at the tail
+                   of the final user message, after the history.
 
 Test/ping detection and the user-template plumbing are unchanged from the
 previous PromptManager — connectivity checks continue to bypass persona logic.
@@ -20,14 +24,42 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, NamedTuple, Optional, Tuple
 
 import yaml
 
-from .intent_classifier import FORMAT_INSTRUCTIONS, USER_TEMPLATES, QueryIntent
+from .intent_classifier import (
+    FOLLOWUP_GENERAL_TEMPLATE,
+    FOLLOWUP_NOTE,
+    FORMAT_INSTRUCTIONS,
+    USER_TEMPLATES,
+    QueryIntent,
+)
 from .prompt_renderer import render_yaml_to_markdown
 
 logger = logging.getLogger(__name__)
+
+# The negotiation block shares the cached prefix with the history. Past this
+# size it starts crowding out the verbatim window, so trim it (memory first,
+# since the briefing is the user's own words about the parties).
+NEGOTIATION_BLOCK_MAX_CHARS = 6000
+
+
+class PromptParts(NamedTuple):
+    """The four pieces get_advice assembles into messages.
+
+    static_system:     meta + persona. Identical for every request in a mode.
+    negotiation_block: briefing + memory. Identical for every turn of a
+                       negotiation until the memory refreshes.
+    context_block:     reference material + (follow-up note) + format
+                       instructions. Changes every turn.
+    user_prompt:       the question wrapped in the intent's user template.
+    """
+
+    static_system: str
+    negotiation_block: str
+    context_block: str
+    user_prompt: str
 
 # Test/ping patterns — short messages that should bypass RAG and persona load.
 TEST_PROMPT_PATTERNS = [
@@ -171,19 +203,25 @@ class PromptManager:
         context: str = "",
         mode: str = "auto",
         intent: QueryIntent = "GENERAL",
-    ) -> Tuple[str, str, str]:
+        briefing: str = "",
+        memory: str = "",
+        has_history: bool = False,
+    ) -> PromptParts:
         """
-        Return (static_system, context_block, user_prompt) for cache-friendly
-        message assembly.
+        Return the PromptParts for cache-friendly message assembly.
 
         - static_system = <meta> + <persona for mode>. Byte-identical across
           requests in a given mode, so it is the cacheable prefix.
-        - context_block = RAG material + intent-specific format instructions
-          (both vary per request, so they follow the cache breakpoint).
-        - user_prompt = the intent-appropriate user template with question filled.
+        - negotiation_block = briefing + memory. Stable per negotiation, so it
+          extends the cached prefix rather than breaking it.
+        - context_block = RAG material + (follow-up note) + format
+          instructions. Varies per request, so get_advice puts it in the
+          final user message after the history.
+        - user_prompt = the intent-appropriate user template with the
+          question filled. On follow-ups a GENERAL question goes as typed.
 
         Callers that don't care about caching can use get_prompts_for_chat,
-        which simply concatenates static_system + context_block.
+        which simply concatenates the system-side parts.
         """
         if mode not in _VALID_MODES:
             logger.warning("Unknown mode %r — falling back to 'auto'.", mode)
@@ -195,17 +233,40 @@ class PromptManager:
             static_parts.append(persona.rstrip())
         static_system = "\n\n".join(static_parts).rstrip() + "\n"
 
-        # Build the non-cached suffix: RAG context + per-intent format instructions.
-        # Both go after the cache breakpoint so static_system stays byte-identical.
+        negotiation_block = self._build_negotiation_block(briefing, memory)
+
         context_parts: list[str] = []
         if context:
             context_parts.append("## Reference Material from Knowledge Base\n\n" + context)
+        if has_history:
+            context_parts.append(FOLLOWUP_NOTE)
         context_parts.append(FORMAT_INSTRUCTIONS.get(intent, FORMAT_INSTRUCTIONS["GENERAL"]))
         context_block = "\n\n".join(context_parts)
 
-        template = USER_TEMPLATES.get(intent, self._user_template)
+        if has_history and intent == "GENERAL":
+            template = FOLLOWUP_GENERAL_TEMPLATE
+        else:
+            template = USER_TEMPLATES.get(intent, self._user_template)
         user_prompt = template.format(question=question)
-        return static_system, context_block, user_prompt
+        return PromptParts(static_system, negotiation_block, context_block, user_prompt)
+
+    @staticmethod
+    def _build_negotiation_block(briefing: str, memory: str) -> str:
+        """Join briefing and memory, trimming memory first if the pair is oversized."""
+        briefing = (briefing or "").strip()
+        memory = (memory or "").strip()
+        if not briefing and not memory:
+            return ""
+        if len(briefing) + len(memory) > NEGOTIATION_BLOCK_MAX_CHARS:
+            room_for_memory = max(0, NEGOTIATION_BLOCK_MAX_CHARS - len(briefing))
+            logger.warning(
+                "Negotiation block oversized (briefing=%d, memory=%d chars); trimming memory to %d",
+                len(briefing), len(memory), room_for_memory,
+            )
+            memory = memory[:room_for_memory].rstrip()
+            if len(briefing) > NEGOTIATION_BLOCK_MAX_CHARS:
+                briefing = briefing[:NEGOTIATION_BLOCK_MAX_CHARS].rstrip()
+        return "\n\n".join(part for part in (briefing, memory) if part)
 
     def get_prompts_for_chat(
         self,
@@ -219,14 +280,12 @@ class PromptManager:
         system string (meta + persona + reference material). Kept for callers
         that don't split the prompt for provider caching.
         """
-        static_system, context_block, user_prompt = self.get_prompt_parts(
-            question, context, mode, intent
-        )
-        if context_block:
-            system_prompt = f"{static_system.rstrip()}\n\n{context_block}"
+        parts = self.get_prompt_parts(question, context, mode, intent)
+        if parts.context_block:
+            system_prompt = f"{parts.static_system.rstrip()}\n\n{parts.context_block}"
         else:
-            system_prompt = static_system
-        return system_prompt.rstrip() + "\n", user_prompt
+            system_prompt = parts.static_system
+        return system_prompt.rstrip() + "\n", parts.user_prompt
 
     def get_system_prompt(self, context: str = "", mode: str = "auto") -> str:
         """Return only the system half of the prompt pair."""

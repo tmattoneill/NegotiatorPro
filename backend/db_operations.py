@@ -308,6 +308,8 @@ async def get_negotiation(negotiation_id: UUID) -> Optional[dict]:
         neg['settings'] = json.loads(neg['settings'])
     if neg.get('context') and isinstance(neg['context'], str):
         neg['context'] = json.loads(neg['context'])
+    if neg.get('memory') and isinstance(neg['memory'], str):
+        neg['memory'] = json.loads(neg['memory'])
 
     return neg
 
@@ -357,6 +359,8 @@ async def update_negotiation(negotiation_id: UUID, **kwargs) -> Optional[dict]:
         kwargs['settings'] = json.dumps(kwargs['settings'])
     if 'context' in kwargs and isinstance(kwargs['context'], dict):
         kwargs['context'] = json.dumps(kwargs['context'])
+    if 'memory' in kwargs and isinstance(kwargs['memory'], dict):
+        kwargs['memory'] = json.dumps(kwargs['memory'])
 
     fields = []
     values = []
@@ -553,9 +557,27 @@ async def save_conversation_turn(
             )
 
 
-async def get_conversation_messages(conversation_id: UUID, limit: Optional[int] = None) -> List[dict]:
-    """Get all messages for a conversation, optionally limited."""
+def _decode_message_row(row) -> dict:
+    """Turn a chat_messages row into a dict with JSONB fields as objects.
+
+    JSONB comes back as a string from asyncpg; hand callers objects so the
+    frontend and the memory code never have to parse.
+    """
     import json
+    msg = dict(row)
+    for field in ("please_score", "sources"):
+        if isinstance(msg.get(field), str):
+            try:
+                msg[field] = json.loads(msg[field])
+            except (ValueError, TypeError):
+                msg[field] = None
+    return msg
+
+
+async def get_conversation_messages(conversation_id: UUID, limit: Optional[int] = None) -> List[dict]:
+    """Get all messages for a conversation, oldest first, optionally limited
+    to the OLDEST `limit` rows. For the newest rows use
+    get_recent_conversation_messages."""
     if limit:
         rows = await db.fetch(
             """
@@ -571,22 +593,63 @@ async def get_conversation_messages(conversation_id: UUID, limit: Optional[int] 
             "SELECT * FROM chat_messages WHERE conversation_id = $1 ORDER BY created_at ASC",
             conversation_id
         )
-    messages = []
-    for r in rows:
-        msg = dict(r)
-        # JSONB comes back as a string from asyncpg; hand the frontend objects.
-        if isinstance(msg.get("please_score"), str):
-            try:
-                msg["please_score"] = json.loads(msg["please_score"])
-            except (ValueError, TypeError):
-                msg["please_score"] = None
-        if isinstance(msg.get("sources"), str):
-            try:
-                msg["sources"] = json.loads(msg["sources"])
-            except (ValueError, TypeError):
-                msg["sources"] = None
-        messages.append(msg)
-    return messages
+    return [_decode_message_row(r) for r in rows]
+
+
+async def get_recent_conversation_messages(conversation_id: UUID, limit: int) -> List[dict]:
+    """Newest `limit` messages of a conversation, returned oldest first.
+
+    The id tiebreak matters: save_conversation_turn writes the user and
+    assistant rows in one transaction, so their created_at values can match
+    and the pair would otherwise come back in either order.
+    """
+    rows = await db.fetch(
+        """
+        SELECT * FROM chat_messages
+        WHERE conversation_id = $1
+        ORDER BY created_at DESC, id DESC
+        LIMIT $2
+        """,
+        conversation_id, limit
+    )
+    return [_decode_message_row(r) for r in reversed(rows)]
+
+
+async def count_conversation_messages(conversation_id: UUID) -> int:
+    """Total chat messages in one conversation."""
+    return await db.fetchval(
+        "SELECT COUNT(*) FROM chat_messages WHERE conversation_id = $1",
+        conversation_id
+    )
+
+
+async def count_negotiation_messages(negotiation_id: UUID) -> int:
+    """Total chat messages across every conversation in a negotiation."""
+    return await db.fetchval(
+        """
+        SELECT COUNT(*) FROM chat_messages m
+        JOIN conversations c ON c.id = m.conversation_id
+        WHERE c.negotiation_id = $1
+        """,
+        negotiation_id
+    )
+
+
+async def get_negotiation_messages_range(negotiation_id: UUID, offset: int, limit: int) -> List[dict]:
+    """A chronological slice of messages across every conversation in a
+    negotiation. Used by the memory fold to pick up the turns that have left
+    the verbatim window since the last refresh."""
+    rows = await db.fetch(
+        """
+        SELECT m.* FROM chat_messages m
+        JOIN conversations c ON c.id = m.conversation_id
+        WHERE c.negotiation_id = $1
+        ORDER BY m.created_at ASC, m.id ASC
+        OFFSET $2 LIMIT $3
+        """,
+        negotiation_id, offset, limit
+    )
+    return [_decode_message_row(r) for r in rows]
 
 
 async def get_chat_message(message_id: int) -> Optional[dict]:

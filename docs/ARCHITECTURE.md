@@ -108,6 +108,9 @@ docker-entrypoint-initdb; an existing DB needs newer migrations run manually.
   (`cloned_from`). Migrations 006-007 add scope and copy-on-write versioning.
 - **Intent-aware prompting**: queries are classified and routed to mode-specific prompts. See
   `features/INTENT_AWARE_PROMPTING.md`. Migration 008 persists the detected intent.
+- **Conversation memory**: each turn sends the recent turns verbatim plus a per-negotiation
+  summary (`negotiations.memory`, migration 012) folded in the background from turns that leave
+  the window. The prompt is laid out so the cached prefix only grows. See `features/INTENT_AWARE_PROMPTING.md`.
 
 ## PLEASE response framework
 

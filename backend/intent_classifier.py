@@ -18,6 +18,12 @@ Why this order matters: a message like "Here is the email thread (long paste) �
 how should I respond?" has both ANALYSIS signals (the paste) and a TACTICAL
 signal (how should I respond?). The TACTICAL intent is more specific to the
 user's actual need, so it fires first.
+
+Follow-up turns (has_history=True) are classified more conservatively. Once
+the model can see the earlier turns, a bare "give me a PLEASE analysis" is a
+request to build on the conversation, not to start a fresh situation analysis,
+so the analysis-verb rule is skipped and the paste threshold rises. Email
+headers and tactical signals still fire as before.
 """
 from __future__ import annotations
 
@@ -85,19 +91,26 @@ _RE_QUESTION = re.compile(
 
 # ANALYSIS heuristic: long text with line breaks (pasted content)
 _PASTE_MIN_LEN = 500
+# On follow-up turns only a substantial new paste (a fresh email, a transcript)
+# should restart the full analysis format.
+_FOLLOWUP_PASTE_MIN_LEN = 1500
 
 
 # ------------------------------------------------------------------
 # Public API
 # ------------------------------------------------------------------
 
-def classify(question: str) -> QueryIntent:
+def classify(question: str, has_history: bool = False) -> QueryIntent:
     """
     Classify a raw user question into one of four intent types.
 
     Call this with the question BEFORE the negotiation briefing is prepended —
     the briefing contains structured data (persona names, role labels) that
     would pollute the signals.
+
+    has_history: True when earlier turns of this conversation are being sent
+    to the model. Follow-ups skip the analysis-verb rule and need a much
+    longer paste before the ANALYSIS format fires again.
     """
     if not question or not question.strip():
         return "GENERAL"
@@ -106,8 +119,10 @@ def classify(question: str) -> QueryIntent:
     if _RE_EMAIL_HEADERS.search(question):
         return "ANALYSIS"
 
-    # 2. Explicit analysis verb → ANALYSIS
-    if _RE_ANALYSIS_VERB.search(question):
+    # 2. Explicit analysis verb → ANALYSIS, cold start only. In a running
+    #    conversation "analyse that" means "work with what we have", and the
+    #    model already has the earlier analysis in context.
+    if not has_history and _RE_ANALYSIS_VERB.search(question):
         return "ANALYSIS"
 
     # 3. Live-situation language → TACTICAL
@@ -117,7 +132,8 @@ def classify(question: str) -> QueryIntent:
         return "TACTICAL"
 
     # 4. Long pasted content heuristic → ANALYSIS
-    if len(question) > _PASTE_MIN_LEN and "\n" in question:
+    paste_min_len = _FOLLOWUP_PASTE_MIN_LEN if has_history else _PASTE_MIN_LEN
+    if len(question) > paste_min_len and "\n" in question:
         return "ANALYSIS"
 
     # 5. Conceptual / educational → QUESTION
@@ -208,6 +224,24 @@ Replace each N with the integer score. It must be the last thing in your respons
 
 for _intent in ("TACTICAL", "QUESTION", "GENERAL"):
     FORMAT_INSTRUCTIONS[_intent] += _PLEASE_TRAILER
+
+# Prepended to the format instructions on follow-up turns. Without it the
+# model treats each request as a fresh brief and restates the whole situation
+# analysis, even when the earlier turns are right there in context.
+FOLLOWUP_NOTE = """\
+## Conversation continuity
+
+This is a follow-up in an ongoing conversation. The earlier turns and the \
+Negotiation Memory are already in context. Answer only what was just asked and \
+build on what has been said. Match the size of the answer to the size of the \
+question: a one-line question gets a one-line answer. Do not restate the \
+situation analysis, re-list the briefing, or redraft the reply unless the user \
+asks for that."""
+
+# On follow-up turns a GENERAL question goes to the model as typed. The
+# "Give me a direct, expert answer" tail reads as a new brief and nudges the
+# model back into restart mode.
+FOLLOWUP_GENERAL_TEMPLATE = "{question}"
 
 # ------------------------------------------------------------------
 # Intent-specific user message templates
