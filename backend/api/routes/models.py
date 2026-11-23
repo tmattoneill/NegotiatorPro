@@ -8,6 +8,8 @@ from fastapi import APIRouter, HTTPException, Query
 from typing import Dict, List, Optional
 import logging
 import os
+import asyncio
+import time
 import requests
 
 # Import the same RAG system function used by chat endpoint
@@ -17,6 +19,32 @@ from ...user_profile import UserProfileManager
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["models"])
+
+# The local Ollama probe is a blocking HTTP call that times out on every host
+# without Ollama (dev and prod both). Run it off the event loop, keep the
+# timeout short, and remember the answer for a minute so the picker and the
+# settings modal do not each pay for it.
+_OLLAMA_PROBE_TTL_SECONDS = 60.0
+_ollama_probe_cache: Dict[str, tuple[float, bool]] = {}
+
+
+def _probe_ollama_sync(base_url: str) -> bool:
+    try:
+        response = requests.get(f"{base_url}/api/tags", timeout=0.5)
+        return response.status_code == 200
+    except requests.RequestException:
+        return False
+
+
+async def ollama_is_running(base_url: str) -> bool:
+    now = time.monotonic()
+    cached = _ollama_probe_cache.get(base_url)
+    if cached and now - cached[0] < _OLLAMA_PROBE_TTL_SECONDS:
+        return cached[1]
+    running = await asyncio.to_thread(_probe_ollama_sync, base_url)
+    _ollama_probe_cache[base_url] = (now, running)
+    return running
+
 
 
 @router.get("/models")
@@ -51,7 +79,11 @@ async def get_available_models():
                 else:  # ollama-cloud
                     base_url = os.getenv("OLLAMA_CLOUD_URL", "https://ollama.com")
 
-                dynamic_models = backend_manager.get_ollama_available_models(base_url)
+                dynamic_models = []
+                if await ollama_is_running(base_url):
+                    dynamic_models = await asyncio.to_thread(
+                        backend_manager.get_ollama_available_models, base_url
+                    )
                 if dynamic_models:
                     models_list = [
                         {
@@ -195,13 +227,8 @@ async def get_available_providers_for_user(user_id: Optional[str] = Query(None))
             return user_has or (user_is_admin and system_has)
 
         # Check if Ollama is running locally
-        ollama_available = False
         ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        try:
-            response = requests.get(f"{ollama_base_url}/api/tags", timeout=2)
-            ollama_available = response.status_code == 200
-        except Exception:
-            ollama_available = False
+        ollama_available = await ollama_is_running(ollama_base_url)
 
         # Build response with filtered providers
         available_providers = {}
@@ -232,7 +259,9 @@ async def get_available_providers_for_user(user_id: Optional[str] = Query(None))
                 # Ollama (local) available if running
                 provider_available = ollama_available
                 if provider_available:
-                    dynamic_models = backend_manager.get_ollama_available_models(ollama_base_url)
+                    dynamic_models = await asyncio.to_thread(
+                        backend_manager.get_ollama_available_models, ollama_base_url
+                    )
                     provider_models = [
                         {"id": model.id, "name": model.name, "description": model.description}
                         for model in dynamic_models
