@@ -24,30 +24,34 @@ class TextPreprocessor:
             r'\d+\s+[A-Za-z\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Way|Place|Pl)\s*,?\s*[A-Za-z\s]*\d{5}',
         ]
         
-        # Email footer patterns
+        # Email footer patterns. These run with DOTALL, so a greedy ".*" would
+        # swallow everything from the first match to the end of the text: one
+        # "Sent from my iPhone" in a quoted reply used to wipe the rest of a
+        # pasted thread. Single-line notices use [^\n]*; block notices stay
+        # lazy and stop at the next blank line.
         self.footer_patterns = [
-            # Confidentiality notices
-            r'(?:CONFIDENTIAL|PRIVILEGED|PRIVATE)(?:\s+AND\s+CONFIDENTIAL)?[^\n]*(?:\n[^\n]*){0,10}',
-            r'This e?-?mail.*(?:confidential|privileged|proprietary).*?(?:\.|$)',
-            r'The information.*(?:confidential|privileged|proprietary).*?(?:\.|$)',
-            r'If you are not the intended recipient.*?(?:\.|$)',
-            r'Any disclosure.*(?:prohibited|unauthorized).*?(?:\.|$)',
-            
+            # Confidentiality notices (all caps only; "private beta" in prose must survive)
+            r'(?-i:(?:CONFIDENTIAL|PRIVILEGED)(?:\s+AND\s+CONFIDENTIAL)?)[^\n]*(?:\n[^\n]+){0,5}',
+            r'This e?-?mail[^\n]*(?:confidential|privileged|proprietary)[^\n]*',
+            r'The information[^\n]*(?:confidential|privileged|proprietary)[^\n]*',
+            r'If you are not the intended recipient[^\n]*',
+            r'Any disclosure[^\n]*(?:prohibited|unauthorized)[^\n]*',
+
             # Environmental notices
-            r'Please consider.*environment.*print.*',
-            r'Think before you print.*',
-            r'Save.*tree.*print.*',
-            
+            r'Please consider[^\n]*environment[^\n]*print[^\n]*',
+            r'Think before you print[^\n]*',
+            r'Save[^\n]*tree[^\n]*print[^\n]*',
+
             # Auto-generated notices
-            r'This email was sent by.*',
-            r'Sent from my.*',
-            r'Get Outlook for.*',
-            r'Virus-free.*(?:checked|scanned).*',
-            
+            r'This email was sent by[^\n]*',
+            r'Sent from my[^\n]*',
+            r'Get Outlook for[^\n]*',
+            r'Virus-free[^\n]*(?:checked|scanned)[^\n]*',
+
             # Legal disclaimers
             r'DISCLAIMER:.*?(?:\n\n|\Z)',
-            r'This communication.*(?:disclaimer|notice).*?(?:\n\n|\Z)',
-            r'The sender.*(?:responsible|liable).*?(?:\n\n|\Z)',
+            r'This communication[^\n]*(?:disclaimer|notice).*?(?:\n\n|\Z)',
+            r'The sender[^\n]*(?:responsible|liable).*?(?:\n\n|\Z)',
         ]
         
         # Forwarding header patterns
