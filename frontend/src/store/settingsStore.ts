@@ -5,6 +5,7 @@
  */
 
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { ModelsResponse } from '../types';
 import { fetchAvailableProviders } from '../services/api';
 import { useAuthStore } from './authStore';
@@ -32,7 +33,9 @@ interface SettingsState {
   loadAvailableModels: () => Promise<void>;
 }
 
-export const useSettingsStore = create<SettingsState>((set, get) => ({
+export const useSettingsStore = create<SettingsState>()(
+  persist(
+    (set, get) => ({
   // Initial state
   selectedProvider: null,
   selectedModel: null,
@@ -102,7 +105,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       // Initialise the selection if none is set yet this session. Honour the
       // user's saved preference (preferred_provider/preferred_model) when it's
       // still available; otherwise fall back to the first available provider.
-      if (!get().selectedProvider) {
+      const remembered = get().selectedProvider;
+      if (!remembered || !models[remembered]) {
         const user = useAuthStore.getState().user;
         const prefProvider = user?.preferred_provider;
         const prefModel = user?.preferred_model;
@@ -132,4 +136,17 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       });
     }
   },
-}));
+    }),
+    {
+      // Remember the picker across reloads. Without this every page load fell
+      // back to the profile default, which read as "it keeps switching back".
+      name: 'settings-storage',
+      partialize: (state) => ({
+        selectedProvider: state.selectedProvider,
+        selectedModel: state.selectedModel,
+        usePremiumModel: state.usePremiumModel,
+        usePreprocessing: state.usePreprocessing,
+      }),
+    }
+  )
+);

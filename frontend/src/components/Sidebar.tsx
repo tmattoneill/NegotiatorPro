@@ -1,7 +1,7 @@
 /**
  * Sidebar component with session management
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
@@ -72,9 +72,17 @@ export default function Sidebar() {
   // The active negotiation drives the model selector. Precedence on load:
   // negotiation.settings (explicit per-negotiation override) → the bound "You"
   // persona's preferred provider/model → the user's profile default → leave as is.
+  //
+  // Seed once per negotiation. This effect used to re-run whenever the persona
+  // list or the model list refreshed, and each re-run threw away whatever the
+  // user had just picked in favour of the profile default.
   const modelKeyCount = Object.keys(availableModels).length;
+  const seededNegotiationId = useRef<string | null>(null);
   useEffect(() => {
     if (!currentNegotiation?.id || modelKeyCount === 0) return;
+    if (seededNegotiationId.current === currentNegotiation.id) return;
+    seededNegotiationId.current = currentNegotiation.id;
+
     const settings = (currentNegotiation.settings ?? {}) as { provider?: string; model?: string };
     if (settings.provider && availableModels[settings.provider]) {
       setProviderModel(settings.provider, settings.model ?? null);
@@ -95,7 +103,7 @@ export default function Sidebar() {
     }
     // else: leave the current selection untouched
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentNegotiation?.id, currentNegotiation?.user_persona_id, modelKeyCount, userPersonas.length]);
+  }, [currentNegotiation?.id, modelKeyCount]);
 
   // Get active personas. The "You" persona is the one BOUND to the current
   // negotiation (user_persona_id) — that is what the server-side briefing uses
