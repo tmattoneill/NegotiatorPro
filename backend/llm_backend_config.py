@@ -116,7 +116,7 @@ class LLMBackendManager:
                 ModelInfo(
                     id="claude-sonnet-5-5",
                     name="Claude Sonnet 5.5",
-                    description="Current Sonnet — fast and capable",
+                    description="Current Sonnet, fast and capable",
                     max_context_length=1000000,
                     cost_per_1k_input=2.0,
                     cost_per_1k_output=10.0,
@@ -125,7 +125,7 @@ class LLMBackendManager:
                 ModelInfo(
                     id="claude-opus-5-5",
                     name="Claude Opus 5.5",
-                    description="Current Opus — most capable",
+                    description="Current Opus, most capable",
                     max_context_length=1000000,
                     cost_per_1k_input=4.0,
                     cost_per_1k_output=20.0,
@@ -134,7 +134,7 @@ class LLMBackendManager:
                 ModelInfo(
                     id="claude-haiku-5-5",
                     name="Claude Haiku 5.5",
-                    description="Current Haiku — fastest and cheapest",
+                    description="Current Haiku, fastest and cheapest",
                     max_context_length=1000000,
                     cost_per_1k_input=0.1,
                     cost_per_1k_output=0.5,
@@ -143,7 +143,7 @@ class LLMBackendManager:
                 ModelInfo(
                     id="claude-sonnet-4-6",
                     name="Claude Sonnet 4.6",
-                    description="Latest Claude Sonnet — most capable",
+                    description="Latest Claude Sonnet, most capable",
                     max_context_length=200000,
                     cost_per_1k_input=3.0,
                     cost_per_1k_output=15.0
@@ -224,7 +224,7 @@ class LLMBackendManager:
                 ModelInfo(
                     id="deepseek-v4-pro",
                     name="DeepSeek V4 Pro",
-                    description="DeepSeek V4 Pro — most capable",
+                    description="DeepSeek V4 Pro, most capable",
                     max_context_length=128000,
                     cost_per_1k_input=2.0,
                     cost_per_1k_output=8.0
@@ -232,7 +232,7 @@ class LLMBackendManager:
                 ModelInfo(
                     id="deepseek-v4-flash",
                     name="DeepSeek V4 Flash",
-                    description="DeepSeek V4 Flash — fast and cost-effective",
+                    description="DeepSeek V4 Flash, fast and cost-effective",
                     max_context_length=128000,
                     cost_per_1k_input=0.3,
                     cost_per_1k_output=1.2

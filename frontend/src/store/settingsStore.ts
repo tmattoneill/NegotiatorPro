@@ -106,7 +106,11 @@ export const useSettingsStore = create<SettingsState>()(
       // user's saved preference (preferred_provider/preferred_model) when it's
       // still available; otherwise fall back to the first available provider.
       const remembered = get().selectedProvider;
-      if (!remembered || !models[remembered]) {
+      const rememberedModel = get().selectedModel;
+      const rememberedValid =
+        remembered && models[remembered] &&
+        (!rememberedModel || models[remembered].models.some((m) => m.id === rememberedModel));
+      if (!rememberedValid) {
         const user = useAuthStore.getState().user;
         const prefProvider = user?.preferred_provider;
         const prefModel = user?.preferred_model;

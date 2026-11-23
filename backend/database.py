@@ -4,6 +4,7 @@ Database Connection Management
 Provides PostgreSQL database connection pooling and session management
 using asyncpg for high-performance async operations.
 """
+import asyncio
 import os
 import logging
 from contextlib import asynccontextmanager
@@ -47,6 +48,9 @@ class Database:
             self._parse_database_url(database_url)
 
         self._pool: Optional[asyncpg.Pool] = None
+        # The pool is created on first use. Concurrent first requests must
+        # not each build one, or the extras leak Neon connections.
+        self._connect_lock = asyncio.Lock()
 
     def _parse_database_url(self, url: str):
         """
@@ -139,7 +143,9 @@ class Database:
             asyncpg.Connection: Database connection
         """
         if self._pool is None:
-            await self.connect()
+            async with self._connect_lock:
+                if self._pool is None:
+                    await self.connect()
 
         async with self._pool.acquire() as connection:
             yield connection

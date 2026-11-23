@@ -3,22 +3,22 @@ Mode-aware prompt manager.
 
 Three-layer prompt architecture for the Amfonica platform:
 
-  Layer 1 — Meta:  prompts/amfonica-meta.md
+  Layer 1: Meta:  prompts/amfonica-meta.md
                    Always-applied identity and output rules.
-  Layer 2 — Persona (per mode):
+  Layer 2: Persona (per mode):
                    prompts/sales-mentor.yaml         (mode=sales)
                    prompts/negotiation-strategist.yaml (mode=negotiation)
                    No persona is applied for mode=auto.
-  Layer 3 — Negotiation block (per negotiation):
+  Layer 3: Negotiation block (per negotiation):
                    briefing + negotiation memory. Stable between memory
                    refreshes, so it sits in the cached prefix.
-  Layer 4 — Context + Question (per request):
+  Layer 4: Context + Question (per request):
                    RAG-retrieved chunks, format instructions and the user's
                    question. These change every turn, so they go at the tail
                    of the final user message, after the history.
 
 Test/ping detection and the user-template plumbing are unchanged from the
-previous PromptManager — connectivity checks continue to bypass persona logic.
+previous PromptManager: connectivity checks continue to bypass persona logic.
 """
 import json
 import logging
@@ -62,7 +62,7 @@ class PromptParts(NamedTuple):
     context_block: str
     user_prompt: str
 
-# Test/ping patterns — short messages that should bypass RAG and persona load.
+# Test/ping patterns: short messages that should bypass RAG and persona load.
 TEST_PROMPT_PATTERNS = [
     r"^hello\s*world[!?.]?$",
     r"^(test\s*)+[!?.]?$",
@@ -151,7 +151,7 @@ class PromptManager:
             path = self.prompts_dir / filename
             if not path.exists():
                 logger.warning(
-                    "Persona file missing: %s — mode=%s will fall back to meta only.",
+                    "Persona file missing: %s: mode=%s will fall back to meta only.",
                     path, mode,
                 )
                 self._persona_markdown[mode] = ""
@@ -174,7 +174,7 @@ class PromptManager:
                 return self.meta_file.read_text(encoding="utf-8")
             except Exception as exc:
                 logger.error("Could not read meta prompt %s: %s", self.meta_file, exc)
-        # File missing or unreadable — write the default so admin-UI edits stick
+        # File missing or unreadable: write the default so admin-UI edits stick
         try:
             self.meta_file.write_text(_DEFAULT_META_PROMPT, encoding="utf-8")
             logger.info("Wrote default meta prompt to %s", self.meta_file)
@@ -225,7 +225,7 @@ class PromptManager:
         which simply concatenates the system-side parts.
         """
         if mode not in _VALID_MODES:
-            logger.warning("Unknown mode %r — falling back to 'auto'.", mode)
+            logger.warning("Unknown mode %r: falling back to 'auto'.", mode)
             mode = "auto"
 
         static_parts: list[str] = [self._load_meta().rstrip()]
@@ -328,7 +328,7 @@ class PromptManager:
             try:
                 existing = json.loads(self.config_file.read_text(encoding="utf-8"))
                 existing["user"] = new_prompt
-                # Drop the legacy 'system' key — meta lives in amfonica-meta.md now.
+                # Drop the legacy 'system' key: meta lives in amfonica-meta.md now.
                 existing.pop("system", None)
                 data = existing
             except Exception:

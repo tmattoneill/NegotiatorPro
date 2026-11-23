@@ -78,8 +78,13 @@ async def load_chat_context(conversation_id: Optional[str], user_id: Optional[st
         if ctx.conversation:
             ctx.detail = await db_ops.get_negotiation_detail(ctx.conversation["negotiation_id"])
     except Exception as exc:
-        logger.warning(f"Could not load chat context for conversation {conversation_id}: {exc}")
-        return ctx
+        # Returning an empty context here would make the save step treat the
+        # user as a non-owner and silently drop the turn. Fail loudly instead.
+        logger.error(f"Could not load chat context for conversation {conversation_id}: {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database unavailable, please retry",
+        ) from exc
     ctx.owns = bool(
         ctx.detail and user_id and str(ctx.detail.get("user_id")) == str(user_id)
     )
@@ -240,7 +245,7 @@ async def process_uploaded_files(files: List[UploadFile]) -> str:
 
         try:
             if content_type.startswith("image/"):
-                file_context.append(f"[Image attached: {file.filename} — image content not readable by this model]")
+                file_context.append(f"[Image attached: {file.filename}, image content not readable by this model]")
                 logger.info(f"Image uploaded: {file.filename} ({len(file_bytes)} bytes)")
 
             elif filename.endswith(".pdf") or content_type == "application/pdf":
@@ -252,7 +257,7 @@ async def process_uploaded_files(files: List[UploadFile]) -> str:
                     file_context.append(f"[File: {file.filename}]\n{text}")
                     logger.info(f"PDF extracted: {file.filename} ({len(text)} chars, {len(reader.pages)} pages)")
                 else:
-                    file_context.append(f"[File: {file.filename} — PDF contains no extractable text]")
+                    file_context.append(f"[File: {file.filename}, PDF contains no extractable text]")
                     logger.warning(f"PDF yielded no text: {file.filename}")
 
             elif filename.endswith((".docx",)) or content_type in (
@@ -264,7 +269,7 @@ async def process_uploaded_files(files: List[UploadFile]) -> str:
                     file_context.append(f"[File: {file.filename}]\n{text}")
                     logger.info(f"DOCX extracted: {file.filename} ({len(text)} chars)")
                 else:
-                    file_context.append(f"[File: {file.filename} — document contains no extractable text]")
+                    file_context.append(f"[File: {file.filename}, document contains no extractable text]")
 
             elif filename.endswith((".txt", ".csv", ".md")):
                 text = file_bytes.decode("utf-8", errors="replace").strip()
@@ -276,7 +281,7 @@ async def process_uploaded_files(files: List[UploadFile]) -> str:
 
         except Exception as e:
             logger.error(f"Failed to process uploaded file {file.filename}: {e}")
-            file_context.append(f"[File: {file.filename} — could not be read: {e}]")
+            file_context.append(f"[File: {file.filename}, could not be read: {e}]")
 
     return "\n\n".join(file_context) if file_context else ""
 
@@ -318,7 +323,7 @@ async def process_chat(
     start_time = time.time()
 
     # If a conversation is provided, authentication is required. A stale or
-    # missing JWT with a conversation_id means the session has expired — return
+    # missing JWT with a conversation_id means the session has expired, return
     # 401 so the frontend clears the token and redirects to login.
     if conversation_id and not current_user:
         raise HTTPException(status_code=401, detail="Authentication required to continue a conversation")
@@ -401,7 +406,7 @@ async def process_chat(
                 logger.warning(f"Could not fetch user API keys: {e}")
 
         # Process question using existing RAG system. get_advice is synchronous
-        # and does a blocking llm.invoke() network call — run it in a worker
+        # and does a blocking llm.invoke() network call, run it in a worker
         # thread so it doesn't block the event loop and serialize all requests.
         answer, usage, detected_intent, sources = await asyncio.to_thread(
             rag.get_advice,
@@ -452,13 +457,13 @@ async def process_chat(
             try:
                 # Persist only for an authenticated user who actually owns this
                 # conversation. We never derive the owner from the conversation
-                # itself — doing so let an unauthenticated caller write messages
+                # itself, doing so let an unauthenticated caller write messages
                 # attributed to the conversation's real owner (IDOR / spoofing).
                 if not (current_user and current_user.get('id')):
-                    logger.info("Unauthenticated chat — messages not persisted")
+                    logger.info("Unauthenticated chat, messages not persisted")
                 elif not ctx.owns or not ctx.conversation_id:
                     logger.warning(
-                        "User %s does not own conversation %s — messages not persisted",
+                        "User %s does not own conversation %s, messages not persisted",
                         current_user['id'], conversation_id,
                     )
                 else:
@@ -514,7 +519,7 @@ async def process_chat(
         # provider has no usable key in the profile. Return 400 with the
         # provider-specific message so the frontend tells the user exactly
         # what to fix (e.g. "add a DeepSeek key in Settings"), not "Bad Gateway".
-        logger.info(f"Chat rejected — missing API key: {e}")
+        logger.info(f"Chat rejected, missing API key: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),

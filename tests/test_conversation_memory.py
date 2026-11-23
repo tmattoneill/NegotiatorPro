@@ -192,3 +192,25 @@ def test_window_keeps_rows_memory_has_not_covered():
     assert len(window) == 8
     # Fully covered: plain stepped window.
     assert len(select_history_window(_rows(6), 100_000, 2, 4, uncovered_rows=0)) == 4
+
+
+def test_uncovered_extension_is_bounded():
+    from backend.conversation_memory import _UNCOVERED_EXTRA_TURNS
+    rows = []
+    for i in range(200):
+        rows.append({"role": "user", "content": f"u{i}"})
+        rows.append({"role": "assistant", "content": f"a{i}"})
+    window = select_history_window(rows, budget_tokens=10**6, min_turns=2, max_turns=12, uncovered_rows=400)
+    assert len(window) == (12 + _UNCOVERED_EXTRA_TURNS) * 2
+
+
+def test_fold_transcript_keeps_every_turn_when_oversize():
+    rows = [
+        {"role": "user", "content": "OPENING OFFER 13,500 " + "x" * 20000},
+        {"role": "assistant", "content": "y" * 20000 + " LAST WORD"},
+    ]
+    text = format_dropped_turns(rows)
+    assert "OPENING OFFER 13,500" in text
+    assert "LAST WORD" in text
+    assert "[... trimmed ...]" in text
+    assert len(text) < 14000

@@ -20,9 +20,9 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const { sessions, currentSessionId, createNewSession, switchSession, loadConversations, deleteSession, renameSession } = useChatStore();
   const { user, logout } = useAuthStore();
-  const { userPersonas, fetchUserPersonas, fetchPartnerPersonas } = usePersonaStore();
+  const { userPersonas, userPersonasLoading, fetchUserPersonas, fetchPartnerPersonas } = usePersonaStore();
   const { negotiations, loadNegotiations, setCurrentNegotiation, currentNegotiationId, updateNegotiation } = useNegotiationStore();
-  const { availableModels, setProviderModel } = useSettingsStore();
+  const { availableModels, selectedProvider, setProviderModel } = useSettingsStore();
   // Compute currentNegotiation from negotiations and currentNegotiationId
   const currentNegotiation = negotiations.find(n => n.id === currentNegotiationId) || null;
 
@@ -81,6 +81,15 @@ export default function Sidebar() {
   useEffect(() => {
     if (!currentNegotiation?.id || modelKeyCount === 0) return;
     if (seededNegotiationId.current === currentNegotiation.id) return;
+    // Personas arrive asynchronously; seeding before they land would skip
+    // the bound persona's preference for good.
+    if (currentNegotiation.user_persona_id && userPersonasLoading) return;
+    // On a reload the settings store already holds the user's last pick.
+    // Keep it rather than snapping back to the stored default.
+    if (seededNegotiationId.current === null && selectedProvider && availableModels[selectedProvider]) {
+      seededNegotiationId.current = currentNegotiation.id;
+      return;
+    }
     seededNegotiationId.current = currentNegotiation.id;
 
     const settings = (currentNegotiation.settings ?? {}) as { provider?: string; model?: string };
@@ -103,7 +112,7 @@ export default function Sidebar() {
     }
     // else: leave the current selection untouched
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentNegotiation?.id, modelKeyCount]);
+  }, [currentNegotiation?.id, modelKeyCount, userPersonasLoading]);
 
   // Get active personas. The "You" persona is the one BOUND to the current
   // negotiation (user_persona_id) — that is what the server-side briefing uses

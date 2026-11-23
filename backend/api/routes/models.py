@@ -79,8 +79,10 @@ async def get_available_models():
                 else:  # ollama-cloud
                     base_url = os.getenv("OLLAMA_CLOUD_URL", "https://ollama.com")
 
+                # Only the local daemon gets the quick liveness probe; the cloud
+                # endpoint is remote and a half-second TLS budget is too tight.
                 dynamic_models = []
-                if await ollama_is_running(base_url):
+                if backend.id != "ollama" or await ollama_is_running(base_url):
                     dynamic_models = await asyncio.to_thread(
                         backend_manager.get_ollama_available_models, base_url
                     )

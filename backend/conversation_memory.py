@@ -39,6 +39,10 @@ MEMORY_REFRESH_MODEL = "gpt-5-mini"
 # Oldest turns past this cap are dropped from a single fold. Matches the
 # transcript cap used by the leverage/vitals analysis.
 _FOLD_CHAR_CAP = 12000
+# Rows the memory has not folded yet are kept verbatim, but only up to this
+# many turns past the normal window. If the fold is broken (no system key,
+# model down) the window must not grow without limit.
+_UNCOVERED_EXTRA_TURNS = 6
 
 _DEFAULTS = {
     "enabled": True,
@@ -199,7 +203,7 @@ def select_history_window(
 
     if total_turns is None or total_turns < len(turns):
         total_turns = len(turns)
-    uncovered_turns = (max(0, uncovered_rows) + 1) // 2
+    uncovered_turns = min((max(0, uncovered_rows) + 1) // 2, max_turns + _UNCOVERED_EXTRA_TURNS)
     keep = min(len(turns), max(window_turn_count(total_turns, min_turns, max_turns), uncovered_turns))
     floor_turns = max(min_turns, uncovered_turns)
 
@@ -223,6 +227,9 @@ def select_history_window(
 def format_dropped_turns(rows: list[dict]) -> str:
     """Render rows as a plain transcript for the fold prompt, newest last."""
     lines = []
+    # Every dropped row gets a share of the cap. Cutting the oldest rows
+    # instead would mark them folded while the model never saw them.
+    per_row_cap = max(800, _FOLD_CHAR_CAP // max(1, len(rows)))
     for row in rows:
         # Small models conflate advice with action, so each advisor line says
         # on its face that it went to the user, never to the counterparty.
@@ -230,11 +237,17 @@ def format_dropped_turns(rows: list[dict]) -> str:
             speaker = "User (to advisor)"
         else:
             speaker = "Advisor (recommendation to the user, not sent to the counterparty)"
-        lines.append(f"{speaker}: {(row.get('content') or '').strip()}")
-    text = "\n\n".join(lines)
-    if len(text) > _FOLD_CHAR_CAP:
-        text = text[-_FOLD_CHAR_CAP:]
-    return text
+        lines.append(f"{speaker}: {_trim_middle((row.get('content') or '').strip(), per_row_cap)}")
+    return "\n\n".join(lines)
+
+
+def _trim_middle(text: str, cap: int) -> str:
+    """Keep the head and tail of an oversize message so no turn vanishes."""
+    if len(text) <= cap:
+        return text
+    head = cap * 2 // 3
+    tail = cap - head
+    return text[:head] + "\n[... trimmed ...]\n" + text[-tail:]
 
 
 def build_memory_block(memory: Optional[dict]) -> str:
@@ -360,7 +373,7 @@ async def load_history_window(
     if negotiation_id is not None:
         covered = int((memory or {}).get("source_message_count") or 0) if isinstance(memory, dict) else 0
         negotiation_rows = await db_ops.count_negotiation_messages(negotiation_id)
-        uncovered_rows = min(total_rows, max(0, negotiation_rows - covered))
+        uncovered_rows = min(total_rows, max(0, negotiation_rows - covered), (max_turns + _UNCOVERED_EXTRA_TURNS) * 2)
 
     rows = await db_ops.get_recent_conversation_messages(
         conversation_id, limit=max(max_turns * 2, uncovered_rows)
