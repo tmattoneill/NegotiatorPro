@@ -181,3 +181,14 @@ def test_format_dropped_turns():
 def test_estimate_tokens():
     assert estimate_tokens("") == 0
     assert estimate_tokens("x" * 400) == 100
+
+
+def test_window_keeps_rows_memory_has_not_covered():
+    # 6 turns, stepped window would keep 2; memory covers none of the 4 oldest rows.
+    window = select_history_window(_rows(6), 100_000, 2, 4, uncovered_rows=8)
+    assert len(window) == 8
+    # Budget pressure cannot drop uncovered turns either.
+    window = select_history_window(_rows(6), 10, 2, 4, uncovered_rows=8)
+    assert len(window) == 8
+    # Fully covered: plain stepped window.
+    assert len(select_history_window(_rows(6), 100_000, 2, 4, uncovered_rows=0)) == 4

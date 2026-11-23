@@ -586,6 +586,28 @@ class EnhancedNegotiationRAG:
         logger.info(f"RAG system setup complete in {setup_end-setup_start:.2f}s!")
 
     @staticmethod
+    def _response_text(response: Any) -> str:
+        """The answer as one string.
+
+        Models with thinking on (Claude 5.5) return content as a list of blocks;
+        only the text blocks are the answer. Older models return a plain string.
+        """
+        content = getattr(response, "content", None)
+        if content is None:
+            return str(response)
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            parts = []
+            for block in content:
+                if isinstance(block, str):
+                    parts.append(block)
+                elif isinstance(block, dict) and block.get("type") == "text":
+                    parts.append(str(block.get("text", "")))
+            return "".join(parts).strip()
+        return str(content)
+
+    @staticmethod
     def _extract_usage(response: Any) -> Dict[str, int]:
         """Pull real token counts from a LangChain chat response.
 
@@ -604,12 +626,16 @@ class EnhancedNegotiationRAG:
         output_tokens = int(um.get("output_tokens", 0) or 0)
         total = int(um.get("total_tokens", input_tokens + output_tokens) or 0)
         details = um.get("input_token_details", {}) or {}
+        # langchain-anthropic reads cache_creation from a field the current
+        # SDK leaves empty; the raw usage block still carries the count.
+        raw_usage = (getattr(response, "response_metadata", None) or {}).get("usage") or {}
+        cache_creation = details.get("cache_creation") or raw_usage.get("cache_creation_input_tokens") or 0
         return {
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
             "total_tokens": total,
             "cache_read": int(details.get("cache_read", 0) or 0),
-            "cache_creation": int(details.get("cache_creation", 0) or 0),
+            "cache_creation": int(cache_creation),
         }
 
     @staticmethod
@@ -771,7 +797,7 @@ class EnhancedNegotiationRAG:
                     {"role": "user", "content": self.prompt_manager.get_test_user_prompt(question)}
                 ]
                 response = llm.invoke(messages)
-                content = response.content if hasattr(response, 'content') else str(response)
+                content = self._response_text(response)
                 usage = self._extract_usage(response)
                 # Test prompts skip RAG, so no intent classification and no
                 # citations. Keep the tuple shape the caller unpacks.
@@ -881,7 +907,7 @@ class EnhancedNegotiationRAG:
                 usage["total_tokens"], usage["cache_read"], usage["cache_creation"],
             )
 
-            content = response.content if hasattr(response, 'content') else str(response)
+            content = self._response_text(response)
             return (content, usage, intent, sources) if return_usage else content
 
         except LLMGenerationError:

@@ -30,6 +30,7 @@ import yaml
 
 from .intent_classifier import (
     FOLLOWUP_GENERAL_TEMPLATE,
+    FOLLOWUP_GENERAL_FORMAT,
     FOLLOWUP_NOTE,
     FORMAT_INSTRUCTIONS,
     USER_TEMPLATES,
@@ -240,7 +241,10 @@ class PromptManager:
             context_parts.append("## Reference Material from Knowledge Base\n\n" + context)
         if has_history:
             context_parts.append(FOLLOWUP_NOTE)
-        context_parts.append(FORMAT_INSTRUCTIONS.get(intent, FORMAT_INSTRUCTIONS["GENERAL"]))
+        if has_history and intent == "GENERAL":
+            context_parts.append(FOLLOWUP_GENERAL_FORMAT)
+        else:
+            context_parts.append(FORMAT_INSTRUCTIONS.get(intent, FORMAT_INSTRUCTIONS["GENERAL"]))
         context_block = "\n\n".join(context_parts)
 
         if has_history and intent == "GENERAL":

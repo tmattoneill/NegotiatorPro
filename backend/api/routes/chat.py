@@ -377,7 +377,11 @@ async def process_chat(
         memory_block = ""
         if ctx.owns and not is_super_admin and memory_settings["enabled"]:
             try:
-                history = await load_history_window(ctx.conversation_id, memory_settings)
+                history = await load_history_window(
+                    ctx.conversation_id, memory_settings,
+                    negotiation_id=ctx.negotiation_id,
+                    memory=(ctx.detail or {}).get("memory"),
+                )
                 memory_block = build_memory_block((ctx.detail or {}).get("memory"))
                 logger.info(
                     "Memory loaded: %d history turns, memory=%d chars",

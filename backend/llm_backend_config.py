@@ -16,6 +16,12 @@ from dataclasses import dataclass, field
 logger = logging.getLogger(__name__)
 
 
+
+def _redact(kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    """Copy of client kwargs safe to log: API keys never reach the log."""
+    return {k: ("***" if "key" in k.lower() else v) for k, v in kwargs.items()}
+
+
 @dataclass
 class ModelInfo:
     """Information about a specific model"""
@@ -29,6 +35,8 @@ class ModelInfo:
     max_context_length: int = 4096
     cost_per_1k_input: float = 0.0
     cost_per_1k_output: float = 0.0
+    # Claude 5.5 models think by default; "low" keeps chat turns quick.
+    reasoning_effort: Optional[str] = None
 
 
 @dataclass
@@ -68,6 +76,15 @@ class LLMBackendManager:
                     cost_per_1k_output=8.0
                 ),
                 ModelInfo(
+                    id="gpt-5-mini",
+                    name="GPT-5 mini",
+                    description="Reasoning mini model; used for the memory fold",
+                    supports_temperature=False,
+                    max_context_length=400000,
+                    cost_per_1k_input=0.25,
+                    cost_per_1k_output=2.0
+                ),
+                ModelInfo(
                     id="gpt-4o-mini",
                     name="GPT-4o Mini",
                     description="Fast and cost-effective model for most tasks",
@@ -94,6 +111,35 @@ class LLMBackendManager:
             default_base_url="https://api.anthropic.com",
             requires_api_key=True,
             models=[
+                # Claude 5.5 models cache prompts from a 512-token prefix; the
+                # 4.x models below need 2048 to 4096, so our prefix rarely caches there.
+                ModelInfo(
+                    id="claude-sonnet-5-5",
+                    name="Claude Sonnet 5.5",
+                    description="Current Sonnet — fast and capable",
+                    max_context_length=1000000,
+                    cost_per_1k_input=2.0,
+                    cost_per_1k_output=10.0,
+                    reasoning_effort="low"
+                ),
+                ModelInfo(
+                    id="claude-opus-5-5",
+                    name="Claude Opus 5.5",
+                    description="Current Opus — most capable",
+                    max_context_length=1000000,
+                    cost_per_1k_input=4.0,
+                    cost_per_1k_output=20.0,
+                    reasoning_effort="low"
+                ),
+                ModelInfo(
+                    id="claude-haiku-5-5",
+                    name="Claude Haiku 5.5",
+                    description="Current Haiku — fastest and cheapest",
+                    max_context_length=1000000,
+                    cost_per_1k_input=0.1,
+                    cost_per_1k_output=0.5,
+                    reasoning_effort="low"
+                ),
                 ModelInfo(
                     id="claude-sonnet-4-6",
                     name="Claude Sonnet 4.6",
@@ -402,6 +448,9 @@ class LLMBackendManager:
         if model_info.supports_temperature:
             kwargs["temperature"] = model_info.default_temperature
 
+        if model_info.reasoning_effort:
+            kwargs["reasoning_effort"] = model_info.reasoning_effort
+
         # Add max_tokens if supported
         if model_info.supports_max_tokens:
             kwargs["max_tokens"] = None  # Let model decide
@@ -445,7 +494,8 @@ class LLMBackendManager:
         # Create appropriate LLM instance based on provider
         if backend.provider == "openai":
             from langchain_openai import ChatOpenAI
-            logger.info(f"Creating ChatOpenAI with kwargs: {kwargs}")
+            kwargs.pop("reasoning_effort", None)
+            logger.info(f"Creating ChatOpenAI with kwargs: {_redact(kwargs)}")
             return ChatOpenAI(**kwargs)
 
         elif backend.provider == "anthropic":
@@ -453,10 +503,13 @@ class LLMBackendManager:
                 from langchain_anthropic import ChatAnthropic
                 # ChatAnthropic uses 'model_name' parameter (not 'model')
                 # But we need to handle other parameters differently
+                # No temperature: Anthropic API version 2026-10-21 (sent by the
+                # installed SDK) returns 400 for any sampling parameter.
                 anthropic_kwargs = {
                     "model_name": kwargs.get("model"),  # ChatAnthropic expects model_name
-                    "temperature": kwargs.get("temperature", 0.3),
                 }
+                if kwargs.get("reasoning_effort"):
+                    anthropic_kwargs["output_config"] = {"effort": kwargs["reasoning_effort"]}
 
                 # Add API key if present
                 if "api_key" in kwargs:
@@ -470,7 +523,7 @@ class LLMBackendManager:
                 # Filter out None values
                 anthropic_kwargs = {k: v for k, v in anthropic_kwargs.items() if v is not None}
 
-                logger.info(f"Creating ChatAnthropic with kwargs: {anthropic_kwargs}")
+                logger.info(f"Creating ChatAnthropic with kwargs: {_redact(anthropic_kwargs)}")
                 return ChatAnthropic(**anthropic_kwargs)
             except ImportError:
                 raise ImportError("langchain-anthropic not installed. Install with: pip install langchain-anthropic")

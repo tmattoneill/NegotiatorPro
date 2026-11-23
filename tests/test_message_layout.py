@@ -109,3 +109,19 @@ def test_retrieval_query_uses_last_user_turn():
     assert query == "u1\nq"
     long_history = [{"role": "user", "content": "x" * 5000}, {"role": "assistant", "content": "a"}]
     assert len(EnhancedNegotiationRAG._build_retrieval_query("q", long_history)) <= 1500 + 2
+
+
+class _Resp:
+    def __init__(self, content):
+        self.content = content
+
+
+def test_response_text_joins_text_blocks_and_skips_thinking():
+    blocks = [
+        {"type": "thinking", "thinking": "private"},
+        {"type": "text", "text": "Hello "},
+        {"type": "text", "text": "world"},
+    ]
+    assert EnhancedNegotiationRAG._response_text(_Resp(blocks)) == "Hello world"
+    assert EnhancedNegotiationRAG._response_text(_Resp("plain")) == "plain"
+    assert EnhancedNegotiationRAG._response_text("bare") == "bare"

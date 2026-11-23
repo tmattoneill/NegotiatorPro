@@ -157,7 +157,7 @@ Before this, every turn was a cold start: `get_advice` sent only the system prom
 
 **Verbatim window.** The newest turns of the current conversation are loaded from `chat_messages` and sent as real user/assistant messages. `conversation_memory.select_history_window` keeps whole turns within a token budget (chars/4), always at least `history_min_turns`, never more than `history_max_turns`. No model call.
 
-**Negotiation memory.** A compact markdown summary stored in `negotiations.memory`: state of play, offers on the table, agreed facts, open questions, user instructions and preferences, next steps. It spans every conversation in the negotiation. After a turn is saved, `maybe_refresh_memory` runs in the background and folds only the turns that have left the verbatim window since the last refresh (previous memory + dropped turns → new memory). It never runs on every turn, and on the first turns of a negotiation it does nothing at all. The fold uses a fixed cheap model on the system key (`gpt-4o-mini`), so it does not depend on the user's provider having a key. A failed fold leaves the old memory in place and is retried on the next save.
+**Negotiation memory.** A compact markdown summary stored in `negotiations.memory`: state of play, offers on the table, agreed facts, open questions, user instructions and preferences, next steps. It spans every conversation in the negotiation. After a turn is saved, `maybe_refresh_memory` runs in the background and folds only the turns that have left the verbatim window since the last refresh (previous memory + dropped turns → new memory). It never runs on every turn, and on the first turns of a negotiation it does nothing at all. The fold uses a fixed small reasoning model on the system key (`gpt-5-mini`; gpt-4o-mini recorded advisor suggestions as offers), so it does not depend on the user's provider having a key. A failed fold leaves the old memory in place and is retried on the next save.
 
 Config, in `config.json` under `chat_memory` (env overrides `CHAT_MEMORY_ENABLED`, `CHAT_MEMORY_WINDOW_TOKENS`, `CHAT_MEMORY_MIN_TURNS`, `CHAT_MEMORY_MAX_TURNS`):
 
@@ -166,7 +166,7 @@ Config, in `config.json` under `chat_memory` (env overrides `CHAT_MEMORY_ENABLED
 | `enabled` | `true` | Turn history and memory off entirely |
 | `history_window_tokens` | `7000` | Budget for the verbatim window |
 | `history_min_turns` / `history_max_turns` | `4` / `12` | Bounds on the window. The start steps by (max - min) turns rather than sliding by one, so the cached prefix stays stable for a run of turns |
-| `memory_refresh_model` | `gpt-4o-mini` | OpenAI model for the fold |
+| `memory_refresh_model` | `gpt-5-mini` | OpenAI model for the fold |
 | `memory_max_chars` | `4000` | Cap on the stored summary |
 
 Inspect a negotiation's memory with `GET /api/negotiations/{id}/memory?user_id=`. Super-admin chats have no conversation and stay stateless by design.

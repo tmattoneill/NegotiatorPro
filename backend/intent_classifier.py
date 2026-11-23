@@ -207,6 +207,14 @@ Cite the relevant framework or author by name. End with one follow-up question o
 Answer directly in a teaching style. Use headers only if the answer has genuinely distinct parts. Be concrete. End with one applied next step.""",
 }
 
+# Follow-up turns drop the "applied next step" trailer: a one-line recall
+# question does not want a next step bolted on.
+FOLLOWUP_GENERAL_FORMAT = """\
+## Response Format
+
+Answer directly. Use headers only if the answer has genuinely distinct parts. \
+Be concrete. Add a next step only when the question calls for one."""
+
 # Every assistant turn ends with a machine-readable PLEASE block so the gutter
 # keeps a running, conversation-level score — not just on ANALYSIS turns. Kept
 # terse for the non-analysis intents so it doesn't bloat a quick reply. ANALYSIS
@@ -224,6 +232,7 @@ Replace each N with the integer score. It must be the last thing in your respons
 
 for _intent in ("TACTICAL", "QUESTION", "GENERAL"):
     FORMAT_INSTRUCTIONS[_intent] += _PLEASE_TRAILER
+FOLLOWUP_GENERAL_FORMAT += _PLEASE_TRAILER
 
 # Prepended to the format instructions on follow-up turns. Without it the
 # model treats each request as a fresh brief and restates the whole situation

@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 # key: the fold is rare, small, and must not depend on whichever provider the
 # user chats with having a key configured.
 MEMORY_REFRESH_PROVIDER = "openai"
-MEMORY_REFRESH_MODEL = "gpt-4o-mini"
+MEMORY_REFRESH_MODEL = "gpt-5-mini"
 
 # Oldest turns past this cap are dropped from a single fold. Matches the
 # transcript cap used by the leverage/vitals analysis.
@@ -159,8 +159,13 @@ def select_history_window(
     min_turns: int,
     max_turns: int,
     total_turns: Optional[int] = None,
+    uncovered_rows: int = 0,
 ) -> list[dict]:
     """Pick the newest whole turns that fit the window and the budget.
+
+    uncovered_rows: rows the negotiation memory has not folded yet. The
+    window never drops below them, so a turn sent while a fold is still
+    running keeps the verbatim turns instead of losing them for one reply.
 
     rows: chronological chat_messages rows (role, content), at least the
     newest max_turns turns. They are paired into (user, assistant) turns from
@@ -194,13 +199,15 @@ def select_history_window(
 
     if total_turns is None or total_turns < len(turns):
         total_turns = len(turns)
-    keep = min(len(turns), window_turn_count(total_turns, min_turns, max_turns))
+    uncovered_turns = (max(0, uncovered_rows) + 1) // 2
+    keep = min(len(turns), max(window_turn_count(total_turns, min_turns, max_turns), uncovered_turns))
+    floor_turns = max(min_turns, uncovered_turns)
 
     selected: list[tuple[dict, dict]] = []
     spent = 0
     for user, assistant in turns[:keep]:  # newest first
         cost = estimate_tokens(user.get("content", "")) + estimate_tokens(assistant.get("content", ""))
-        if selected and len(selected) >= min_turns and spent + cost > budget_tokens:
+        if selected and len(selected) >= floor_turns and spent + cost > budget_tokens:
             break
         selected.append((user, assistant))
         spent += cost
@@ -330,19 +337,41 @@ async def next_window_rows(conversation_id: UUID, settings: dict) -> int:
     return len(window)
 
 
-async def load_history_window(conversation_id: UUID, settings: dict) -> list[dict]:
-    """The verbatim window for the next turn of a conversation, from the DB."""
+async def load_history_window(
+    conversation_id: UUID,
+    settings: dict,
+    negotiation_id: Optional[UUID] = None,
+    memory: Optional[dict] = None,
+) -> list[dict]:
+    """The verbatim window for the next turn of a conversation, from the DB.
+
+    With negotiation_id and memory, rows the memory has not folded yet stay in
+    the window (the fold runs in the background and can lose a race with a
+    quick follow-up). The fold planner calls this without them so its window
+    is the plain stepped one; otherwise the extension would hide the very rows
+    it should fold.
+    """
     from . import db_operations as db_ops
 
     max_turns = int(settings["history_max_turns"])
-    rows = await db_ops.get_recent_conversation_messages(conversation_id, limit=max_turns * 2)
     total_rows = await db_ops.count_conversation_messages(conversation_id)
+
+    uncovered_rows = 0
+    if negotiation_id is not None:
+        covered = int((memory or {}).get("source_message_count") or 0) if isinstance(memory, dict) else 0
+        negotiation_rows = await db_ops.count_negotiation_messages(negotiation_id)
+        uncovered_rows = min(total_rows, max(0, negotiation_rows - covered))
+
+    rows = await db_ops.get_recent_conversation_messages(
+        conversation_id, limit=max(max_turns * 2, uncovered_rows)
+    )
     return select_history_window(
         rows,
         budget_tokens=int(settings["history_window_tokens"]),
         min_turns=int(settings["history_min_turns"]),
         max_turns=max_turns,
         total_turns=total_rows // 2,
+        uncovered_rows=uncovered_rows,
     )
 
 
