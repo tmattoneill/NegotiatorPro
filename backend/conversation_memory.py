@@ -54,11 +54,19 @@ You maintain a compact working memory for an ongoing negotiation. You receive \
 the negotiation briefing, the previous memory, and the newest exchanges that \
 are about to leave the advisor's short-term context.
 
+The exchanges are between the user (the person negotiating) and their AI \
+advisor. The advisor never speaks to the counterparty. A figure or term the \
+advisor recommends is a suggestion, not an offer, until the user says they \
+have put it to the other side.
+
 Produce the UPDATED memory as markdown with exactly these headings, each a \
 short bullet list. Omit a heading only when it has nothing under it.
 
 ## State of play
 ## Offers on the table
+(Only terms one party has actually put to the other. Say who made each offer. \
+Never list the advisor's recommendations here.)
+## Advisor suggestions not yet acted on
 ## Agreed facts
 ## Open questions
 ## User instructions and preferences
@@ -68,16 +76,12 @@ Rules:
 - Merge, do not append. Rewrite each section so it reflects the latest state.
 - Drop items that have been superseded or resolved.
 - Keep numbers, names, dates and quoted terms exact.
-- The exchanges are between the user and their advisor. The advisor's \
-recommendations are not offers: record under "Offers on the table" only what \
-a party actually put to the other side, and put advisor suggestions the user \
-has not yet acted on under "Next steps".
 - Under "User instructions and preferences" keep any rule the user set about \
 how to advise them (for example who is or is not involved, tone, scope), \
 close to their own words.
 - Never invent. If something is unclear, record it as an open question.
 - Stay under {max_chars} characters.
-- Output the markdown only. No preamble, no closing remarks, no code fence."""
+- Output the markdown only, headings included. No preamble, no closing remarks, no code fence."""
 
 
 # ------------------------------------------------------------------
@@ -213,7 +217,12 @@ def format_dropped_turns(rows: list[dict]) -> str:
     """Render rows as a plain transcript for the fold prompt, newest last."""
     lines = []
     for row in rows:
-        speaker = "User" if row.get("role") == "user" else "Advisor"
+        # Small models conflate advice with action, so each advisor line says
+        # on its face that it went to the user, never to the counterparty.
+        if row.get("role") == "user":
+            speaker = "User (to advisor)"
+        else:
+            speaker = "Advisor (recommendation to the user, not sent to the counterparty)"
         lines.append(f"{speaker}: {(row.get('content') or '').strip()}")
     text = "\n\n".join(lines)
     if len(text) > _FOLD_CHAR_CAP:

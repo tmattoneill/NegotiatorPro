@@ -132,12 +132,12 @@ def test_fold_from_scratch():
 
 def test_refresh_returns_summary_and_sends_context():
     llm = _LLM(content="## State of play\n- early days")
-    out = refresh_memory("old memory", "User: hi\n\nAdvisor: hello", "## Briefing\nTitle: Deal", llm)
+    out = refresh_memory("old memory", "User (to advisor): hi\n\nAdvisor (recommendation to the user, not sent to the counterparty): hello", "## Briefing\nTitle: Deal", llm)
     assert out == "## State of play\n- early days"
     system, user = llm.calls[0]
     assert system["role"] == "system"
     assert "old memory" in user["content"]
-    assert "Advisor: hello" in user["content"]
+    assert "Advisor (recommendation to the user, not sent to the counterparty): hello" in user["content"]
     assert "Title: Deal" in user["content"]
 
 
@@ -175,7 +175,7 @@ def test_format_dropped_turns():
         {"role": "user", "content": " hi "},
         {"role": "assistant", "content": "hello"},
     ])
-    assert text == "User: hi\n\nAdvisor: hello"
+    assert text == "User (to advisor): hi\n\nAdvisor (recommendation to the user, not sent to the counterparty): hello"
 
 
 def test_estimate_tokens():
