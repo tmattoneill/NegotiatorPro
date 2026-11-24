@@ -77,9 +77,10 @@ Keep this file lean — put detail in `docs/`, not here.
 **Project:** Enhanced RAG-based negotiation guidance system with React frontend, FastAPI backend, multi-backend LLM support (OpenAI, Anthropic, Ollama), and document management.
 
 **Branch:** `main`
-**Last Updated:** 22/11/2026, 09:55:29
+**Last Updated:** 24/11/2026, 14:02:24
 
 ### Active Todos
+- [ ] [critical] Verify on prod that a pasted thread with Claude 5.5 quotes correct numbers (parting note priority) (`main`)
 - [ ] [high] Fix chat message typography: inconsistent fonts, sizes, and heading weights across markdown elements — needs a single coherent type scale applied to all rendered output (`main`)
 - [ ] [high] Add context switching between negotiation and sales modes: NLP auto-detect intent from the query and switch mode automatically, inform the user which mode is active, allow explicit override ("what's a good negotiation strategy..." always works regardless of current mode) (`main`)
 - [ ] [high] Create edit negotiation modal UI to utilize existing backend CRUD endpoints (`ux/negotiation-management`)
@@ -91,6 +92,7 @@ Keep this file lean — put detail in `docs/`, not here.
 - [ ] [high] Resume ux/negotiation-management: verify edit modal behavior end-to-end (validation, error states) before moving to delete confirmation work (`main`)
 - [ ] [high] Chat input dead-ends when no negotiation exists: the only create path is the tiny "+ New" in the sidebar, the disabled input gives no action, the welcome CTA vanishes once any message (even a rejected one) is shown, and the persona form reads as "negotiation setup". Fix: make the disabled input click/paste open the negotiation modal, add a persistent "New negotiation" banner above the input when none is selected, and open the modal after first persona save if the user has no negotiations. (`main`)
 - [ ] [high] NegotiationModal create is non-atomic and hides errors: it saves the user persona before validating the partner, so a partner validation failure leaves an orphan persona (prod 2026-11-22: "Matt ONEILL" persona created, no negotiation). The error renders at the top of a long scrolling modal, out of view of Save, so it looks like nothing happened. Partner is required but unmarked. Fix: validate all sections before any write, show the error beside Save and scroll to it, mark partner required. (`main`)
+- [ ] [high] Reproduce and fix the ModelSelector persistChoice PUT bug (sidebar vs Settings modal) (`main`)
 - [ ] [medium] Replace 'YOU' label with the active Persona Name in chat messages (`main`)
 - [ ] [medium] Show RAG source citations in right margin of chat messages, with hover tooltip revealing the relevant source text (`main`)
 - [ ] [medium] PDF upload: use Anthropic native document API (base64 document content block) instead of pypdf text extraction when backend is Anthropic — handles scanned PDFs via server-side OCR, same as claude.ai. Fall back to pypdf for OpenAI/Ollama. May need to bypass langchain-anthropic and call Anthropic SDK directly for the multipart message. (`main`)
@@ -107,8 +109,11 @@ Keep this file lean — put detail in `docs/`, not here.
 - [ ] [medium] Deploy idle-DB guard fails open: assert_no_idle_db in deploy/remote-deploy.sh and deploy/remote-promote.sh pipes sudo nsenter/ss into wc -l under || and if !, so if sudo, nsenter or ss errors the count prints 0 and the check passes. Capture ss output first, check its exit status, return non-zero on failure. (`main`)
 - [ ] [medium] First request after every backend start takes 15 to 17 s because RAG/backend-manager init probes the local Ollama six times at 2 s each (get_ollama_available_models on hosts with no Ollama). Skip the probe when OLLAMA_BASE_URL is unset or reuse the cached ollama_is_running() from backend/api/routes/models.py. (`main`)
 - [ ] [medium] Model picker never saves its choice onto the negotiation: ModelSelector.persistChoice should PUT /api/negotiations/{id} settings.provider/model, but dev logs on 2026-11-23 showed no PUT ever arrived while the user changed models. Reproduce in the browser (which control, sidebar dropdowns or Settings modal), check user/currentNegotiation are set at click time, and make the Settings modal provider select persist too. (`main`)
+- [ ] [medium] Merge or rebase ux/negotiation-management (d43d13c) onto current main before continuing delete-confirmation work (`main`)
+- [ ] [medium] Fix the startup Ollama probe causing 15-17s first-request delay (`main`)
 - [ ] [low] Partner copy-on-write: private partner copies created before migration 007 (e.g. "Partner - Buyer") have a NULL cloned_from, so the modal's "also update the shared template" option silently no-ops for them. Decide whether to backfill cloned_from for pre-existing copies or accept it (re-cloning fixes it going forward). (`main`)
 - [ ] [low] Document the branch cleanup process and merge criteria in DEPLOY.md or developer docs for future maintenance sessions (`main`)
 - [ ] [low] Delete the throwaway memtest_* users (and their negotiations) created on Neon dev and local Postgres by the 2026-11-22 memory end-to-end script; they hold the dev OpenAI key encrypted in provider_keys. (`main`)
+- [ ] [low] Clean up throwaway memtest_* users/negotiations on Neon dev and local Postgres (`main`)
 
 <!-- DEVCTX:END -->
